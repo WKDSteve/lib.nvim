@@ -151,6 +151,31 @@ return function(H)
   eq(disk.clear("plugin/section/entry", opts), true, "cache.disk: nested clear")
   eq(disk.load("plugin/section/entry", opts), nil, "cache.disk: nested load after clear")
 
+  -- A save goes through the atomic writer (temp file, flush, rename): a crash cannot leave the zero-filled file that
+  -- truncating in place leaves on NTFS, and no temp file stays behind.
+  do
+    local real_atomic = require("lib.nvim.fs.write.atomic")
+    local seen
+    package.loaded["lib.nvim.fs.write.atomic"] = function(target, content, ...)
+      seen = { path = target, content = content }
+      return real_atomic(target, content, ...)
+    end
+    local atomic_ok = disk.save("atomic-ns", { n = 1 }, opts)
+    package.loaded["lib.nvim.fs.write.atomic"] = real_atomic
+    eq(atomic_ok, true, "cache.disk: the atomic save succeeds")
+    ok(
+      seen and seen.path:match("atomic%-ns%.json$") ~= nil,
+      "cache.disk: save writes through lib.nvim.fs.write.atomic"
+    )
+    eq(#vim.fn.glob(dir .. "/atomic-ns.json.*", false, true), 0, "cache.disk: no temp file is left")
+    local back = disk.load("atomic-ns", opts)
+    ok(back ~= nil and back.n == 1, "cache.disk: the atomically written file loads")
+    -- a target that cannot be replaced is a failed save, not a half-written file
+    vim.fn.mkdir(dir .. "/blocked.json", "p")
+    local blocked_ok = disk.save("blocked", { n = 1 }, opts)
+    eq(blocked_ok, false, "cache.disk: a save that cannot replace the target reports failure")
+  end
+
   -- ------------------------------------------------------------ cache.memory
   local memory = require("lib.nvim.cache.memory")
 

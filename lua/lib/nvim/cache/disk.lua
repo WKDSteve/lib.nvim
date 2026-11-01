@@ -152,20 +152,12 @@ function M.save(namespace, data, opts)
     return false, "json encode failed"
   end
 
-  local file, err = io.open(path, "w")
-  if not file then
-    return false, "open failed: " .. (err or path)
-  end
-  -- Lua buffers writes, so a full disk or a read-only mount usually surfaces
-  -- on close rather than on write; both results have to be checked or a
-  -- truncated file is reported as saved.
-  local ok_write, write_err = file:write(encoded)
-  local ok_close, close_err = file:close()
+  -- Temp file, flushed, renamed over the target: a crash or power loss leaves the old content or the new, never the
+  -- zero-filled file `io.open(path, "w")` (truncate in place, write later) leaves on NTFS -- 29 telemetry caches were
+  -- found like that, all from the same minute, each read back as "corrupt" and the counts started again.
+  local ok_write, write_err = require("lib.nvim.fs.write.atomic")(path, encoded)
   if not ok_write then
     return false, "write failed: " .. tostring(write_err or path)
-  end
-  if not ok_close then
-    return false, "close failed: " .. tostring(close_err or path)
   end
 
   return true, nil
