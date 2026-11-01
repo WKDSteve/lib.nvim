@@ -4,6 +4,10 @@
 --- rewrite/move/delete across a whole project (a search-and-replace,
 --- a bulk rename, an API migration) rather than a single buffer edit.
 ---
+--- This is the catalogue's memento (`docs/patterns.md`): the snapshot lives on disk and restores
+--- files, so there is no separate `lib.lua.patterns.memento` to extract it into. It is not a
+--- `command` either: there is no undo/redo stack of actions, one checkpoint is restored whole.
+---
 --- "Byte-exact" is the point of using `fs_copyfile` rather than reading
 --- lines and writing them back: the latter can silently normalize line
 --- endings or encoding on restore, which defeats the purpose of a backup.

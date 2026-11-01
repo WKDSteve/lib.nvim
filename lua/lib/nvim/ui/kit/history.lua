@@ -21,6 +21,12 @@
 ---     move silently keeps the old value). `history.CLEAR` is the sentinel for
 ---     that.
 ---
+--- Why this is not built on `lib.lua.patterns.command`: that one keeps stacks of *actions* with an
+--- inverse (`run` returns what `undo` needs). This trail keeps *positions* (snapshots of the tracked
+--- keys), jumps by any delta, truncates the forward part on a move and drops a move that changes
+--- nothing -- a cursor over a list, not an undo log. Expressing it as commands would need a
+--- "navigate" command per move whose undo restores the old snapshot, i.e. the same list again.
+---
 --- The consumer keeps its own state table; the history snapshots the `keys`
 --- it was given out of it (shallow: a table value is shared between the state
 --- and the entries, so treat such values as immutable) and writes them back

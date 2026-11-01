@@ -29,6 +29,7 @@ require("lib.nvim.progress.@types")
 
 local resolve_style = require("lib.nvim.progress.resolve_style")
 local notify = require("lib.nvim.notify").create("[lib.nvim.progress]")
+local composite = require("lib.lua.patterns.composite")
 
 local M = {}
 
@@ -111,13 +112,6 @@ function M.create(opts)
 
   ---@type Lib.Progress.Fields
   local fields = {}
-  ---@type any[] index-aligned with `styles`
-  local style_states = {}
-  ---@type boolean[] index-aligned with `styles`; true once that style has
-  ---raised once -- skipped afterward so one broken renderer (a third-party
-  ---style, a closed window under "float"/"kit") can't stop every other style
-  ---in the list from ever rendering again for this handle
-  local style_failed = {}
   local started = false
   local done = false
   ---@type fun()[]
@@ -134,25 +128,83 @@ function M.create(opts)
     handle:request_cancel()
   end
 
+  -- One adapter per style owns that style's state and its failed flag, and never raises: a style that
+  -- raised once is skipped from then on, so one broken renderer (a third-party style, a closed window
+  -- under "float"/"kit") cannot stop the others from rendering for this handle. The adapters are the
+  -- children of a composite, which does the fan-out.
+  ---@param i integer
+  ---@param style Lib.Progress.StyleImpl
+  local function adapter(i, style)
+    local state, failed = nil, false
+    return {
+      start = function()
+        local ok, result = pcall(style.start, spec(), opts, request_cancel_cb)
+        if ok then
+          state = result
+        else
+          failed = true
+          notify.error(
+            ("style #%d failed to start, disabling it for this handle: %s"):format(
+              i,
+              tostring(result)
+            )
+          )
+        end
+      end,
+      update = function()
+        if failed then
+          return
+        end
+        local prior_state = state
+        local ok, result = pcall(style.update, state, spec(), opts)
+        if ok then
+          state = result
+        else
+          failed = true
+          notify.error(
+            ("style #%d failed to update, disabling it for this handle: %s"):format(
+              i,
+              tostring(result)
+            )
+          )
+          schedule_cleanup(style, prior_state, spec(), opts)
+        end
+      end,
+      finish = function()
+        if failed then
+          return
+        end
+        local ok, err = pcall(style.finish, state, spec(), opts)
+        if not ok then
+          notify.error(("style #%d failed to finish: %s"):format(i, tostring(err)))
+          schedule_cleanup(style, state, spec(), opts)
+        end
+      end,
+      cancel = function()
+        if failed then
+          return
+        end
+        local ok, err = pcall(style.cancel, state, spec(), opts)
+        if not ok then
+          notify.error(("style #%d failed to cancel: %s"):format(i, tostring(err)))
+          schedule_cleanup(style, state, spec(), opts)
+        end
+      end,
+    }
+  end
+
+  local adapters = {}
+  for i, style in ipairs(styles) do
+    adapters[i] = adapter(i, style)
+  end
+  local group = composite.new(adapters)
+
   local function do_start()
     if started or done then
       return
     end
     started = true
-    for i, style in ipairs(styles) do
-      local ok, result = pcall(style.start, spec(), opts, request_cancel_cb)
-      if ok then
-        style_states[i] = result
-      else
-        style_failed[i] = true
-        notify.error(
-          ("style #%d failed to start, disabling it for this handle: %s"):format(
-            i,
-            tostring(result)
-          )
-        )
-      end
-    end
+    group:call("start")
   end
 
   if delay_ms > 0 then
@@ -192,24 +244,7 @@ function M.create(opts)
         fields.total = new_fields.total
       end
       if started then
-        for i, style in ipairs(styles) do
-          if not style_failed[i] then
-            local prior_state = style_states[i]
-            local ok, result = pcall(style.update, style_states[i], spec(), opts)
-            if ok then
-              style_states[i] = result
-            else
-              style_failed[i] = true
-              notify.error(
-                ("style #%d failed to update, disabling it for this handle: %s"):format(
-                  i,
-                  tostring(result)
-                )
-              )
-              schedule_cleanup(style, prior_state, spec(), opts)
-            end
-          end
-        end
+        group:call("update")
       end
     end,
 
@@ -225,15 +260,7 @@ function M.create(opts)
       if not started then
         return -- never became visible; a fast operation stays silent
       end
-      for i, style in ipairs(styles) do
-        if not style_failed[i] then
-          local ok, err = pcall(style.finish, style_states[i], spec(), opts)
-          if not ok then
-            notify.error(("style #%d failed to finish: %s"):format(i, tostring(err)))
-            schedule_cleanup(style, style_states[i], spec(), opts)
-          end
-        end
-      end
+      group:call("finish")
     end,
 
     cancel = function(_, text)
@@ -248,15 +275,7 @@ function M.create(opts)
       if not started then
         return
       end
-      for i, style in ipairs(styles) do
-        if not style_failed[i] then
-          local ok, err = pcall(style.cancel, style_states[i], spec(), opts)
-          if not ok then
-            notify.error(("style #%d failed to cancel: %s"):format(i, tostring(err)))
-            schedule_cleanup(style, style_states[i], spec(), opts)
-          end
-        end
-      end
+      group:call("cancel")
     end,
 
     on_cancel = function(_, fn)

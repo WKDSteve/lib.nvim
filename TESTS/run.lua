@@ -98,6 +98,7 @@ local specs = {
   "listeners_spec.lua",
   "ordered_map_spec.lua",
   "hooks_equivalence_spec.lua",
+  "progress_fanout_spec.lua",
   "dev_deprecations_spec.lua",
   "dev_reload_spec.lua",
   "markdown_table_spec.lua",
