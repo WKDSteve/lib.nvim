@@ -72,8 +72,8 @@ local head = 1
 ---@type integer
 local count = 0
 
----@type fun(entry: Lib.Messages.Entry)[]
-local listeners = {}
+---A `lib.lua.listeners` list of `fun(entry: Lib.Messages.Entry)`.
+local listeners = require("lib.lua.listeners").new()
 
 -- `kind` -> `vim.log.levels` value, for `msg_show` events (Neovim gives no
 -- level of its own). Verified against a real TUI, not guessed from docs --
@@ -116,10 +116,10 @@ end
 ---Append `entry` into the ring (a true circular buffer: `head`/`count`
 ---index into a fixed-size `entries`, so both append and eviction are O(1)
 ---instead of shifting the whole array on every push once the ring is
----full). Notifies listeners after the entry is actually stored, over a
----snapshot of `listeners` -- a listener unsubscribing itself or another
----mid-dispatch (e.g. a "fire once" pattern via `off_message`) must not
----perturb the in-progress iteration and silently skip a later listener.
+---full). Notifies listeners after the entry is actually stored. A listener
+---unsubscribing itself or another mid-dispatch (e.g. a "fire once" pattern via
+---`off_message`) must not perturb the in-progress walk: the others are still
+---called, only the one that was removed is skipped.
 ---@param entry Lib.Messages.Entry
 local function store(entry)
   local ring_size = config.ring_size
@@ -134,15 +134,14 @@ local function store(entry)
       head = head % ring_size + 1
     end
   end
-  local snapshot = vim.list_extend({}, listeners)
-  for _, fn in ipairs(snapshot) do
+  listeners:each(function(fn)
     local ok, err = pcall(fn, entry)
     if not ok then
       vim.schedule(function()
         vim.notify(("[lib.nvim.messages] a listener errored: %s"):format(err), vim.log.levels.WARN)
       end)
     end
-  end
+  end)
 end
 
 ---@internal
@@ -401,7 +400,7 @@ end
 ---@param fn fun(entry: Lib.Messages.Entry)
 ---@return fun(entry: Lib.Messages.Entry)
 function M.on_message(fn)
-  listeners[#listeners + 1] = fn
+  listeners:add(fn)
   return fn
 end
 
@@ -444,12 +443,7 @@ end
 ---@param fn fun(entry: Lib.Messages.Entry)
 ---@return nil
 function M.off_message(fn)
-  for i, listener in ipairs(listeners) do
-    if listener == fn then
-      table.remove(listeners, i)
-      return
-    end
-  end
+  listeners:remove(fn)
 end
 
 ---@type Lib.Messages

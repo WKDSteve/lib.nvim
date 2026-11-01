@@ -10,6 +10,10 @@
 --- closed float on the next loop iteration) holds the registry busy with `hold()` until it has
 --- been delivered, so a waiting question never opens between the close and that answer.
 ---
+--- Not built on `lib.lua.listeners`: those are standing subscriptions, these are one-shot waiters. The
+--- list is drained when it is due and put back ahead of newer ones when a dialog opened meanwhile, which
+--- a list that keeps its entries cannot express.
+---
 --- Nothing here owns a window or a keymap. A float closed without `WinClosed` (never in practice)
 --- is dropped from `busy()` as soon as it is looked at, and the subscribers are woken by the next
 --- close.
