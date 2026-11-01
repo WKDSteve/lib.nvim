@@ -15,6 +15,7 @@ local map = require("lib.nvim.bindings.keymap")
 
 local api = vim.api
 local autocmd = require("lib.nvim.bindings.autocmd")
+local debounce = require("lib.nvim.debounce")
 
 local M = {}
 
@@ -109,13 +110,14 @@ function M.open(opts)
   -- below: closing the picker before the debounce fires -- whether via our
   -- own keymaps or an external `:q`/`:close`/`<C-w>c` -- must not leave a
   -- stray timer that calls `on_change` on a picker that no longer exists.
-  local timer
+  local pending = false -- a change is scheduled and has not been delivered yet
+  ---@type Lib.Debounce.Handle|nil  # created below, once `handle` exists
+  local change
 
   local function stop_timer()
-    if timer then
-      timer:stop()
-      pcall(timer.close, timer)
-      timer = nil
+    pending = false
+    if change then
+      change.cancel()
     end
   end
 
@@ -167,6 +169,10 @@ function M.open(opts)
   end
 
   local handle = { slots = group.slots }
+  change = debounce.new(function()
+    pending = false
+    on_change(handle.query())
+  end, debounce_ms)
 
   ---@return string
   function handle.query()
@@ -249,7 +255,7 @@ function M.open(opts)
   ---The typed words are applied with a debounce; an action that reads the list (current, marked, submit, a caller
   ---key) must see the list of what is in the prompt NOW, not of the previous keystroke.
   local function flush()
-    if timer then
+    if pending then
       stop_timer()
       on_change(handle.query())
     end
@@ -493,21 +499,8 @@ function M.open(opts)
 
   -- Debounced query notifications.
   local function schedule_change()
-    stop_timer()
-    timer = vim.uv.new_timer()
-    -- libuv returns nil rather than raising when it cannot allocate a
-    -- handle; without a timer the query simply is not re-run.
-    if not timer then
-      return
-    end
-    timer:start(
-      debounce_ms,
-      0,
-      vim.schedule_wrap(function()
-        stop_timer()
-        on_change(handle.query())
-      end)
-    )
+    pending = true
+    change.call()
   end
 
   -- Per-instance group (matches `resize_group` above): a fixed name here

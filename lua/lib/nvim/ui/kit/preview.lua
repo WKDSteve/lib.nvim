@@ -24,6 +24,7 @@ local theme = require("lib.nvim.ui.kit.theme")
 
 local api = vim.api
 local autocmd = require("lib.nvim.bindings.autocmd")
+local debounce = require("lib.nvim.debounce")
 
 local M = {}
 
@@ -269,32 +270,14 @@ function M.open()
   -- executes the buffer as Lua, so firing on every keystroke would run a
   -- pasted/completion-inserted fragment before it could be read. Waiting
   -- for EVAL_DEBOUNCE_MS of quiet gives a window to see and undo it first.
-  local render_timer
-  local function stop_render_timer()
-    if render_timer then
-      render_timer:stop()
-      pcall(render_timer.close, render_timer)
-      render_timer = nil
+  local render_debounce = debounce.new(function()
+    if api.nvim_buf_is_valid(config_buf) then
+      M.render(config_buf, preview_buf)
     end
-  end
+  end, EVAL_DEBOUNCE_MS)
+  local stop_render_timer = render_debounce.cancel
   local function schedule_render()
-    stop_render_timer()
-    render_timer = vim.uv.new_timer()
-    -- libuv returns nil rather than raising when it cannot allocate a
-    -- handle; without a timer the preview simply stops updating.
-    if not render_timer then
-      return
-    end
-    render_timer:start(
-      EVAL_DEBOUNCE_MS,
-      0,
-      vim.schedule_wrap(function()
-        stop_render_timer()
-        if api.nvim_buf_is_valid(config_buf) then
-          M.render(config_buf, preview_buf)
-        end
-      end)
-    )
+    render_debounce.call()
   end
 
   local group = autocmd.group("lib_kit_preview_" .. config_buf, true)

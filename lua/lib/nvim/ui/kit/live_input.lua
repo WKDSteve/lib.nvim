@@ -13,6 +13,7 @@ local input = require("lib.nvim.ui.kit.input")
 
 local api = vim.api
 local autocmd = require("lib.nvim.bindings.autocmd")
+local debounce = require("lib.nvim.debounce")
 -- A NUL byte in the title would raise E976 out of the width measured below.
 local nul_safe = require("lib.lua.strings.core").nul_safe
 
@@ -58,7 +59,6 @@ function M.open(opts)
   local on_change = opts.on_change or function(_) end
   local debounce_ms = tonumber(opts.debounce) or 80
   local done = false
-  local timer
 
   local function query()
     if not api.nvim_buf_is_valid(bufnr) then
@@ -67,32 +67,15 @@ function M.open(opts)
     return api.nvim_buf_get_lines(bufnr, 0, 1, false)[1] or ""
   end
 
-  local function stop_timer()
-    if timer then
-      timer:stop()
-      pcall(timer.close, timer)
-      timer = nil
+  local change = debounce.new(function()
+    if not done then
+      on_change(query())
     end
-  end
+  end, debounce_ms)
+  local stop_timer = change.cancel
 
   local function schedule_change()
-    stop_timer()
-    timer = vim.uv.new_timer()
-    -- libuv returns nil rather than raising when it cannot allocate a
-    -- handle; without a timer the query simply is not re-run.
-    if not timer then
-      return
-    end
-    timer:start(
-      debounce_ms,
-      0,
-      vim.schedule_wrap(function()
-        stop_timer()
-        if not done then
-          on_change(query())
-        end
-      end)
-    )
+    change.call()
   end
 
   local function finish(submit)

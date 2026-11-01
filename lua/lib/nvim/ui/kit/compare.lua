@@ -57,6 +57,7 @@ local notify = require("lib.nvim.notify").create("[lib.nvim.ui.kit.compare]")
 
 local api = vim.api
 local autocmd = require("lib.nvim.bindings.autocmd")
+local debounce = require("lib.nvim.debounce")
 
 local M = {}
 
@@ -205,13 +206,12 @@ function M.open(opts)
   -- `finalize_close` -- see `relayout` below.
   local resize_group
 
-  local debounce_timer
+  ---@type Lib.Debounce.Handle|nil  # created below, once `on_query_change` exists
+  local query_debounce
   ---@internal
   local function stop_debounce_timer()
-    if debounce_timer then
-      debounce_timer:stop()
-      pcall(debounce_timer.close, debounce_timer)
-      debounce_timer = nil
+    if query_debounce then
+      query_debounce.cancel()
     end
   end
 
@@ -319,27 +319,17 @@ function M.open(opts)
     render_preview()
   end
 
+  query_debounce = debounce.new(function(prompt_buf)
+    if not api.nvim_buf_is_valid(prompt_buf) then
+      return
+    end
+    on_query_change(api.nvim_buf_get_lines(prompt_buf, 0, 1, false)[1] or "")
+  end, 80)
+
   ---@internal
   ---@param prompt_buf integer
   local function schedule_change(prompt_buf)
-    stop_debounce_timer()
-    debounce_timer = vim.uv.new_timer()
-    -- libuv returns nil rather than raising when it cannot allocate a
-    -- handle; without a timer the query simply is not re-run.
-    if not debounce_timer then
-      return
-    end
-    debounce_timer:start(
-      80,
-      0,
-      vim.schedule_wrap(function()
-        stop_debounce_timer()
-        if not api.nvim_buf_is_valid(prompt_buf) then
-          return
-        end
-        on_query_change(api.nvim_buf_get_lines(prompt_buf, 0, 1, false)[1] or "")
-      end)
-    )
+    query_debounce.call(prompt_buf)
   end
 
   ---@internal
