@@ -11,6 +11,8 @@
 --- On POSIX these errors mean what they say, so retrying is off by default
 --- there (`M.defaults.attempts` is 1) and this stays a plain passthrough.
 
+local retry_backoff = require("lib.nvim.patterns.retry_backoff")
+
 local M = {}
 
 ---@internal
@@ -92,7 +94,9 @@ function M.retry(op, opts)
       -- Escalating backoff: 50ms, 100ms, 200ms, … An AV scan or an indexer
       -- pass takes longer than a watcher close, so a flat delay would either
       -- be wastefully long for the common case or too short for the rare one.
-      vim.wait(backoff_ms * math.pow(2, attempt - 1))
+      vim.wait(
+        retry_backoff.delay(attempt, { base_ms = backoff_ms, factor = 2, max_ms = math.huge })
+      )
     end
   end
   return false, err

@@ -7,6 +7,8 @@
 --- API and returns false/no-ops rather than raising -- callers often run
 --- from deferred callbacks where the handle may have died in the meantime.
 
+local retry_backoff = require("lib.nvim.patterns.retry_backoff")
+
 local M = {}
 
 ---Whether `winid`'s cursor is already on its buffer's last line. An invalid
@@ -59,11 +61,19 @@ function M.ensure_bottom(winid, opts)
 
   local attempts = opts.attempts or 1
   if attempts > 1 and not M.is_at_bottom(winid) then
-    vim.defer_fn(function()
-      if vim.api.nvim_win_is_valid(winid) then
-        M.ensure_bottom(winid, vim.tbl_extend("force", opts, { attempts = attempts - 1 }))
+    -- A flat delay (factor 1) and no cap: `attempts` total moves, `retry_delay_ms` apart. A window
+    -- that died meanwhile counts as "at bottom", which ends the retry.
+    retry_backoff.run(function(n, done)
+      if n > 1 then
+        M.ensure_bottom(winid, { retries = 0, attempts = 1 })
       end
-    end, opts.retry_delay_ms or 60)
+      done(M.is_at_bottom(winid))
+    end, {
+      max_attempts = attempts,
+      base_ms = opts.retry_delay_ms or 60,
+      factor = 1,
+      max_ms = math.huge,
+    })
   end
 end
 
