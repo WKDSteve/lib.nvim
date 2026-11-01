@@ -34,6 +34,11 @@ local M = {}
 function M.new(fn, ms)
   local timer = nil
   local closed = true
+  -- Bumped by every `call` and by `cancel`: a run that is already queued on the
+  -- main loop (the timer fired, `vim.schedule` has not run yet) is dropped when
+  -- either happened since, so `cancel()` really cancels and only the most
+  -- recent call's run is delivered.
+  local gen = 0
 
   local function close_timer()
     if timer and not closed then
@@ -48,6 +53,8 @@ function M.new(fn, ms)
   local function call(...)
     local args = { ... }
     local n = select("#", ...)
+    gen = gen + 1
+    local my_gen = gen
 
     if not timer or closed then
       timer = uv.new_timer()
@@ -60,19 +67,28 @@ function M.new(fn, ms)
     -- handle. Losing the debounce is bad; losing the call is worse.
     if not timer then
       vim.schedule(function()
-        fn(unpack(args, 1, n))
+        if my_gen == gen then
+          fn(unpack(args, 1, n))
+        end
       end)
       return
     end
 
     timer:start(ms, 0, function()
       vim.schedule(function()
+        if my_gen ~= gen then
+          return
+        end
+        -- The timer has done its job: release the handle now instead of
+        -- holding an idle one until the next call.
+        close_timer()
         fn(unpack(args, 1, n))
       end)
     end)
   end
 
   local function cancel()
+    gen = gen + 1
     close_timer()
   end
 

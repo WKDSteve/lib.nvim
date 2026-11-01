@@ -78,6 +78,7 @@ local specs = {
   "keymap_registry_spec.lua",
   "keymap_cheatsheet_spec.lua",
   "registry_spec.lua",
+  "debounce_spec.lua",
   "explorer_spec.lua",
   "count_spec.lua",
   "lastcmd_spec.lua",
