@@ -52,6 +52,21 @@ return function(H)
     "  t:start(10, 0, function() t:stop() t:close() end)",
     "end",
   })
+  -- A periodic timer whose start( call spans lines (casedesk's minute tick).
+  write("delta.nvim/lua/delta/tick.lua", {
+    "local timer",
+    "local function sync()",
+    "  if timer then return end",
+    "  timer = vim.uv.new_timer()",
+    "  timer:start(",
+    "    60000,",
+    "    60000,",
+    "    function() end",
+    "  )",
+    "end",
+    "local function stop() timer:stop() end",
+    "return { sync = sync, stop = stop }",
+  })
   write("delta.nvim/lua/delta/beat.lua", {
     "local heartbeat",
     "local function beat()",

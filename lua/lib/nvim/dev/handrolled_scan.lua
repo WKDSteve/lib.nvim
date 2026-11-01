@@ -100,8 +100,14 @@ local function analyse(code)
     if l:find("new_timer%s*%(") and not timer_line then
       timer_line = i
     end
-    if l:match(":start%(%s*[^,]+,%s*0%s*,") or l:match(":start%(%s*$") then
+    if l:match(":start%(%s*[^,]+,%s*0%s*,") then
       one_shot = true
+    elseif l:match(":start%(%s*$") then
+      -- multi-line call: the repeat is the second argument, two lines further down
+      local args = (code[i + 1] or "") .. (code[i + 2] or "")
+      if args:match("^%s*[^,]+,%s*0%s*,") then
+        one_shot = true
+      end
     end
   end
   if timer_line and one_shot then
