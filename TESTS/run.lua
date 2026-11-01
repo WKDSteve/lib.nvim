@@ -93,6 +93,7 @@ local specs = {
   "dev_duplicates_spec.lua",
   "dev_notify_scan_spec.lua",
   "dev_handrolled_scan_spec.lua",
+  "dev_handrolled_scan_restart_spec.lua",
   "dev_deprecations_spec.lua",
   "dev_reload_spec.lua",
   "markdown_table_spec.lua",

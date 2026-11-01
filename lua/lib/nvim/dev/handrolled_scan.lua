@@ -25,7 +25,8 @@
 ---     reason, for files that cannot carry a comment.
 ---
 --- Not scanned: `TESTS/`, `tests/`, `.deps/`, `.git/`, `node_modules/` and
---- `lib.nvim` itself (the shared modules are the reference, not a finding).
+--- `lib.nvim` itself (the shared modules are the reference, not a finding);
+--- `opts.include_self` scans it too, minus the pattern and reference modules.
 
 local M = {}
 
@@ -40,10 +41,20 @@ local M = {}
 ---@class Lib.Dev.HandrolledScan.Opts
 ---@field exclude? string[] Extra repo directory names to skip
 ---@field exceptions? table<string, string> `"repo"` or `"repo/rel/path.lua"` -> reason
+---@field include_self? boolean Also scan `lib.nvim` (minus its pattern and reference modules)
 
 local ALWAYS_EXCLUDED = { ["lib.nvim"] = true }
 local SKIP_DIRS =
   { TESTS = true, tests = true, [".deps"] = true, [".git"] = true, node_modules = true }
+
+-- With `include_self` the shared modules are still the reference, not a finding.
+local SELF_REFERENCE = {
+  "lua/lib/lua/patterns/",
+  "lua/lib/nvim/patterns/",
+  "lua/lib/nvim/debounce/",
+  "lua/lib/nvim/hooks/",
+  "lua/lib/nvim/dev/handrolled_scan.lua",
+}
 
 local HINTS = {
   debounce = "lib.nvim.debounce",
@@ -86,6 +97,61 @@ local function escape(s)
   return (s:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0"))
 end
 
+---@param line string
+---@return integer
+local function indent_of(line)
+  return #line:match("^%s*")
+end
+
+---Is the timer `name` stopped before it is created again, in the function body
+---that holds the `name = ...new_timer()` line? That is a restart per event
+---(debounce); a timeout is only stopped on completion, inside a sibling
+---function such as `finish`. Walks back from the create line, skipping whole
+---closed functions (a standalone `end` is matched to its opener by indent).
+---@param code string[]
+---@param name string
+---@return boolean
+local function restarts_before_create(code, name)
+  local pat = "^%s*" .. escape(name) .. "%s*=.*new_timer%s*%("
+  local n = escape(name)
+  for i, l in ipairs(code) do
+    if l:match(pat) then
+      local cur = indent_of(l)
+      local j = i - 1
+      while j >= 1 do
+        local prev = code[j]
+        if prev:match("%S") then
+          local ind = indent_of(prev)
+          if prev:match("^%s*end[%s%)%},]*$") then
+            local o = j - 1
+            while o >= 1 and not (code[o]:match("%S") and indent_of(code[o]) == ind) do
+              o = o - 1
+            end
+            if o >= 1 and code[o]:find("function", 1, true) then
+              j = o -- skip the closed function entirely
+            end
+          elseif ind < cur and prev:find("function", 1, true) then
+            break
+          else
+            if ind < cur then
+              cur = ind
+            end
+            if
+              prev:match(n .. ":stop%s*%(")
+              or prev:match(n .. ":close%s*%(")
+              or prev:match("%f[%w_]stop[%w_]*%s*%(")
+            then
+              return true
+            end
+          end
+        end
+        j = j - 1
+      end
+    end
+  end
+  return false
+end
+
 ---@param code string[]
 ---@return Lib.Dev.HandrolledScan.Finding[] findings Without repo/file
 local function analyse(code)
@@ -120,6 +186,21 @@ local function analyse(code)
             if
               c:match("^local%s+" .. escape(name) .. "%s*$")
               or c:match("^local%s+" .. escape(name) .. "%s*=%s*nil")
+            then
+              persistent = true
+              break
+            end
+          end
+        end
+        -- An indented `local timer` (a factory closure) counts only when it is
+        -- restarted per event, so a timeout stopped in `finish` stays quiet.
+        if not persistent then
+          for _, c in ipairs(code) do
+            if
+              (
+                c:match("^%s+local%s+" .. escape(name) .. "%s*$")
+                or c:match("^%s+local%s+" .. escape(name) .. "%s*=%s*nil")
+              ) and restarts_before_create(code, name)
             then
               persistent = true
               break
@@ -190,8 +271,9 @@ end
 ---@param repo_dir string
 ---@param repo string
 ---@param exceptions table<string, string>
+---@param include_self? boolean
 ---@return Lib.Dev.HandrolledScan.Finding[]
-local function scan_repo(repo_dir, repo, exceptions)
+local function scan_repo(repo_dir, repo, exceptions, include_self)
   local out = {}
   local files = {}
   for _, sub in ipairs({ "lua", "plugin" }) do
@@ -213,8 +295,17 @@ local function scan_repo(repo_dir, repo, exceptions)
   end
   table.sort(files)
 
+  local function is_reference(rel)
+    for _, prefix in ipairs(SELF_REFERENCE) do
+      if rel:sub(1, #prefix) == prefix then
+        return true
+      end
+    end
+    return false
+  end
+
   for _, rel in ipairs(files) do
-    if not exceptions[repo .. "/" .. rel] then
+    if not exceptions[repo .. "/" .. rel] and not (include_self and is_reference(rel)) then
       local lines = read_lines(repo_dir .. "/" .. rel)
       local excused = false
       local code = {}
@@ -241,7 +332,8 @@ end
 ---@return Lib.Dev.HandrolledScan.Finding[]
 function M.scan(root, opts)
   root = root or vim.fn.getcwd()
-  local skip = vim.tbl_extend("force", {}, ALWAYS_EXCLUDED)
+  local include_self = opts and opts.include_self or false
+  local skip = include_self and {} or vim.tbl_extend("force", {}, ALWAYS_EXCLUDED)
   for _, name in ipairs(opts and opts.exclude or {}) do
     skip[name] = true
   end
@@ -251,7 +343,7 @@ function M.scan(root, opts)
   for _, name in ipairs(vim.fn.readdir(root) or {}) do
     local dir = root .. "/" .. name
     if not skip[name] and not exceptions[name] and vim.fn.isdirectory(dir .. "/lua") == 1 then
-      vim.list_extend(all, scan_repo(dir, name, exceptions))
+      vim.list_extend(all, scan_repo(dir, name, exceptions, include_self))
     end
   end
   return all
@@ -316,7 +408,7 @@ function M.lines(root, opts)
   return lines
 end
 
----Expose `:<name> [path]` for the calling config. Put this call in **your own
+---Expose `:<name>[!] [path]` (the bang adds `include_self`) for the calling config. Put this call in **your own
 ---config**, not in a library, like every other `create_usercmd` in lib.nvim.
 ---@param name? string Default `LibHandrolledScan`
 ---@return nil
@@ -325,7 +417,7 @@ function M.create_usercmd(name)
   require("lib.nvim.bindings.usercmd").create(base, function(cmd_opts)
     local root = cmd_opts.args ~= "" and vim.fn.fnamemodify(cmd_opts.args, ":p"):gsub("[/\\]$", "")
       or nil
-    local lines = M.lines(root)
+    local lines = M.lines(root, { include_self = cmd_opts.bang })
     local ok, kit = pcall(require, "lib.nvim.ui.kit")
     if ok then
       kit.viewer({
@@ -338,6 +430,7 @@ function M.create_usercmd(name)
     end
   end, {
     nargs = "?",
+    bang = true,
     complete = "dir",
     desc = "Hand-rolled debounce / throttle / event emitters that lib.nvim already provides (warnings, LUA-09)",
   })

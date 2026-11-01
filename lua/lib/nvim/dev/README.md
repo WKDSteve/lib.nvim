@@ -87,15 +87,19 @@ rebuilt" is not greppable. Findings are warnings, never a gate.
 local scan = require("lib.nvim.dev.handrolled_scan")
 scan.scan("B:/repos", { exceptions = { ["repo/lua/x.lua"] = "why" } })
 scan.lines("B:/repos")   -- Markdown: summary table + one WARN line per finding
+scan.scan("B:/repos", { include_self = true })   -- also scan lib.nvim itself
 ```
 
-`handrolled_scan.create_usercmd()` registers `:LibHandrolledScan [path]` (call
-it from your own config). A line scanner with a heuristic, not a parser:
+`handrolled_scan.create_usercmd()` registers `:LibHandrolledScan[!] [path]` (call
+it from your own config; the bang sets `include_self`). A line scanner with a heuristic, not a parser:
 
 - **debounce**: the file creates a timer with `new_timer()`, starts one-shot
   (`:start(ms, 0, ...)`) and stops a *long-lived* handle (a field such as
-  `st.timer`, or a `local pending` at column 0). A one-shot local timer and a
-  periodic poll (`:start(every, every, ...)`) are not findings.
+  `st.timer`, or a `local pending` at column 0, or an indented `local timer` of
+  a factory closure that is stopped before `timer = ...new_timer()` in the same
+  function, i.e. restarted per event). A one-shot local timer, a timeout that
+  is only stopped on completion (`finish`) and a periodic poll
+  (`:start(every, every, ...)`) are not findings.
 - **throttle**: the file reads a clock (`uv.now()`, `hrtime()`, `os.clock()`)
   and subtracts a `last*` variable.
 - **emitter**: a `listeners`/`subscribers`/`observers` table plus an
@@ -103,7 +107,9 @@ it from your own config). A line scanner with a heuristic, not a parser:
 
 Exceptions: `-- handrolled-ok: <reason>` anywhere in the file, or
 `opts.exceptions` (`"repo"` or `"repo/lua/rel/path.lua"` -> reason). Skips
-`TESTS/`, `.deps/` and `lib.nvim` itself. Treat the output as a worklist: a
+`TESTS/`, `.deps/` and `lib.nvim` itself; `include_self` scans lib.nvim too but
+still leaves out `lua/lib/lua/patterns/`, `lua/lib/nvim/patterns/`, `debounce/`,
+`hooks/` and the scanner file (the reference modules). Treat the output as a worklist: a
 hit can be a false positive (a cleanup timer that is not an event debounce),
 so look before replacing.
 
