@@ -56,3 +56,4 @@ An unknown event name is an error in every call (a typo fails loudly instead of 
   never stops the pass. An entry of `extra` that is not callable counts the same way (a typo in a plugin's
   config is reported, not dropped). A throwing `on_error` does not escape either.
 - **Snapshot:** a hook that registers or removes hooks changes the next run, not the running one.
+- **Storage:** the registered hooks of an event live in a [`lib.lua.listeners`](../../lua/listeners/README.md) list (O(1) unregister, no array shifting); ordering by priority, veto, `short_circuit` and error isolation are `hooks`' own. `TESTS/hooks_equivalence_spec.lua` compares it with the original implementation over randomized operation sequences.

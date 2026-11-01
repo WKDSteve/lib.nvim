@@ -14,6 +14,8 @@
 --- may be a cleanup that has to see the event), `run` then returns `proceed = false`. Pass
 --- `short_circuit = true` to stop at the first veto instead. A veto of a non-vetoable event is ignored.
 
+local listeners = require("lib.lua.listeners")
+
 local M = {}
 
 ---@alias Lib.Hooks.Fn fun(ctx: any): boolean|nil
@@ -50,7 +52,7 @@ function M.new(opts)
       error("lib.nvim.hooks.new: event names must be non-empty strings", 2)
     end
     known[name] = true
-    list[name] = {}
+    list[name] = listeners.new()
     vetoable[name] = name:sub(1, 7) == "before_"
   end
   if opts.vetoable then
@@ -73,6 +75,26 @@ function M.new(opts)
       vim.notify(("hook '%s' errored: %s"):format(event, tostring(err)), vim.log.levels.WARN)
     end
 
+  -- Registered hooks live in one `lib.lua.listeners` list per event (in registration order, O(1)
+  -- unregister); priority, veto and error handling stay here.
+  ---@param a { priority: number, seq: integer }
+  ---@param b { priority: number, seq: integer }
+  local function before(a, b)
+    if a.priority ~= b.priority then
+      return a.priority < b.priority
+    end
+    return a.seq < b.seq -- stable: `seq` breaks priority ties
+  end
+
+  ---The live entries of `event` by ascending priority, equal priorities in registration order.
+  ---@param event string
+  ---@return { fn: function, priority: number, seq: integer }[]
+  local function ordered(event)
+    local entries = list[event]:values()
+    table.sort(entries, before)
+    return entries
+  end
+
   local seq = 0
   ---@diagnostic disable-next-line: missing-fields
   ---@type Lib.Hooks.Registry
@@ -90,34 +112,16 @@ function M.new(opts)
       error("lib.nvim.hooks: priority must be a number", 2)
     end
     seq = seq + 1
-    local entry = { fn = fn, priority = priority or 0, seq = seq }
-    local entries = list[event]
-    entries[#entries + 1] = entry
-    -- Stable by construction: `seq` breaks priority ties.
-    table.sort(entries, function(a, b)
-      if a.priority ~= b.priority then
-        return a.priority < b.priority
-      end
-      return a.seq < b.seq
-    end)
-    return function()
-      for i, e in ipairs(list[event]) do
-        if e == entry then
-          table.remove(list[event], i)
-          return
-        end
-      end
-    end
+    return list[event]:add({ fn = fn, priority = priority or 0, seq = seq })
   end
 
   function reg.off(event, fn)
     if not known[event] then
       bad(event, "unregister")
     end
-    for i, e in ipairs(list[event]) do
+    for _, e in ipairs(ordered(event)) do
       if e.fn == fn then
-        table.remove(list[event], i)
-        return true
+        return list[event]:remove(e)
       end
     end
     return false
@@ -125,22 +129,22 @@ function M.new(opts)
 
   function reg.clear(event)
     if event == nil then
-      for name in pairs(list) do
-        list[name] = {}
+      for _, entries in pairs(list) do
+        entries:clear()
       end
       return
     end
     if not known[event] then
       bad(event, "clear")
     end
-    list[event] = {}
+    list[event]:clear()
   end
 
   function reg.count(event)
     if not known[event] then
       bad(event, "count")
     end
-    return #list[event]
+    return list[event]:count()
   end
 
   function reg.run(event, ctx, extra)
@@ -158,7 +162,7 @@ function M.new(opts)
       fns[1] = extra
     end
     -- A snapshot: a hook that registers or removes hooks does not change this run.
-    for _, e in ipairs(list[event]) do
+    for _, e in ipairs(ordered(event)) do
       fns[#fns + 1] = e.fn
     end
 
