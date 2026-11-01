@@ -40,7 +40,7 @@ explorer.register({
 | `adapters()` | all adapters, in registration order (a fresh list) |
 | `detect(buf?)` | the adapter that owns `buf` (default: current buffer), or `nil` |
 | `current(buf?)` | its name, or `nil` |
-| `current_path(buf?)` | the path under the cursor, or `nil` |
+| `current_path(buf?)` | the path under the cursor of a window showing `buf` (read in that window), or `nil` |
 | `reload_all()` | reload every adapter whose `module` is loaded; returns the names that succeeded |
 | `reset()` | back to the four built-ins (tests) |
 

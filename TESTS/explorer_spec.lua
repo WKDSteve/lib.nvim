@@ -53,6 +53,19 @@ return function(H)
   vim.b[nb].netrw_curdir = nil
   eq(explorer.current_path(nb), nil, "no curdir, no path")
 
+  -- Asked about a buffer that is not the current one: read the cursor of ITS window.
+  vim.b[nb].netrw_curdir = "/x/y"
+  vim.cmd("vsplit")
+  vim.api.nvim_set_current_buf(plain)
+  eq(
+    explorer.current_path(nb),
+    "/x/y/foo.txt",
+    "a buffer shown in another window answers from that window"
+  )
+  vim.api.nvim_win_set_buf(vim.fn.win_findbuf(nb)[1], plain)
+  eq(explorer.current_path(nb), nil, "a buffer shown nowhere has no cursor to read")
+  vim.cmd("only")
+
   -- Built-ins through fake plugin modules.
   local reloads = {}
   package.loaded["oil"] = {
@@ -81,6 +94,7 @@ return function(H)
       end,
     },
   }
+  vim.api.nvim_set_current_buf(oil_buf)
   eq(explorer.current_path(oil_buf), "/proj/a.lua", "oil: dir plus cursor entry")
   local nt = buf_with("NvimTree")
   eq(explorer.current_path(nt), "/proj/b.lua", "nvim-tree: absolute path of the node")
@@ -132,6 +146,7 @@ return function(H)
     end,
   })
   eq(names(), "neo-tree,nvim-tree,netrw,oil,fake,byname", "replace keeps the position")
+  vim.api.nvim_set_current_buf(fb)
   eq(explorer.current_path(fb), "/second", "the replacement answers")
 
   -- Failure isolation.

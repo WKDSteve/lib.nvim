@@ -187,7 +187,7 @@ function M.current(buf)
   return adapter and adapter.name or nil
 end
 
----Path under the cursor when `buf` (default: current) is an explorer buffer, else nil.
+---Path under the cursor when `buf` (default: current) is an explorer buffer shown in a window, else nil.
 ---@param buf? integer
 ---@return string|nil
 function M.current_path(buf)
@@ -198,7 +198,15 @@ function M.current_path(buf)
   if not adapter or not adapter.current_path then
     return nil
   end
-  local ok, path = pcall(adapter.current_path, buf)
+  -- The adapters read the cursor of the *current* window: run them in a window that shows `buf`.
+  local win = vim.api.nvim_get_current_buf() == buf and vim.api.nvim_get_current_win()
+    or vim.fn.win_findbuf(buf)[1]
+  if not win then
+    return nil
+  end
+  local ok, path = pcall(vim.api.nvim_win_call, win, function()
+    return adapter.current_path(buf)
+  end)
   if ok and type(path) == "string" and path ~= "" then
     return path
   end
