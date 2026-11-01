@@ -6,44 +6,31 @@
 
 require("lib.nvim.progress.@types")
 
+---Style name -> module that implements it. "float"/"kit" are opt-in only: both are more intrusive
+---(an interactive window) and must be requested explicitly, never picked automatically.
+---@type table<string, string>
+local STYLES = {
+  statusline = "lib.nvim.progress.styles.statusline",
+  echo = "lib.nvim.progress.styles.echo",
+  fidget = "lib.nvim.progress.styles.fidget",
+  notify = "lib.nvim.progress.styles.notify",
+  float = "lib.nvim.progress.styles.float",
+  kit = "lib.nvim.progress.styles.kit",
+}
+
+local FALLBACK = "lib.nvim.progress.styles.notify"
+
 ---@internal
 ---@param want Lib.Progress.Style|nil
 ---@return Lib.Progress.StyleImpl
 local function resolve_style(want)
-  if want == "statusline" then
-    return (require("lib.nvim.progress.styles.statusline"))
+  -- "auto" (default) or unrecognized: prefer fidget, else notify
+  local module = STYLES[want or "auto"] or STYLES.fidget
+  -- fidget is a soft dependency: without it the always-available notify style takes over
+  if module == STYLES.fidget and not pcall(require, "fidget") then
+    module = FALLBACK
   end
-
-  if want == "echo" then
-    return (require("lib.nvim.progress.styles.echo"))
-  end
-
-  if want == "fidget" then
-    if pcall(require, "fidget") then
-      return (require("lib.nvim.progress.styles.fidget"))
-    end
-    return (require("lib.nvim.progress.styles.notify"))
-  end
-
-  if want == "notify" then
-    return (require("lib.nvim.progress.styles.notify"))
-  end
-
-  if want == "float" then
-    return (require("lib.nvim.progress.styles.float"))
-  end
-
-  if want == "kit" then
-    return (require("lib.nvim.progress.styles.kit"))
-  end
-
-  -- "auto" (default) or unrecognized: prefer fidget, else notify.
-  -- "float"/"kit" are opt-in only: both are more intrusive (an interactive
-  -- window) and must be requested explicitly, never picked automatically.
-  if pcall(require, "fidget") then
-    return (require("lib.nvim.progress.styles.fidget"))
-  end
-  return (require("lib.nvim.progress.styles.notify"))
+  return (require(module))
 end
 
 return resolve_style
