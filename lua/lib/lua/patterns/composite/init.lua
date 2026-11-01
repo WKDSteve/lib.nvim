@@ -14,6 +14,10 @@
 
 require("lib.lua.patterns.composite.@types")
 
+local listeners = require("lib.lua.listeners")
+local varargs = require("lib.lua.functions.varargs")
+local pack, unpack = varargs.pack, varargs.unpack
+
 local M = {}
 
 ---@class Lib.Patterns.Composite
@@ -23,9 +27,9 @@ C.__index = C
 ---@param children table[]|nil
 ---@return Lib.Patterns.Composite
 function M.new(children)
-  local items = {}
-  for i, child in ipairs(children or {}) do
-    items[i] = child
+  local items = listeners.new()
+  for _, child in ipairs(children or {}) do
+    items:add(child)
   end
   return setmetatable({ items = items, is_composite = true }, C)
 end
@@ -36,25 +40,19 @@ function C:add(child)
   if type(child) ~= "table" then
     error("composite.add: child must be a table", 2)
   end
-  self.items[#self.items + 1] = child
+  self.items:add(child)
   return self
 end
 
 ---@param child table
 ---@return boolean
 function C:remove(child)
-  for i, c in ipairs(self.items) do
-    if c == child then
-      table.remove(self.items, i)
-      return true
-    end
-  end
-  return false
+  return self.items:remove(child)
 end
 
 ---@return integer
 function C:size()
-  return #self.items
+  return self.items:count()
 end
 
 ---Call `method` on every child. Errors in one child do not stop the others; they are returned.
@@ -64,19 +62,17 @@ end
 ---@return any[] errors
 function C:call(method, ...)
   local results, errors = {}, {}
-  -- iterate a snapshot: a child may add or remove children (itself included) while being called
-  local snapshot = {}
-  for i, c in ipairs(self.items) do
-    snapshot[i] = c
-  end
-  for _, child in ipairs(snapshot) do
+  local args = pack(...)
+  -- a child may add or remove children (itself included) while being called: the walk covers the
+  -- children present when it started and skips the ones removed meanwhile
+  self.items:each(function(child)
     local group = type(child) == "table" and child.is_composite
     if group or (type(child) == "table" and type(child[method]) == "function") then
       local ok, res, child_errors
       if group then
-        ok, res, child_errors = pcall(child.call, child, method, ...)
+        ok, res, child_errors = pcall(child.call, child, method, unpack(args, 1, args.n))
       else
-        ok, res = pcall(child[method], child, ...)
+        ok, res = pcall(child[method], child, unpack(args, 1, args.n))
       end
       if ok then
         results[#results + 1] = res
@@ -87,7 +83,7 @@ function C:call(method, ...)
         errors[#errors + 1] = res
       end
     end
-  end
+  end)
   return results, errors
 end
 

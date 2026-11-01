@@ -19,6 +19,8 @@
 
 require("lib.lua.patterns.state_machine.@types")
 
+local listeners = require("lib.lua.listeners")
+
 local M = {}
 
 ---@param from string|string[]
@@ -67,7 +69,7 @@ function M.new(spec)
     spec = spec,
     current = spec.initial,
     ctx = spec.ctx or {},
-    listeners = {},
+    listeners = listeners.new(),
   }, SM)
 end
 
@@ -148,13 +150,9 @@ function SM:fire(event, ...)
   end
   self.current = to
   -- listeners run before on_enter, so a fire() made inside on_enter reports its change after this one
-  local snapshot = {}
-  for i, l in ipairs(self.listeners) do
-    snapshot[i] = l
-  end
-  for _, l in ipairs(snapshot) do
+  self.listeners:each(function(l)
     pcall(l, to, from, event)
-  end
+  end)
   local enter = (self.spec.on_enter or {})[to]
   if enter then
     enter(from, event, self.ctx)
@@ -169,15 +167,7 @@ function SM:on_change(fn)
   if type(fn) ~= "function" then
     error("state_machine.on_change: listener must be a function", 2)
   end
-  self.listeners[#self.listeners + 1] = fn
-  return function()
-    for i, l in ipairs(self.listeners) do
-      if l == fn then
-        table.remove(self.listeners, i)
-        return
-      end
-    end
-  end
+  return self.listeners:add(fn)
 end
 
 return M

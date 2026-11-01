@@ -35,6 +35,8 @@ sm:can("start")  --> false
 | `sm:can(event)` / `sm:is(s)` / `sm:state()` | inspect |
 | `sm:on_change(fn)` | subscribe `fn(new, old, event)`, returns unsubscribe |
 
+Listeners live in a [`lib.lua.listeners`](../../listeners/README.md) list: one unsubscribed by an earlier listener during the same change is skipped, one added meanwhile is not called by it.
+
 ## When it helps / when it does not (Lua view)
 
 - **Helps when:** a lifecycle has four or more states with rules about what may follow what (test-run phases, a markdown block parser, connection handling).

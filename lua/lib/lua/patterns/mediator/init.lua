@@ -16,6 +16,10 @@
 
 require("lib.lua.patterns.mediator.@types")
 
+local listeners = require("lib.lua.listeners")
+local varargs = require("lib.lua.functions.varargs")
+local pack, unpack = varargs.pack, varargs.unpack
+
 local M = {}
 
 ---@class Lib.Patterns.Mediator
@@ -24,7 +28,7 @@ D.__index = D
 
 ---@return Lib.Patterns.Mediator
 function M.new()
-  return setmetatable({ components = {}, order = {} }, D)
+  return setmetatable({ components = {}, order = listeners.new(), offs = {} }, D)
 end
 
 ---@param name string
@@ -38,7 +42,7 @@ function D:register(name, component)
     error("mediator.register: component needs a handle function", 2)
   end
   if not self.components[name] then
-    self.order[#self.order + 1] = name
+    self.offs[name] = self.order:add(name)
   end
   self.components[name] = component
   return self
@@ -51,12 +55,8 @@ function D:unregister(name)
     return false
   end
   self.components[name] = nil
-  for i, n in ipairs(self.order) do
-    if n == name then
-      table.remove(self.order, i)
-      break
-    end
-  end
+  self.offs[name]()
+  self.offs[name] = nil
   return true
 end
 
@@ -83,30 +83,24 @@ end
 ---@return any[] errors
 function D:broadcast(from, message, ...)
   local reached, errors = 0, {}
-  local names = {}
-  for i, n in ipairs(self.order) do
-    names[i] = n
-  end
-  for _, name in ipairs(names) do
+  local args = pack(...)
+  -- components registered meanwhile are not reached; ones unregistered meanwhile are skipped
+  self.order:each(function(name)
     local comp = self.components[name]
     if name ~= from and comp then
       reached = reached + 1
-      local ok, err = pcall(comp.handle, from, message, ...)
+      local ok, err = pcall(comp.handle, from, message, unpack(args, 1, args.n))
       if not ok then
         errors[#errors + 1] = err == nil and "nil error" or err
       end
     end
-  end
+  end)
   return reached, errors
 end
 
 ---@return string[]
 function D:names()
-  local out = {}
-  for i, n in ipairs(self.order) do
-    out[i] = n
-  end
-  return out
+  return self.order:values()
 end
 
 return M

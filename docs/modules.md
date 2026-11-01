@@ -41,6 +41,7 @@ aggregator exists for convenience, not as the entry point.
 | [`lib.lua.json`](../lua/lib/lua/json/README.md) | `decode` (coerce an already-decoded JSON-shaped value to `string[]`, not a parser — see `vim.json.decode` for that) + `encode` (pure-Lua JSON encoder, callable + `.pretty`) |
 | [`lib.lua.memo`](../lua/lib/lua/memo/README.md) | memoization                          |
 | [`lib.lua.lazy`](../lua/lib/lua/lazy/README.md) | lazy-`require` proxy                 |
+| [`lib.lua.listeners`](../lua/lib/lua/listeners/README.md) | ordered listener list, safe to change while walked (core of `event_bus`, `mediator`, `reducer`, `state_machine`, `composite`) |
 | [`lib.lua.class`](../lua/lib/lua/class/README.md) | prototype OOP: `new`/`extend`/`include` mixins |
 | [`lib.lua.context_manager`](../lua/lib/lua/context_manager/README.md) | try/finally: `with(acquire, release, body)` |
 | [`lib.lua.config`](../lua/lib/lua/config/README.md) | pure helpers for the "defaults + user overrides" config-store pattern: `new` (config object: layers, schema inferred from DEFAULTS, `setup`/`get`/`snapshot`/`issues`), `copy`, `deep_merge` (no table shared with its arguments), `get(tbl, path)`; [`.schema`](../lua/lib/lua/config/schema/README.md): option specs (`check`, `check_record`, `infer`) |

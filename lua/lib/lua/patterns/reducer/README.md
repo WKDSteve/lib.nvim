@@ -32,6 +32,8 @@ store:dispatch({ type = "add", item = "x" })
 | `store(reduce, initial)` | `s:state()`, `s:dispatch(action)`, `s:subscribe(fn)` (returns unsubscribe) |
 | `combine(slices)` | reducer for `{ slice = state }`; returns the same table when no slice changed |
 
+Subscribers are kept in a [`lib.lua.listeners`](../../listeners/README.md) list: a subscriber that was unsubscribed by an earlier one during the same dispatch is skipped, one added meanwhile is not called by it.
+
 ## When it helps / when it does not (Lua view)
 
 - **Helps when:** UI state has many writers (keymaps, async results, timers) and bugs come from unclear update order.

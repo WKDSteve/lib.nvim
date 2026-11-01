@@ -19,7 +19,7 @@
 ---@field spec Lib.Patterns.StateMachine.Spec
 ---@field current string
 ---@field ctx table
----@field listeners function[]
+---@field listeners any # a lib.lua.listeners list (this check does not see its type)
 ---@field state fun(self: Lib.Patterns.StateMachine): string
 ---@field is fun(self: Lib.Patterns.StateMachine, s: string): boolean
 ---@field can fun(self: Lib.Patterns.StateMachine, event: string): boolean

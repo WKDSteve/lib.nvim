@@ -19,6 +19,8 @@
 
 require("lib.lua.patterns.reducer.@types")
 
+local listeners = require("lib.lua.listeners")
+
 local M = {}
 
 ---@class Lib.Patterns.ReducerStore
@@ -32,7 +34,7 @@ function M.store(reduce, initial)
   if type(reduce) ~= "function" then
     error("reducer.store: reduce must be a function", 2)
   end
-  return setmetatable({ reduce = reduce, current = initial, listeners = {} }, S)
+  return setmetatable({ reduce = reduce, current = initial, listeners = listeners.new() }, S)
 end
 
 ---@return any
@@ -52,13 +54,9 @@ function S:dispatch(action)
   local old = self.current
   self.current = new
   if new ~= old then
-    local snapshot = {}
-    for i, l in ipairs(self.listeners) do
-      snapshot[i] = l
-    end
-    for _, l in ipairs(snapshot) do
+    self.listeners:each(function(l)
       pcall(l, new, old, action)
-    end
+    end)
   end
   return true, new
 end
@@ -69,15 +67,7 @@ function S:subscribe(fn)
   if type(fn) ~= "function" then
     error("reducer.subscribe: listener must be a function", 2)
   end
-  self.listeners[#self.listeners + 1] = fn
-  return function()
-    for i, l in ipairs(self.listeners) do
-      if l == fn then
-        table.remove(self.listeners, i)
-        return
-      end
-    end
-  end
+  return self.listeners:add(fn)
 end
 
 ---Combine slice reducers: the state is a table `{ slice = state }`. A slice reducer that returns the same

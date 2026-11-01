@@ -3,7 +3,8 @@
 
 ---@class Lib.Patterns.Mediator
 ---@field components table<string, { handle: function }>
----@field order string[]
+---@field order any # a lib.lua.listeners list (this check does not see its type)
+---@field offs table<string, fun()>
 ---@field register fun(self: Lib.Patterns.Mediator, name: string, component: { handle: function }): Lib.Patterns.Mediator
 ---@field unregister fun(self: Lib.Patterns.Mediator, name: string): boolean
 ---@field send fun(self: Lib.Patterns.Mediator, from: string, to: string, message: any, ...: any): any
