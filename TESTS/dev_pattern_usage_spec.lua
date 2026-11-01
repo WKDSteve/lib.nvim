@@ -61,6 +61,9 @@ return function(H)
   )
   eq(out[7], doc[7], "prose is untouched")
 
+  local _, no_rows = pu.sync_lines({ "# no table here", "text" }, usage)
+  eq(no_rows, 0, "a document without catalogue tables has no rows")
+
   local again = pu.sync_lines(out, usage)
   eq(table.concat(again, "|"), table.concat(out, "|"), "a second run changes nothing")
   usage["lib.nvim.debounce"].consumers = { "z.nvim" }

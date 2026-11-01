@@ -102,6 +102,19 @@ return function(H)
     end)
     eq(n, 1, "clear stops a running walk")
     eq(l7:count(), 0)
+
+    -- clearing an empty list is not "the last value went"
+    local fired = 0
+    local l8 = listeners.new({
+      on_empty = function()
+        fired = fired + 1
+      end,
+    })
+    l8:clear()
+    eq(fired, 0, "clear on an empty list does not fire on_empty")
+    l8:add(1)
+    l8:clear()
+    eq(fired, 1, "clear on a filled list fires it once")
   end
 
   -- ------------------------------------------------------------------ one behaviour, five modules

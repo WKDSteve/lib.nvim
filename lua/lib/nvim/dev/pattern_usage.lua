@@ -208,6 +208,9 @@ function M.sync(opts)
     return nil, "cannot read " .. path
   end
   local after, rows = M.sync_lines(before, usage)
+  if rows == 0 then
+    return nil, "no catalogue rows found in " .. path
+  end
   local changed = not vim.deep_equal(before, after)
   if changed and not opts.check then
     vim.fn.writefile(after, path)

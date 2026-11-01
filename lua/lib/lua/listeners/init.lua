@@ -143,6 +143,9 @@ end
 
 ---Drop every entry; a running `each` stops calling them.
 function L:clear()
+  if #self.items == 0 then
+    return
+  end
   for _, e in ipairs(self.items) do
     e.removed = true
   end

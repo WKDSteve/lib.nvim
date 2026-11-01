@@ -136,10 +136,19 @@ local function restarts_before_create(code, name)
             if ind < cur then
               cur = ind
             end
+            if prev:match(n .. ":stop%s*%(") or prev:match(n .. ":close%s*%(") then
+              return true
+            end
+            -- a stop helper (`stop_timer()`, `stop_render_timer()`) counts when it is about this
+            -- timer; an unrelated `stop_spinner()` before a timeout does not
+            local helper = prev:match("%f[%w_](stop[%w_]*)%s*%(")
             if
-              prev:match(n .. ":stop%s*%(")
-              or prev:match(n .. ":close%s*%(")
-              or prev:match("%f[%w_]stop[%w_]*%s*%(")
+              helper
+              and (
+                helper:find("timer", 1, true)
+                or helper:find("debounce", 1, true)
+                or helper:find(name, 1, true)
+              )
             then
               return true
             end
@@ -408,8 +417,8 @@ function M.lines(root, opts)
   return lines
 end
 
----Expose `:<name>[!] [path]` (the bang adds `include_self`) for the calling config. Put this call in **your own
----config**, not in a library, like every other `create_usercmd` in lib.nvim.
+---Expose `:<name>[!] [path]` for the calling config (the bang adds `include_self`). Put this call in
+---**your own config**, not in a library, like every other `create_usercmd` in lib.nvim.
 ---@param name? string Default `LibHandrolledScan`
 ---@return nil
 function M.create_usercmd(name)

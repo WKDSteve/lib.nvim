@@ -67,6 +67,20 @@ return function(H)
     "end",
   })
 
+  -- An unrelated stop helper before a timeout is not a restart.
+  write("kit.nvim/lua/kit/spinner.lua", {
+    "local function run(opts)",
+    "  local timer",
+    "  local function stop_spinner() end",
+    "  local function arm()",
+    "    stop_spinner()",
+    "    timer = vim.uv.new_timer()",
+    "    timer:start(opts.timeout_ms, 0, function() timer:close() end)",
+    "  end",
+    "  return arm",
+    "end",
+  })
+
   -- lib.nvim-like tree: patterns/ emits, ui/kit debounces, hooks/ is reference.
   write("lib.nvim/lua/lib/lua/patterns/bus/init.lua", {
     "local listeners = {}",
@@ -94,6 +108,7 @@ return function(H)
   eq(by["kit.nvim:lua/kit/live.lua"], "debounce", "indented timer with a stop helper is a debounce")
   eq(by["kit.nvim:lua/kit/inline.lua"], "debounce", "indented timer stopped inline is a debounce")
   eq(by["kit.nvim:lua/kit/timeout.lua"], nil, "an indented timeout stopped only in finish is quiet")
+  eq(by["kit.nvim:lua/kit/spinner.lua"], nil, "an unrelated stop helper is not a restart")
   for key in pairs(by) do
     eq(key:find("^lib.nvim:") == nil, true, "lib.nvim is skipped without include_self")
   end
