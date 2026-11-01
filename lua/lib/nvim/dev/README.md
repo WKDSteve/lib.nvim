@@ -113,6 +113,31 @@ still leaves out `lua/lib/lua/patterns/`, `lua/lib/nvim/patterns/`, `debounce/`,
 hit can be a false positive (a cleanup timer that is not an event debounce),
 so look before replacing.
 
+## `pattern_usage.lua` — who requires the pattern modules
+
+Fills the generated "Used by" column of `docs/patterns.md`, so a pattern module
+nobody uses is visible. It reads the module-map join of `docmap.nvim`
+(`docmap.core.consumers`: lib.nvim's own `docs/map/module_map.json` against the
+`*/docs/map/module_map.json` of the sibling repos); docmap is a development
+dependency of this tool only (looked up as `<repos>/docmap.nvim` when it is not
+on the runtimepath), nothing in lib.nvim's runtime needs it.
+
+```sh
+nvim --headless -u NONE -l scripts/pattern_usage.lua           # rewrite the column
+nvim --headless -u NONE -l scripts/pattern_usage.lua --check   # exit 1 when out of date
+```
+
+```lua
+local pu = require("lib.nvim.dev.pattern_usage")
+local usage = pu.usage()                -- module -> { kind, consumers }
+pu.sync({ check = true })               -- { rows, maps, changed }
+```
+
+The maps are git-ignored and local, so the column is a snapshot of the machine
+that generated it: regenerate the maps first (docmap), then this. A dash means
+"no map among those read", not dead code. The rows credit only the modules
+before the "see also" part of the Module cell.
+
 ## `deprecations/` — deprecated Neovim calls, on save and in `:checkhealth`
 
 ```lua
