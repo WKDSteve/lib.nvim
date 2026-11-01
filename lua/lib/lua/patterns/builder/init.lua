@@ -90,11 +90,22 @@ function M.new(schema)
   if type(schema) ~= "table" then
     error("builder.new: schema must be a table", 2)
   end
-  for name in pairs(schema) do
+  -- own copy: changing the schema afterwards must not bypass the checks of build()
+  local own = {}
+  for name, spec in pairs(schema) do
     if RESERVED[name] then
       error(("builder.new: field name %q is reserved"):format(name), 2)
     end
+    if type(spec) ~= "table" then
+      error(("builder.new: field %q must be a table"):format(tostring(name)), 2)
+    end
+    local field = {}
+    for k, v in pairs(spec) do
+      field[k] = v
+    end
+    own[name] = field
   end
+  schema = own
   return function()
     return setmetatable({ _schema = schema, _values = {} }, B)
   end

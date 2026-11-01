@@ -24,7 +24,7 @@ local cmd, err = new_cmd():name("Foo"):nargs(1):build()
 
 | Function | Does |
 | --- | --- |
-| `new(schema)` | returns a constructor; each call yields a fresh builder; field entries: `default`, `required`, `validate` |
+| `new(schema)` | returns a constructor; each call yields a fresh builder; field entries: `default`, `required`, `validate`; keeps its own copy of the schema; a `validate` that raises makes `build()` return `nil, err` |
 | `b:<field>(v)` / `b:set(name, v)` | set a field, chainable; unknown field raises |
 | `b:get(name)` | value or default |
 | `b:build()` | `product` or `nil, err` (missing required / failed validator) |

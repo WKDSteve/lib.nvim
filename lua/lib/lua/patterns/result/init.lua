@@ -82,7 +82,9 @@ function R:map_err(fn)
   if self.ok then
     return self
   end
-  return M.err(fn(self.err))
+  -- like `map`: a throw in `fn` becomes the error of the result, it does not escape
+  local _, mapped = pcall(fn, self.err)
+  return M.err(mapped)
 end
 
 ---Chain a step that itself returns a result. A non-result return value is an error (a bug in `fn`).

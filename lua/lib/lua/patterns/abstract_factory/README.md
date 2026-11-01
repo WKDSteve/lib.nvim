@@ -26,7 +26,7 @@ ui:family("nerd").border()
 
 | Function | Does |
 | --- | --- |
-| `new(families)` | checks equal product sets and function values |
+| `new(families)` | checks equal product sets and function values; keeps its own copy of the table |
 | `f:names()` | sorted family names |
 | `f:family(name)` | the constructor table |
 | `f:create(name, product, ...)` | build one product |

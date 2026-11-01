@@ -29,6 +29,7 @@ local dark = base:clone({ theme = { bg = "blue" } }) --> width 80, fg white, bg 
 
 - **Helps when:** many similar configuration-like objects differ in a few fields, and sharing nested tables by accident would be a bug.
 - **Does not help when:** Neovim's `vim.deepcopy` and `vim.tbl_deep_extend` are available and enough; this module exists for code that must stay editor-independent.
+- **Limit:** `deepcopy` and the override merge are recursive without a depth limit: a very deep table ends in a stack overflow (a catchable error). Cycles are handled.
 - **Cheaper alternative in Lua:** `setmetatable({}, { __index = proto })` shares instead of copying.
 
 ## Related

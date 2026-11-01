@@ -29,7 +29,7 @@ local value, err = r:to_pair() --> 3, nil
 | `from_pair(value, err)` | a non-nil `err` is an error |
 | `from_pcall(fn, ...)` | a throw becomes an error result |
 | `is_result(x)` | true only for results made here |
-| `r:map(fn)` / `r:map_err(fn)` | transform value / error (a throw in `fn` becomes an error) |
+| `r:map(fn)` / `r:map_err(fn)` | transform value / error (a throw in `fn` becomes the error of the result, in both) |
 | `r:and_then(fn)` | chain a step that returns a result; a non-result return is an error |
 | `r:unwrap_or(d)` / `r:unwrap()` | value or default / value or raise |
 | `r:to_pair()` | back to `value, nil` or `nil, err` |

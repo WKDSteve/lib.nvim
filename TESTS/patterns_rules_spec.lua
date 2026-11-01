@@ -341,6 +341,54 @@ return function(H)
     eq(table.concat(log, ","), "d1,d2", "ERR-63 decorator.wrap: order d1(d2(fn)) is kept")
   end)
 
+  -- ------------------------------------------------------------------ decisions D6/D7 (task pattern-eigenheiten-entscheiden)
+  section(function()
+    -- result: map_err catches a throw like map does
+    local result = require("lib.lua.patterns.result")
+    local mapped = result.err("e"):map_err(function()
+      error("boom", 0)
+    end)
+    ok(
+      not mapped.ok and mapped.err == "boom",
+      "result.map_err: a throw becomes the error of the result"
+    )
+    eq(result.err("e"):map_err(string.upper).err, "E", "result.map_err still maps the error")
+
+    -- ERR-51: abstract_factory and builder keep their own copy of what they were given
+    local abstract_factory = require("lib.lua.patterns.abstract_factory")
+    local families =
+      { a = {
+        box = function()
+          return "a"
+        end,
+      }, b = {
+        box = function()
+          return "b"
+        end,
+      } }
+    local factory = abstract_factory.new(families)
+    families.a.box = nil
+    families.c = { other = function() end }
+    eq(factory:create("a", "box"), "a", "abstract_factory: a later change to the table is not seen")
+    eq(#factory:names(), 2, "abstract_factory: a family added later is not seen")
+
+    local builder = require("lib.lua.patterns.builder")
+    local schema = { name = { required = true } }
+    local make = builder.new(schema)
+    schema.name.required = false
+    schema.extra = {}
+    local product, err = make():build()
+    eq(product, nil, "builder: a later change to the schema does not drop the required check")
+    ok(
+      type(err) == "string" and err:find("name", 1, true),
+      "builder: the required field is reported"
+    )
+    ok(
+      not pcall(make().set, make(), "extra", 1),
+      "builder: a field added to the schema later is unknown"
+    )
+  end)
+
   -- ------------------------------------------------------------------ CMT-01 (counts and enumerations)
   section(function()
     local text = read("docs/patterns.md") or ""

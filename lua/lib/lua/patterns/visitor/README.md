@@ -32,6 +32,7 @@ visitor.walk(tree, function(n) return n.children end, function(n, depth) print(d
 
 - **Helps when:** several independent operations (print, count, validate, transform) run over the same node tree and should live apart from the node definitions.
 - **Does not help when:** Lua tables are open and `handlers[node.type](node)` already is the visitor; the tree walk is a few lines. This module may bring no benefit beyond naming the idea.
+- **Limit:** `walk` is recursive and does not detect cycles: a graph with a cycle ends in a stack overflow (a catchable error). Walk trees, or keep your own visited set.
 - **Cheaper alternative in Lua:** a recursive function with a handler table.
 
 ## Related

@@ -29,6 +29,22 @@ A.__index = A
 ---@param families table<string, table<string, function>>
 ---@return Lib.Patterns.AbstractFactory
 function M.new(families)
+  if type(families) ~= "table" then
+    error("abstract_factory.new: families must be a table", 2)
+  end
+  -- own copy: changing the table afterwards must not bypass the checks below
+  local own = {}
+  for name, fam in pairs(families) do
+    if type(fam) ~= "table" then
+      error(("abstract_factory.new: family %q must be a table"):format(tostring(name)), 2)
+    end
+    local products_of = {}
+    for product, ctor in pairs(fam) do
+      products_of[product] = ctor
+    end
+    own[name] = products_of
+  end
+  families = own
   local products
   for name, fam in pairs(families) do
     local keys = {}
