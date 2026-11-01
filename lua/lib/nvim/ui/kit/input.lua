@@ -1008,6 +1008,8 @@ function M.open(opts)
   local key_opts = { buffer = bufnr, nowait = true }
 
   if can_back then
+    -- handrolled-ok: the gap between two <BS> presses tells a held key from a
+    -- new press; nothing is rate-limited, so `patterns.throttle` does not apply.
     -- Going back must not eat text: <BS> is only "back" once there is nothing
     -- left for it to delete, and a popup that is open keeps <C-p>. A key held
     -- down repeats faster than anyone presses it again: the repeat that finds

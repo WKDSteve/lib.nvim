@@ -189,6 +189,9 @@ end
 ---@internal
 ---Whether this (plugin, tool) pair may be reported right now, marking it
 ---reported when it may.
+---
+---handrolled-ok: a synchronous per-key yes/no with a reset, not a rate-limited
+---call; `patterns.throttle` wraps one function and has no per-key decision.
 ---@param plugin_name string
 ---@param bin string
 ---@param throttle_ms integer
