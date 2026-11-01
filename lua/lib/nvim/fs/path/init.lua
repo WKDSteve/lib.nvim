@@ -2,8 +2,7 @@
 --- Path helpers: repo-relative-to-absolute resolution, joining, and
 --- ensuring a directory exists.
 
----@diagnostic disable-next-line: deprecated
-local unpack = table.unpack or unpack
+local unpack = require("lib.lua.functions.varargs").unpack
 
 local M = {}
 

@@ -24,9 +24,8 @@ require("lib.lua.patterns.command.@types")
 
 local M = {}
 
--- LuaJIT (Neovim's Lua runtime) only has the global `unpack`; `table.unpack` is Lua 5.2+.
----@diagnostic disable-next-line: deprecated
-local unpack = table.unpack or unpack
+local varargs = require("lib.lua.functions.varargs")
+local pack, unpack = varargs.pack, varargs.unpack
 
 ---@class Lib.Patterns.CommandHistory
 local H = {}
@@ -48,10 +47,6 @@ function M.history(opts)
     { limit = math.floor(limit), undo_stack = {}, first = 1, last = 0, redo_stack = {} },
     H
   )
-end
-
-local function pack(...)
-  return { n = select("#", ...), ... }
 end
 
 ---@param self Lib.Patterns.CommandHistory

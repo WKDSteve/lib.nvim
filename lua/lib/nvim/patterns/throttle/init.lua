@@ -21,14 +21,8 @@ local uv = vim.uv or vim.loop
 
 local M = {}
 
--- LuaJIT (Neovim's Lua runtime) only has the global `unpack`; `table.unpack` is Lua 5.2+.
----@diagnostic disable-next-line: deprecated
-local unpack = table.unpack or unpack
-
----`table.pack` is missing on plain LuaJIT.
-local function pack(...)
-  return { n = select("#", ...), ... }
-end
+local varargs = require("lib.lua.functions.varargs")
+local pack, unpack = varargs.pack, varargs.unpack
 
 ---@param fn fun(...:any)
 ---@param ms integer

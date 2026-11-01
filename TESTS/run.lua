@@ -200,6 +200,7 @@ local specs = {
   "patterns_saga_spec.lua",
   "patterns_hardening_spec.lua",
   "patterns_rules_spec.lua",
+  "functions_varargs_spec.lua",
   "nvim_helpers_spec.lua",
   "window_spec.lua",
   "focus_helpers_spec.lua",

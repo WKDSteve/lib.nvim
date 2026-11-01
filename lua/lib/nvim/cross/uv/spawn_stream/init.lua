@@ -31,8 +31,7 @@ local function uv()
   return vim.uv or vim.loop
 end
 
--- LuaJIT (Lua 5.1) has no `table.unpack`, only the global `unpack`.
-local unpack_fn = table.unpack or unpack
+local unpack_fn = require("lib.lua.functions.varargs").unpack
 
 ---@internal
 ---Build a chunk consumer that emits complete lines and keeps the trailing

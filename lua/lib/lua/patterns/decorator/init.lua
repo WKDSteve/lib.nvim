@@ -16,14 +16,8 @@ require("lib.lua.patterns.decorator.@types")
 
 local M = {}
 
--- LuaJIT (Neovim's Lua runtime) only has the global `unpack`; `table.unpack` is Lua 5.2+.
----@diagnostic disable-next-line: deprecated
-local unpack = table.unpack or unpack
-
----Pack with an explicit count so trailing nils survive (`table.pack` is missing on plain LuaJIT).
-local function pack(...)
-  return { n = select("#", ...), ... }
-end
+local varargs = require("lib.lua.functions.varargs")
+local pack, unpack = varargs.pack, varargs.unpack
 
 ---`wrap(fn, d1, d2)` == `d1(d2(fn))`.
 ---@param fn function

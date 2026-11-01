@@ -36,18 +36,10 @@ function M.is(value)
   return type(value) == "table" and value.__lib_error == true
 end
 
--- LuaJIT (Lua 5.1) has neither `table.pack` nor `table.unpack`: it provides
--- the global `unpack` and no `pack` at all. Neovim runs on LuaJIT, so both
--- need a 5.1 fallback.
-local unpack_fn = table.unpack or unpack
-
---- Mirrors Lua 5.2's `table.pack` (returns `{ ..., n = <count> }`), which
---- LuaJIT lacks. `n` is what makes embedded `nil`s survive the round-trip.
----@param ... any
----@return table
-local pack_fn = table.pack or function(...)
-  return { n = select("#", ...), ... }
-end
+-- LuaJIT has no `table.pack`/`table.unpack`; the shim lives in one place.
+-- `n` is what makes embedded `nil`s survive the round-trip.
+local varargs = require("lib.lua.functions.varargs")
+local pack_fn, unpack_fn = varargs.pack, varargs.unpack
 
 -- Marker for the wrapper `traceback_handler` builds around a non-string error
 -- value, so `safe_call` can tell it from a plain traceback string.

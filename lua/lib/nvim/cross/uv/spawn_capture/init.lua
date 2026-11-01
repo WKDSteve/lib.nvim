@@ -11,8 +11,7 @@ local function uv()
   return vim.uv or vim.loop
 end
 
--- LuaJIT (Lua 5.1) has no `table.unpack`, only the global `unpack`.
-local unpack_fn = table.unpack or unpack
+local unpack_fn = require("lib.lua.functions.varargs").unpack
 
 ---@param argv string[] Command and arguments, e.g. { "curl", "-sS", url }
 ---@param opts? { timeout_ms?: integer, cwd?: string, env?: string[], stdin?: string } `env`,

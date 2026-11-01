@@ -44,13 +44,8 @@ require("lib.nvim.async.@types")
 local class = require("lib.lua.class")
 local error_mod = require("lib.lua.error")
 
--- LuaJIT (Neovim's Lua runtime) has neither `table.pack` nor Lua 5.2+'s
--- `table.unpack` — only the global `unpack`, and no `pack` at all.
----@diagnostic disable-next-line: deprecated
-local unpack = table.unpack or unpack
-local pack = table.pack or function(...)
-  return { n = select("#", ...), ... }
-end
+local varargs = require("lib.lua.functions.varargs")
+local pack, unpack = varargs.pack, varargs.unpack
 
 local M = {}
 

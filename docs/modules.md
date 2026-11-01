@@ -36,7 +36,7 @@ aggregator exists for convenience, not as the entry point.
 | ------------------ | ------------------------------------------------------- |
 | `lib.lua.tables`   | array / dict / set / functional / safe / unique / `with`|
 | [`lib.lua.strings`](../lua/lib/lua/strings/README.md) | trim, split/join, case conversion, padding, slugify, … plus [`width`](../lua/lib/lua/strings/width.lua): display-width (column) arithmetic — CJK/emoji/tab-aware `display_width`/`truncate`/padding ([`:help`](../doc/lib.nvim-strings_width.txt)) |
-| `lib.lua.functions`| meta helpers: noop, identity, const, raise, …           |
+| `lib.lua.functions`| meta helpers: noop, identity, const, raise, pack/unpack, …  |
 | [`lib.lua.time`](../lua/lib/lua/time/diff/README.md) | [`diff`](../lua/lib/lua/time/diff/README.md) (checkpoint timer, `:help`), [`format`](../lua/lib/lua/time/format/README.md) (`format_timestamp`: iso/human/short/log/filename), [`presets`](../lua/lib/lua/time/presets/README.md) (today/yesterday/last_week/this_month/this_quarter/this_year/custom ranges) ([`:help`](../doc/lib.nvim-time_diff.txt)) |
 | [`lib.lua.json`](../lua/lib/lua/json/README.md) | `decode` (coerce an already-decoded JSON-shaped value to `string[]`, not a parser — see `vim.json.decode` for that) + `encode` (pure-Lua JSON encoder, callable + `.pretty`) |
 | [`lib.lua.memo`](../lua/lib/lua/memo/README.md) | memoization                          |
