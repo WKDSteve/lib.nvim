@@ -1,6 +1,7 @@
 # `lib.lua.patterns.builder`
 
-> Pattern: Builder · Group: creational · Stage: `impl`
+> Pattern: Builder · Group: creational · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Collect options step by step through fluent setters, validate once in `build()`.
 

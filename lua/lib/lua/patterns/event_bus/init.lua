@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.event_bus'
 --- Event bus: publish/subscribe on named topics, without the editor.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- A listener that raises does not stop the others: errors are collected and returned by `emit`.
 --- `on()` returns the unsubscribe function. The topic `"*"` receives every event as `(topic, ...)`.
 ---

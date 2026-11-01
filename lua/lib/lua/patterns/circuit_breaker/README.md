@@ -1,6 +1,7 @@
 # `lib.lua.patterns.circuit_breaker`
 
-> Pattern: Circuit Breaker · Group: modern · Stage: `impl`
+> Pattern: Circuit Breaker · Group: modern · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 After `threshold` consecutive failures stop calling a function for `reset_ms`, then allow one probe.
 

@@ -2,6 +2,8 @@
 --- Chain of responsibility: an ordered list of handlers; the first one that claims the request ends the
 --- chain.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- A handler is `fn(request, ...) -> handled, result`. Returning a falsy `handled` passes the request on.
 --- A handler that raises counts as "not handled"; the error is collected, the chain continues.
 ---

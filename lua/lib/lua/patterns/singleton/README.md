@@ -1,6 +1,7 @@
 # `lib.lua.patterns.singleton`
 
-> Pattern: Singleton · Group: creational · Stage: `impl`
+> Pattern: Singleton · Group: creational · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 > Status: rarely needed. In Lua a module table already is a singleton.
 
 A lazily created single instance with `get()`, `is_created()` and `reset()` (for tests).

@@ -1,6 +1,7 @@
 # `lib.lua.patterns.mediator`
 
-> Pattern: Mediator · Group: behavioral · Stage: `impl`
+> Pattern: Mediator · Group: behavioral · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Components talk to one coordinator by name instead of holding references to each other.
 

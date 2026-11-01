@@ -2,6 +2,8 @@
 --- Reducer / MVU: state = reduce(state, action). All changes go through one function, so the state is
 --- predictable and every change can be logged, tested and replayed.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- `reducer.store(reduce, initial)` keeps the state. `dispatch(action)` computes the next state; a
 --- reducer that raises leaves the state unchanged (the error is returned). Subscribers get
 --- `(new, old, action)` only when the state actually changed (`~=`), so return the same table when

@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.factory_method'
 --- Factory method: `create(kind, ...)` picks the constructor from a table instead of an if/elseif chain.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- ```lua
 --- local factory_method = require("lib.lua.patterns.factory_method")
 --- local make = factory_method.new({

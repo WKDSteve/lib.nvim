@@ -1,6 +1,7 @@
 # `lib.lua.patterns.state`
 
-> Pattern: State (GoF) · Group: behavioral · Stage: `impl`
+> Pattern: State (GoF) · Group: behavioral · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 An object whose methods come from its current state; each state is a table of functions.
 

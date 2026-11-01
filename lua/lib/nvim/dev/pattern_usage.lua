@@ -147,6 +147,25 @@ function M.sync_lines(lines, usage)
   return out, rows
 end
 
+---The gate: an `impl` row must have a consumer, a pattern nobody uses is `idea`. Reads the committed
+---"Used by" column, so it needs neither docmap nor the sibling checkouts (it runs in CI).
+---@param lines string[] The lines of `docs/patterns.md`
+---@return string[] names Pattern names of `impl` rows whose cell is a dash
+---@return integer rows How many `impl` rows were checked
+function M.impl_without_consumer(lines)
+  local names, rows = {}, 0
+  for _, line in ipairs(lines) do
+    local cells = line:sub(1, 1) == "|" and split_row(line) or nil
+    if cells and #cells >= 6 and cells[2] == "`impl`" then
+      rows = rows + 1
+      if cells[#cells] == "—" then
+        names[#names + 1] = (cells[1]:gsub("^%[(.-)%].*$", "%1"))
+      end
+    end
+  end
+  return names, rows
+end
+
 ---Usage of every module in lib.nvim's own map.
 ---@param opts? Lib.Dev.PatternUsage.Opts
 ---@return table<string, Lib.Dev.PatternUsage.Entry>|nil usage

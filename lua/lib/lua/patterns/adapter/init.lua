@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.adapter'
 --- Adapter: give a foreign object the interface the caller expects.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- `adapter.new(interface, adaptee, map)` returns a table with exactly the methods listed in `interface`.
 --- Each entry of `map` is either the name of an adaptee method (forwarded as is) or a function
 --- `(adaptee, ...)` for anything that needs translation. A method that is neither mapped nor present

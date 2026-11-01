@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.template_method'
 --- Template method: a fixed skeleton whose steps the implementer fills in.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- `define(spec)` declares the steps (`required` ones must be supplied, others have a `default`) and the
 --- skeleton `run(steps, ...)` that calls them in order. `implement(impl)` checks the steps up front and
 --- returns the runnable function.

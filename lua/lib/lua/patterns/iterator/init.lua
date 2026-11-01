@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.iterator'
 --- Iterator: walk a sequence without exposing how it is stored, lazily and chainable.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- An iterator wraps a `next()` function that returns the next value or `nil` at the end (so the values
 --- themselves cannot be `nil`). `map`, `filter`, `take`, `drop` are lazy; `collect`, `each`, `reduce`
 --- consume. `iter()` gives a function usable in a generic `for`.

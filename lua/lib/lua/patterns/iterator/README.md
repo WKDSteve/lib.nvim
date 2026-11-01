@@ -1,6 +1,7 @@
 # `lib.lua.patterns.iterator`
 
-> Pattern: Iterator · Group: behavioral · Stage: `impl`
+> Pattern: Iterator · Group: behavioral · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Walk a sequence without exposing its storage: lazy `map`, `filter`, `take`, `drop`; `collect`, `each`, `reduce`; `peek`.
 

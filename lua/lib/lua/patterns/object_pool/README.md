@@ -1,6 +1,7 @@
 # `lib.lua.patterns.object_pool`
 
-> Pattern: Object Pool · Group: modern · Stage: `impl`
+> Pattern: Object Pool · Group: modern · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 > Status: use sparingly. In Lua most objects are cheap tables; measure before pooling.
 
 `acquire()` hands out a free object or creates one; `release(obj)` resets it and keeps it for the next caller.

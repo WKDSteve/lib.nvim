@@ -1,6 +1,7 @@
 # `lib.lua.patterns.decorator`
 
-> Pattern: Decorator · Group: structural · Stage: `impl`
+> Pattern: Decorator · Group: structural · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Add behaviour around a function without changing its callers: `wrap`, `before`, `after`, `guard`, `timed`.
 

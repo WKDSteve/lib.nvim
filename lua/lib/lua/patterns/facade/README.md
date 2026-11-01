@@ -1,6 +1,7 @@
 # `lib.lua.patterns.facade`
 
-> Pattern: Facade · Group: structural · Stage: `impl`
+> Pattern: Facade · Group: structural · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 One small module API in front of several submodules, loaded lazily from an explicit entry list.
 

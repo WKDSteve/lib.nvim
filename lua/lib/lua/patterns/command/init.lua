@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.command'
 --- Command: an action as data, with undo and redo.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- A command is `{ name, run = fn(...) -> undo_state, undo = fn(undo_state, ...) }`. `run` returns
 --- whatever `undo` needs to take the effect back (the old value, a snapshot). A history executes commands
 --- and keeps the undo and redo stacks.

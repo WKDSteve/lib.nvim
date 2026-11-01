@@ -1,6 +1,7 @@
 # `lib.lua.patterns.result`
 
-> Pattern: Result · Group: modern · Stage: `impl`
+> Pattern: Result · Group: modern · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Errors as values: a result is `{ ok = true, value }` or `{ ok = false, err }`, with `map`, `map_err`, `and_then`, `unwrap_or`, `unwrap`, `to_pair`.
 

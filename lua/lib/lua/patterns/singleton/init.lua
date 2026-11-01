@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.singleton'
 --- Singleton: exactly one instance, created on first use.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- In Lua a module table already is a singleton (`local M = {}`), which is what you want in nearly every
 --- case. This module covers the rest: an instance that must be created lazily (it is expensive, or needs
 --- the editor to be ready) and that tests must be able to throw away.

@@ -1,6 +1,7 @@
 # `lib.lua.patterns.command`
 
-> Pattern: Command · Group: behavioral · Stage: `impl`
+> Pattern: Command · Group: behavioral · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 An action as data with `run` and `undo`, and a history with undo and redo.
 

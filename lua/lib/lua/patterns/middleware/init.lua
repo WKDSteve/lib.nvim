@@ -3,6 +3,8 @@
 --- to continue, or return without calling it to stop the chain. The innermost step is the optional
 --- `final(ctx)`.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- ```lua
 --- local middleware = require("lib.lua.patterns.middleware")
 --- local chain = middleware.new()

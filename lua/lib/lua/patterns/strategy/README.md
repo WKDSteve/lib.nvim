@@ -1,6 +1,7 @@
 # `lib.lua.patterns.strategy`
 
-> Pattern: Strategy · Group: behavioral · Stage: `impl`
+> Pattern: Strategy · Group: behavioral · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Interchangeable algorithms chosen by name, with a current selection, a listing and clear errors.
 

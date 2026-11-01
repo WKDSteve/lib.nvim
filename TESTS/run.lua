@@ -95,6 +95,7 @@ local specs = {
   "dev_handrolled_scan_spec.lua",
   "dev_handrolled_scan_restart_spec.lua",
   "dev_pattern_usage_spec.lua",
+  "patterns_usage_gate_spec.lua",
   "listeners_spec.lua",
   "ordered_map_spec.lua",
   "hooks_equivalence_spec.lua",

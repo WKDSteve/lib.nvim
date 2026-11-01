@@ -1,6 +1,7 @@
 # `lib.lua.patterns.prototype`
 
-> Pattern: Prototype · Group: creational · Stage: `impl`
+> Pattern: Prototype · Group: creational · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Create objects by cloning a template: `clone(overrides)` returns an independent deep copy with the overrides merged in.
 

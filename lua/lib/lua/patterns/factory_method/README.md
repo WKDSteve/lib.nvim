@@ -1,6 +1,7 @@
 # `lib.lua.patterns.factory_method`
 
-> Pattern: Factory Method · Group: creational · Stage: `impl`
+> Pattern: Factory Method · Group: creational · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 `create(kind, ...)` picks the constructor from a table instead of an if/elseif chain.
 

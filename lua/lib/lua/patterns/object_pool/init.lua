@@ -3,6 +3,8 @@
 --- dropping them. `acquire()` hands out a free object or creates one, `release(obj)` resets it and keeps
 --- it for the next caller, up to `max` idle objects.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- ```lua
 --- local pool = require("lib.lua.patterns.object_pool").new({
 ---   create = function() return {} end,

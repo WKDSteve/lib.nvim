@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.dependency_injection'
 --- Dependency injection: hand collaborators in instead of requiring them inside, so tests can swap them.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- A small container: `provide(name, factory)` registers how to build something (`factory(container)`
 --- may resolve other names), `value(name, v)` registers a ready value. `resolve(name)` builds on first
 --- use and caches (singleton), `provide(..., { transient = true })` builds every time. Cycles raise.

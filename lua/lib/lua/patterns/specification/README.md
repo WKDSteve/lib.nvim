@@ -1,6 +1,7 @@
 # `lib.lua.patterns.specification`
 
-> Pattern: Specification · Group: modern · Stage: `impl`
+> Pattern: Specification · Group: modern · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Rules as composable predicates: `and_`, `or_`, `not_`, `all`, `any`; a specification is also callable.
 

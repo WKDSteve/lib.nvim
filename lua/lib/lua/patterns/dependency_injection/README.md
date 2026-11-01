@@ -1,6 +1,7 @@
 # `lib.lua.patterns.dependency_injection`
 
-> Pattern: Dependency Injection · Group: modern · Stage: `impl`
+> Pattern: Dependency Injection · Group: modern · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 A small container: `provide(name, factory)`, `value(name, v)`, `resolve(name)` (cached, or `transient`), `child()` for overlays.
 

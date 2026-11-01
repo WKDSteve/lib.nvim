@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.mediator'
 --- Mediator: components talk to one coordinator instead of to each other.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- A component is registered under a name with a `handle(from, message, ...)` function. Others reach it
 --- through `send(from, to, message, ...)` or `broadcast(from, message, ...)`; no component holds a
 --- reference to another.

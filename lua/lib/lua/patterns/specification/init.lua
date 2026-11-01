@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.specification'
 --- Specification: rules as composable predicates.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- ```lua
 --- local spec = require("lib.lua.patterns.specification")
 --- local is_lua = spec.new(function(f) return f:match("%.lua$") ~= nil end)

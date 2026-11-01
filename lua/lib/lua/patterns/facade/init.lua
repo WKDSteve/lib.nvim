@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.facade'
 --- Facade: one small module API in front of several submodules, loaded lazily.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- Each entry is either a module path (`"my.parser"`: the module itself), `"module:function"` (one
 --- function out of a module) or a function. Nothing is required until the entry is first used.
 ---

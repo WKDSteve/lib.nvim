@@ -1,6 +1,7 @@
 # `lib.lua.patterns.chain_of_responsibility`
 
-> Pattern: Chain of Responsibility · Group: behavioral · Stage: `impl`
+> Pattern: Chain of Responsibility · Group: behavioral · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 An ordered list of named handlers; the first one that claims the request ends the chain.
 

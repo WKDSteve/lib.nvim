@@ -3,6 +3,8 @@
 --- `reset_ms`, then let one probe call through (half-open). A successful probe closes the circuit, a
 --- failed one opens it again.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- ```lua
 --- local breaker = require("lib.lua.patterns.circuit_breaker").new({ threshold = 3, reset_ms = 30000 })
 --- local ok, value_or_err = breaker:call(fetch, url)

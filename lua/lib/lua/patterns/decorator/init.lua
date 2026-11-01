@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.decorator'
 --- Decorator: add behaviour around a function without changing its callers.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- A decorator is `function(fn) -> fn`. `wrap(fn, d1, d2, ...)` applies them so that the first listed is
 --- the outermost. Ready-made ones: `before`, `after`, `guard`, `timed`.
 ---

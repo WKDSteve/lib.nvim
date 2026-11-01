@@ -1,6 +1,7 @@
 # `lib.lua.patterns.adapter`
 
-> Pattern: Adapter · Group: structural · Stage: `impl`
+> Pattern: Adapter · Group: structural · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Give a foreign object the interface the caller expects; missing methods raise at construction.
 

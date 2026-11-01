@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.builder'
 --- Builder: collect options step by step, validate once in `build()`.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- The field schema declares defaults, required fields and validators. Every field also gets a fluent
 --- setter named like the field (`b:name("x")`), besides the generic `b:set(name, v)`.
 ---

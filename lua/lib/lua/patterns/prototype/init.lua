@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.prototype'
 --- Prototype: create objects by cloning a template instead of building them from scratch.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- `clone(overrides)` returns an independent deep copy of the template with `overrides` merged on top
 --- (nested tables merge, other values replace). `deepcopy` handles cycles and keeps metatables (shared, not copied): that is why it is not
 --- `lib.lua.tables.deep_copy`, which drops them and would turn class instances into plain tables.

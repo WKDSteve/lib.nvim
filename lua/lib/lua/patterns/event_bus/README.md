@@ -1,6 +1,7 @@
 # `lib.lua.patterns.event_bus`
 
-> Pattern: Event Bus (publish/subscribe) · Group: modern · Stage: `impl`
+> Pattern: Event Bus (publish/subscribe) · Group: modern · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Named topics, `on` returns the unsubscribe function, `"*"` hears everything, a failing listener does not stop the others.
 

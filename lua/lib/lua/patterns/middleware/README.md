@@ -1,6 +1,7 @@
 # `lib.lua.patterns.middleware`
 
-> Pattern: Middleware / Pipeline · Group: modern · Stage: `impl`
+> Pattern: Middleware / Pipeline · Group: modern · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 An ordered list of stages `fn(ctx, next)`; a stage may change `ctx`, call `next()`, or stop the chain.
 

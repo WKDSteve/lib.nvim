@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.strategy'
 --- Strategy: interchangeable algorithms behind one call, chosen by name.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- In Lua a strategy is a function in a table. This module adds what the bare table lacks: a current
 --- selection, a fallback, a listing, and a clear error for an unknown name.
 ---

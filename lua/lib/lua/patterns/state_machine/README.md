@@ -1,6 +1,7 @@
 # `lib.lua.patterns.state_machine`
 
-> Pattern: State Machine (table-driven cousin of State) · Group: modern · Stage: `impl`
+> Pattern: State Machine (table-driven cousin of State) · Group: modern · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 Declared states and transitions with optional guards, actions and enter/exit hooks.
 

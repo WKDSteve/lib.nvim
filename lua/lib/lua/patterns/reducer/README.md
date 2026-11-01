@@ -1,6 +1,7 @@
 # `lib.lua.patterns.reducer`
 
-> Pattern: Reducer / MVU (Elm architecture) · Group: modern · Stage: `impl`
+> Pattern: Reducer / MVU (Elm architecture) · Group: modern · Stage: `idea`
+> Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
 
 State = reduce(state, action): one function decides every change; a store dispatches actions and notifies subscribers.
 

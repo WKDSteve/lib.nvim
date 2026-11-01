@@ -2,6 +2,8 @@
 --- State (GoF): an object whose behaviour changes with its current state; each state is a table of
 --- methods.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- `state.new({ states = {...}, initial = "..." })` returns an object. Calling `obj:method(...)` runs
 --- `states[current].method(obj, ...)`; `obj:set_state(name)` switches (running `exit` of the old and
 --- `enter` of the new state). A method the current state does not have raises, unless the state table has

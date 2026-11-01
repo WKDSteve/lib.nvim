@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.state_machine'
 --- State machine: declared states and transitions with optional guards and actions.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- ```lua
 --- local sm = require("lib.lua.patterns.state_machine").new({
 ---   initial = "idle",

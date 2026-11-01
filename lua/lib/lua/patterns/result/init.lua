@@ -1,6 +1,8 @@
 ---@module 'lib.lua.patterns.result'
 --- Result: errors as values. A result is either `{ ok = true, value = v }` or `{ ok = false, err = e }`.
 ---
+--- Status: idea pool — no consumer in the author's plugins yet; kept as a reference until one appears.
+---
 --- Lua already returns `value, err` pairs; this module wraps such a pair into a value that can be passed
 --- around, mapped and chained without an `if err then return nil, err end` after every call.
 ---
