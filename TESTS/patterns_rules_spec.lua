@@ -356,16 +356,18 @@ return function(H)
 
     -- ERR-51: abstract_factory and builder keep their own copy of what they were given
     local abstract_factory = require("lib.lua.patterns.abstract_factory")
-    local families =
-      { a = {
+    local families = {
+      a = {
         box = function()
           return "a"
         end,
-      }, b = {
+      },
+      b = {
         box = function()
           return "b"
         end,
-      } }
+      },
+    }
     local factory = abstract_factory.new(families)
     families.a.box = nil
     families.c = { other = function() end }
