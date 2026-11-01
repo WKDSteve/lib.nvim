@@ -42,6 +42,7 @@ aggregator exists for convenience, not as the entry point.
 | [`lib.lua.memo`](../lua/lib/lua/memo/README.md) | memoization                          |
 | [`lib.lua.lazy`](../lua/lib/lua/lazy/README.md) | lazy-`require` proxy                 |
 | [`lib.lua.listeners`](../lua/lib/lua/listeners/README.md) | ordered listener list, safe to change while walked (core of `event_bus`, `mediator`, `reducer`, `state_machine`, `composite`) |
+| [`lib.lua.ordered_map`](../lua/lib/lua/ordered_map/README.md) | key -> value map in insertion order, O(1) delete (core of `lib.nvim.registry` and `repository.memory`) |
 | [`lib.lua.class`](../lua/lib/lua/class/README.md) | prototype OOP: `new`/`extend`/`include` mixins |
 | [`lib.lua.context_manager`](../lua/lib/lua/context_manager/README.md) | try/finally: `with(acquire, release, body)` |
 | [`lib.lua.config`](../lua/lib/lua/config/README.md) | pure helpers for the "defaults + user overrides" config-store pattern: `new` (config object: layers, schema inferred from DEFAULTS, `setup`/`get`/`snapshot`/`issues`), `copy`, `deep_merge` (no table shared with its arguments), `get(tbl, path)`; [`.schema`](../lua/lib/lua/config/schema/README.md): option specs (`check`, `check_record`, `infer`) |

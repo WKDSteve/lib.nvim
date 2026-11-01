@@ -31,6 +31,8 @@
 --- langs:reset()     -- tests: empty again; the loader runs again before the next read
 --- ```
 
+local ordered_map = require("lib.lua.ordered_map")
+
 local M = {}
 
 ---@class Lib.Registry.Opts
@@ -41,8 +43,7 @@ local M = {}
 
 ---@class Lib.Registry
 ---@field private _name string
----@field private _order any[]
----@field private _values table
+---@field private _map Lib.Lua.OrderedMap  # key -> value in registration order
 ---@field private _validate? function
 ---@field private _loader? function
 ---@field private _loaded boolean
@@ -113,7 +114,7 @@ function Registry:register(key, value)
       )
     end
   end
-  if self._values[key] ~= nil then
+  if self._map:has(key) then
     if self._on_duplicate == "error" and self._tolerated and self._tolerated[key] then
       self._tolerated[key] = nil -- left by the failed run: replaced once, a second claim is a real duplicate
     elseif self._on_duplicate == "error" then
@@ -124,10 +125,8 @@ function Registry:register(key, value)
     elseif self._on_duplicate == "keep" then
       return self
     end
-  else
-    self._order[#self._order + 1] = key
   end
-  self._values[key] = value
+  self._map:put(key, value)
   if self._recording then
     self._recording[key] = true
   end
@@ -139,44 +138,34 @@ end
 ---@return boolean
 function Registry:unregister(key)
   self:_ensure()
-  if self._values[key] == nil then
-    return false
-  end
-  self._values[key] = nil
-  for i, k in ipairs(self._order) do
-    if k == key then
-      table.remove(self._order, i)
-      break
-    end
-  end
-  return true
+  return self._map:delete(key)
 end
 
 ---@param key any
 ---@return any|nil
 function Registry:get(key)
   self:_ensure()
-  return self._values[key]
+  return self._map:get(key)
 end
 
 ---@param key any
 ---@return boolean
 function Registry:has(key)
   self:_ensure()
-  return self._values[key] ~= nil
+  return self._map:has(key)
 end
 
 ---@return integer
 function Registry:count()
   self:_ensure()
-  return #self._order
+  return self._map:count()
 end
 
 ---The keys, in registration order (a fresh list).
 ---@return any[]
 function Registry:keys()
   self:_ensure()
-  return vim.list_extend({}, self._order)
+  return self._map:keys()
 end
 
 ---The values, in registration order (a fresh list). With `pred`, only those it accepts.
@@ -185,12 +174,11 @@ end
 function Registry:all(pred)
   self:_ensure()
   local out = {}
-  for _, key in ipairs(self._order) do
-    local value = self._values[key]
+  self._map:each(function(key, value)
     if pred == nil or pred(key, value) then
       out[#out + 1] = value
     end
-  end
+  end)
   return out
 end
 
@@ -199,9 +187,9 @@ end
 function Registry:entries()
   self:_ensure()
   local out = {}
-  for _, key in ipairs(self._order) do
-    out[#out + 1] = { key, self._values[key] }
-  end
+  self._map:each(function(key, value)
+    out[#out + 1] = { key, value }
+  end)
   return out
 end
 
@@ -211,21 +199,21 @@ end
 ---@return any|nil value
 function Registry:find(pred)
   self:_ensure()
-  for _, key in ipairs(self._order) do
-    local value = self._values[key]
+  local found_key, found_value
+  self._map:each(function(key, value)
     if pred(key, value) then
-      return key, value
+      found_key, found_value = key, value
+      return true
     end
-  end
-  return nil, nil
+  end)
+  return found_key, found_value
 end
 
 ---Drop every entry. The loader (if any) runs again before the next read, so a test starts empty and a
 ---later read finds the known entries again.
 ---@return Lib.Registry
 function Registry:reset()
-  self._order = {}
-  self._values = {}
+  self._map = ordered_map.new()
   self._loaded = false
   self._seeded = nil
   return self
@@ -242,8 +230,7 @@ function M.new(opts)
   end
   return setmetatable({
     _name = opts.name or "registry",
-    _order = {},
-    _values = {},
+    _map = ordered_map.new(),
     _validate = opts.validate,
     _loader = opts.loader,
     _loaded = false,

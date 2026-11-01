@@ -48,6 +48,8 @@ langs:reset()   -- tests: empty; the loader runs again before the next read
 | `r:find(pred)` | `key, value` of the first entry (registration order) `pred(key, value)` accepts: who is responsible. |
 | `r:reset()` | Drop everything; the loader runs again before the next read. |
 
+The entries and their registration order are kept by [`lib.lua.ordered_map`](../../lua/ordered_map/README.md) (O(1) `unregister`, no array shifting; a predicate of `all`/`find` may unregister entries while the walk runs).
+
 ## The loader
 
 `loader` runs **once**, before the first read (`get`, `has`, `count`, `keys`, `all`, `entries`, `find`);

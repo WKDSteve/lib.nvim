@@ -39,6 +39,7 @@ local tables = require("lib.lua.tables")
 | `lib.lua.error` | see [`error/README.md`](error/README.md) |
 | `lib.lua.lazy` | see [`lazy/README.md`](lazy/README.md) |
 | `lib.lua.listeners` | see [`listeners/README.md`](listeners/README.md) |
+| `lib.lua.ordered_map` | see [`ordered_map/README.md`](ordered_map/README.md) |
 | `lib.lua.memo` | see [`memo/README.md`](memo/README.md) |
 | `lib.lua.numeral` | see [`numeral/README.md`](numeral/README.md) |
 | `lib.lua.scoring` | see [`scoring/README.md`](scoring/README.md) |

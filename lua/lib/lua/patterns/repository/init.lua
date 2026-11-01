@@ -18,43 +18,24 @@
 
 require("lib.lua.patterns.repository.@types")
 
+local ordered_map = require("lib.lua.ordered_map")
+
 local M = {}
 
 ---An in-memory store.
 ---@return Lib.Patterns.Store
 function M.memory()
-  local data, order, pos = {}, {}, {}
-  local live, dead = 0, 0
-  -- deleting leaves a hole (false) in order; the holes are squeezed out when they are half of the list
-  local function compact()
-    local j = 0
-    for k = 1, #order do
-      local id = order[k]
-      if id ~= false then
-        j = j + 1
-        order[j] = id
-        pos[id] = j
-      end
-    end
-    for k = j + 1, #order do
-      order[k] = nil
-    end
-    dead = 0
-  end
+  -- the order bookkeeping (O(1) delete, holes squeezed out) is `lib.lua.ordered_map`'s
+  local map = ordered_map.new()
   return {
     get = function(id)
-      return data[id]
+      return map:get(id)
     end,
     count = function()
-      return live
+      return map:count()
     end,
     each = function(fn)
-      for k = 1, #order do
-        local id = order[k]
-        if id ~= false and fn(id, data[id]) then
-          return
-        end
-      end
+      map:each(fn)
     end,
     put = function(id, value)
       if id == nil or id ~= id then
@@ -63,33 +44,16 @@ function M.memory()
       if value == nil then
         error("repository.memory: value must not be nil (use delete)", 2)
       end
-      if data[id] == nil then
-        order[#order + 1] = id
-        pos[id] = #order
-        live = live + 1
-      end
-      data[id] = value
+      map:put(id, value)
     end,
     delete = function(id)
-      if data[id] ~= nil then
-        data[id] = nil
-        order[pos[id]] = false
-        pos[id] = nil
-        live = live - 1
-        dead = dead + 1
-        if dead * 2 > #order then
-          compact()
-        end
-      end
+      map:delete(id)
     end,
     all = function()
       local out = {}
-      for k = 1, #order do
-        local id = order[k]
-        if id ~= false then
-          out[#out + 1] = { id = id, value = data[id] }
-        end
-      end
+      map:each(function(id, value)
+        out[#out + 1] = { id = id, value = value }
+      end)
       return out
     end,
   }
