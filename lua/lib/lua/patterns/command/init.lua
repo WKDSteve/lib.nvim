@@ -24,6 +24,8 @@ require("lib.lua.patterns.command.@types")
 
 local M = {}
 
+-- LuaJIT (Neovim's Lua runtime) only has the global `unpack`; `table.unpack` is Lua 5.2+.
+---@diagnostic disable-next-line: deprecated
 local unpack = table.unpack or unpack
 
 ---@class Lib.Patterns.CommandHistory
@@ -81,6 +83,9 @@ end
 ---@param ... any
 ---@return any undo_state
 function H:run(cmd, ...)
+  if type(cmd) ~= "table" or type(cmd.run) ~= "function" then
+    error("command.run: cmd needs a run function", 2)
+  end
   local state = cmd.run(...)
   push_undo(self, { cmd = cmd, args = pack(...), state = state })
   self.redo_stack = {}

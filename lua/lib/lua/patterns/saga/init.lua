@@ -28,6 +28,18 @@ local M = {}
 ---@return any ctx_or_err
 ---@return table[]|nil report
 function M.run(steps, ctx)
+  if type(steps) ~= "table" then
+    error("saga.run: steps must be a list", 2)
+  end
+  -- all steps are checked before the first side effect: a malformed step 3 must not leave 1 and 2 done
+  for i, step in ipairs(steps) do
+    if type(step) ~= "table" or type(step.run) ~= "function" then
+      error(("saga.run: step %d needs a run function"):format(i), 2)
+    end
+    if step.compensate ~= nil and type(step.compensate) ~= "function" then
+      error(("saga.run: step %d: compensate must be a function"):format(i), 2)
+    end
+  end
   ctx = ctx or {}
   local report = {}
   for i, step in ipairs(steps) do

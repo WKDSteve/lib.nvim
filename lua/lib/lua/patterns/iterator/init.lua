@@ -24,6 +24,9 @@ I.__index = I
 ---@param next_fn fun(): any
 ---@return Lib.Patterns.Iterator
 function M.from_fn(next_fn)
+  if type(next_fn) ~= "function" then
+    error("iterator.from_fn: next_fn must be a function", 2)
+  end
   return setmetatable({ next_fn = next_fn, buffer = nil, has_buffer = false }, I)
 end
 
@@ -108,6 +111,9 @@ end
 ---@param fn fun(v: any): any
 ---@return Lib.Patterns.Iterator
 function I:map(fn)
+  if type(fn) ~= "function" then
+    error("iterator.map: fn must be a function", 2)
+  end
   return M.from_fn(function()
     local v = self:next()
     if v == nil then
@@ -120,6 +126,9 @@ end
 ---@param pred fun(v: any): boolean
 ---@return Lib.Patterns.Iterator
 function I:filter(pred)
+  if type(pred) ~= "function" then
+    error("iterator.filter: pred must be a function", 2)
+  end
   return M.from_fn(function()
     while true do
       local v = self:next()

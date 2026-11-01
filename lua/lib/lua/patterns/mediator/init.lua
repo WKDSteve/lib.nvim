@@ -31,6 +31,9 @@ end
 ---@param component { handle: fun(from: string, message: any, ...): any }
 ---@return Lib.Patterns.Mediator
 function D:register(name, component)
+  if name == nil or name ~= name then
+    error("mediator.register: name must not be nil or NaN", 2)
+  end
   if type(component) ~= "table" or type(component.handle) ~= "function" then
     error("mediator.register: component needs a handle function", 2)
   end

@@ -39,6 +39,9 @@ end
 ---@param opts { transient: boolean|nil }|nil
 ---@return Lib.Patterns.Container
 function K:provide(name, factory, opts)
+  if name == nil or name ~= name then
+    error("dependency_injection.provide: name must not be nil or NaN", 2)
+  end
   if type(factory) ~= "function" then
     error("dependency_injection.provide: factory must be a function", 2)
   end
@@ -52,6 +55,9 @@ end
 ---@param value any
 ---@return Lib.Patterns.Container
 function K:value(name, value)
+  if name == nil or name ~= name then
+    error("dependency_injection.value: name must not be nil or NaN", 2)
+  end
   self.entries[name] = { value = value, is_value = true }
   self.cache[name] = nil
   self.built[name] = nil

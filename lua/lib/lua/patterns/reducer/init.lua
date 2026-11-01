@@ -66,6 +66,9 @@ end
 ---@param fn fun(new: any, old: any, action: table)
 ---@return fun() unsubscribe
 function S:subscribe(fn)
+  if type(fn) ~= "function" then
+    error("reducer.subscribe: listener must be a function", 2)
+  end
   self.listeners[#self.listeners + 1] = fn
   return function()
     for i, l in ipairs(self.listeners) do

@@ -21,6 +21,15 @@ require("lib.lua.patterns.state_machine.@types")
 
 local M = {}
 
+---@param from string|string[]
+---@return string[]
+local function from_list(from)
+  if type(from) == "table" then
+    return from
+  end
+  return { from }
+end
+
 ---@class Lib.Patterns.StateMachine
 local SM = {}
 SM.__index = SM
@@ -37,7 +46,7 @@ function M.new(spec)
       error(("state_machine.new: transition %d needs string event and to"):format(i), 2)
     end
     known[t.to] = true
-    local from = type(t.from) == "table" and t.from or { t.from }
+    local from = from_list(t.from)
     for _, f in ipairs(from) do
       if f ~= "*" then
         known[f] = true
@@ -82,7 +91,7 @@ local function find(self, event)
   for _, t in ipairs(self.spec.transitions or {}) do
     if t.event == event then
       seen_event = true
-      local from = type(t.from) == "table" and t.from or { t.from }
+      local from = from_list(t.from)
       for _, f in ipairs(from) do
         if f == "*" or f == self.current then
           if not t.guard or t.guard(self.ctx, self.current, event) then
@@ -157,6 +166,9 @@ end
 ---@param fn fun(new: string, old: string, event: string)
 ---@return fun()
 function SM:on_change(fn)
+  if type(fn) ~= "function" then
+    error("state_machine.on_change: listener must be a function", 2)
+  end
   self.listeners[#self.listeners + 1] = fn
   return function()
     for i, l in ipairs(self.listeners) do

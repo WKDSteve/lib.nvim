@@ -29,27 +29,42 @@ local M = {}
 
 local OBJ = {}
 
--- one dispatcher per method name, shared by all objects (it only needs obj and key)
+-- one dispatcher per method name some state defines, shared by all objects (it only needs obj and key)
 local dispatchers = {}
 
-OBJ.__index = function(_, key)
+---@param key any
+---@return function
+local function make_dispatcher(key)
+  return function(obj, ...)
+    local st = obj._states[obj._current]
+    local fn = st[key] or st.default
+    if not fn then
+      error(("state: %q is not available in state %q"):format(tostring(key), obj._current), 2)
+    end
+    return fn(obj, ...)
+  end
+end
+
+OBJ.__index = function(self, key)
   local own = rawget(OBJ, key)
   if own then
     return own
   end
-  local d = dispatchers[key]
-  if not d then
-    d = function(obj, ...)
-      local st = obj._states[obj._current]
-      local fn = st[key] or st.default
-      if not fn then
-        error(("state: %q is not available in state %q"):format(tostring(key), obj._current), 2)
-      end
-      return fn(obj, ...)
+  local methods = self._methods
+  if methods[key] then
+    local d = dispatchers[key]
+    if not d then
+      d = make_dispatcher(key)
+      dispatchers[key] = d
     end
-    dispatchers[key] = d
+    return d
   end
-  return d
+  -- not a method of any state: a state with `default` answers every name, but such a name must not grow the
+  -- shared cache (an arbitrary key is not bounded); without `default` it is simply not there
+  if methods.default then
+    return make_dispatcher(key)
+  end
+  return nil
 end
 
 ---@param name string
@@ -86,8 +101,10 @@ function M.new(spec)
   if type(spec) ~= "table" or type(spec.states) ~= "table" or not spec.states[spec.initial] then
     error("state.new: spec.states and a known spec.initial are required", 2)
   end
+  local methods = {}
   for _, def in pairs(spec.states) do
     for method in pairs(def) do
+      methods[method] = true
       if method == "set_state" or method == "current_state" or method == "is_state" then
         error(
           ("state.new: %q is a built-in method and cannot be defined by a state"):format(method),
@@ -96,9 +113,10 @@ function M.new(spec)
       end
     end
   end
-  local obj = setmetatable({ _states = spec.states, _current = spec.initial }, OBJ)
+  local obj =
+    setmetatable({ _states = spec.states, _current = spec.initial, _methods = methods }, OBJ)
   for k, v in pairs(spec.fields or {}) do
-    if k == "_states" or k == "_current" then
+    if k == "_states" or k == "_current" or k == "_methods" then
       error(("state.new: field %q is reserved"):format(k), 2)
     end
     rawset(obj, k, v)

@@ -1,6 +1,8 @@
 ---@meta
 ---@module 'lib.lua.patterns.iterator.@types'
 
+---@alias Lib.Patterns.Iterator.Reducer fun(acc: any, v: any): any
+
 ---@class Lib.Patterns.Iterator
 ---@field next_fn fun(): any
 ---@field buffer any
@@ -14,5 +16,5 @@
 ---@field drop fun(self: Lib.Patterns.Iterator, n: integer): Lib.Patterns.Iterator
 ---@field collect fun(self: Lib.Patterns.Iterator): any[]
 ---@field each fun(self: Lib.Patterns.Iterator, fn: fun(v: any))
----@field reduce fun(self: Lib.Patterns.Iterator, fn: fun(acc: any, v: any): any, init: any): any
+---@field reduce fun(self: Lib.Patterns.Iterator, fn: Lib.Patterns.Iterator.Reducer, init: any): any
 ---@field iter fun(self: Lib.Patterns.Iterator): fun(): any

@@ -33,6 +33,11 @@ B.__index = B
 ---@return Lib.Patterns.CircuitBreaker
 function M.new(opts)
   opts = opts or {}
+  for _, key in ipairs({ "now", "on_change" }) do
+    if opts[key] ~= nil and type(opts[key]) ~= "function" then
+      error(("circuit_breaker.new: opts.%s must be a function"):format(key), 2)
+    end
+  end
   local function number(key, default, min)
     local v = opts[key]
     if v == nil then

@@ -50,7 +50,19 @@ end
 ---@param task fun(attempt: integer, done: fun(ok: boolean, value_or_err: any))
 ---@param opts Lib.Patterns.RetryBackoff.Opts|nil
 function M.run(task, opts)
+  if type(task) ~= "function" then
+    error("retry_backoff.run: task must be a function", 2)
+  end
   opts = opts or {}
+  if opts.sleep ~= nil and type(opts.sleep) ~= "function" then
+    error("retry_backoff.run: opts.sleep must be a function or nil", 2)
+  end
+  if opts.on_done ~= nil and type(opts.on_done) ~= "function" then
+    error("retry_backoff.run: opts.on_done must be a function or nil", 2)
+  end
+  if opts.should_retry ~= nil and type(opts.should_retry) ~= "function" then
+    error("retry_backoff.run: opts.should_retry must be a function or nil", 2)
+  end
   check_number(opts, "max_attempts", 1)
   check_number(opts, "base_ms", 0)
   check_number(opts, "factor", 0)

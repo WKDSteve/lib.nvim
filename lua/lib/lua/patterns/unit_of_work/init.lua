@@ -42,6 +42,12 @@ end
 ---@param value any
 ---@return Lib.Patterns.UnitOfWork
 function U:add(id, value)
+  if id == nil or id ~= id then
+    error("unit_of_work.add: id must not be nil or NaN", 2)
+  end
+  if value == nil then
+    error("unit_of_work.add: value must not be nil (use remove)", 2)
+  end
   self.queue[#self.queue + 1] = { kind = "put", id = id, value = value }
   return self
 end
@@ -56,6 +62,9 @@ end
 ---@param id any
 ---@return Lib.Patterns.UnitOfWork
 function U:remove(id)
+  if id == nil or id ~= id then
+    error("unit_of_work.remove: id must not be nil or NaN", 2)
+  end
   self.queue[#self.queue + 1] = { kind = "delete", id = id }
   return self
 end

@@ -21,6 +21,8 @@ local uv = vim.uv or vim.loop
 
 local M = {}
 
+-- LuaJIT (Neovim's Lua runtime) only has the global `unpack`; `table.unpack` is Lua 5.2+.
+---@diagnostic disable-next-line: deprecated
 local unpack = table.unpack or unpack
 
 ---`table.pack` is missing on plain LuaJIT.
@@ -33,6 +35,9 @@ end
 ---@param opts Lib.Patterns.Throttle.Opts|nil
 ---@return Lib.Patterns.Throttle.Handle
 function M.new(fn, ms, opts)
+  if type(fn) ~= "function" then
+    error("throttle.new: fn must be a function", 2)
+  end
   if type(ms) ~= "number" or ms ~= ms or ms < 0 or ms == math.huge then
     error("throttle.new: ms must be a finite number >= 0", 2)
   end

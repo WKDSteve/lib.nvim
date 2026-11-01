@@ -16,6 +16,8 @@ require("lib.lua.patterns.decorator.@types")
 
 local M = {}
 
+-- LuaJIT (Neovim's Lua runtime) only has the global `unpack`; `table.unpack` is Lua 5.2+.
+---@diagnostic disable-next-line: deprecated
 local unpack = table.unpack or unpack
 
 ---Pack with an explicit count so trailing nils survive (`table.pack` is missing on plain LuaJIT).
@@ -28,9 +30,20 @@ end
 ---@param ... fun(fn: function): function
 ---@return function
 function M.wrap(fn, ...)
-  local decorators = { ... }
-  for i = #decorators, 1, -1 do
-    fn = decorators[i](fn)
+  if type(fn) ~= "function" then
+    error("decorator.wrap: fn must be a function", 2)
+  end
+  -- select("#") and not #/ipairs: a nil among the decorators (a decorator variable that was never set) must be
+  -- reported, not silently end the list
+  local n = select("#", ...)
+  for i = n, 1, -1 do
+    local d = select(i, ...)
+    if type(d) ~= "function" then
+      error(("decorator.wrap: decorator %d must be a function"):format(i), 2)
+    end
+  end
+  for i = n, 1, -1 do
+    fn = (select(i, ...))(fn)
   end
   return fn
 end
@@ -39,6 +52,9 @@ end
 ---@param hook function
 ---@return fun(fn: function): function
 function M.before(hook)
+  if type(hook) ~= "function" then
+    error("decorator.before: hook must be a function", 2)
+  end
   return function(fn)
     return function(...)
       hook(...)
@@ -51,6 +67,9 @@ end
 ---@param hook function
 ---@return fun(fn: function): function
 function M.after(hook)
+  if type(hook) ~= "function" then
+    error("decorator.after: hook must be a function", 2)
+  end
   return function(fn)
     return function(...)
       local out = pack(fn(...))
@@ -65,6 +84,12 @@ end
 ---@param otherwise function|nil
 ---@return fun(fn: function): function
 function M.guard(predicate, otherwise)
+  if type(predicate) ~= "function" then
+    error("decorator.guard: predicate must be a function", 2)
+  end
+  if otherwise ~= nil and type(otherwise) ~= "function" then
+    error("decorator.guard: otherwise must be a function or nil", 2)
+  end
   return function(fn)
     return function(...)
       if predicate(...) then
@@ -82,6 +107,9 @@ end
 ---@param clock (fun(): number)|nil  # seconds, default `os.clock`
 ---@return fun(fn: function): function
 function M.timed(sink, clock)
+  if type(sink) ~= "function" then
+    error("decorator.timed: sink must be a function", 2)
+  end
   clock = clock or os.clock
   return function(fn)
     return function(...)

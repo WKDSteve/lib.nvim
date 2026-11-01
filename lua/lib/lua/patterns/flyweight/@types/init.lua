@@ -5,6 +5,8 @@
 ---@field make fun(...): any
 ---@field keyfn fun(...): any
 ---@field cache table
+---@field fast table
+---@field default_key boolean
 ---@field get fun(self: Lib.Patterns.Flyweight, ...: any): any
 ---@field size fun(self: Lib.Patterns.Flyweight): integer
 ---@field clear fun(self: Lib.Patterns.Flyweight)

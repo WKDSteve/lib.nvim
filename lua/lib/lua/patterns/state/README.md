@@ -6,7 +6,7 @@ An object whose methods come from its current state; each state is a table of fu
 
 ## The pattern in one paragraph
 
-Behaviour depends on a mode, and each mode owns its methods instead of one object testing `if self.mode == ...` everywhere. `obj:method(...)` runs `states[current].method(obj, ...)`; `set_state` switches with `exit`/`enter` hooks; a state may define `default` for unlisted methods. A method the state lacks raises and names the state. Note: reading an unknown key on the object returns a dispatcher function, not `nil`.
+Behaviour depends on a mode, and each mode owns its methods instead of one object testing `if self.mode == ...` everywhere. `obj:method(...)` runs `states[current].method(obj, ...)`; `set_state` switches with `exit`/`enter` hooks; a state may define `default` for unlisted methods. A method the state lacks raises and names the state. Note: reading a key no state defines returns `nil`, unless some state has a `default`; then every key reads as a method that goes to `default`.
 
 ## Usage
 

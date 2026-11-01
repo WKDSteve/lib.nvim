@@ -23,6 +23,9 @@ F.__index = F
 ---@param opts { default: function|nil }|nil
 ---@return Lib.Patterns.FactoryMethod
 function M.new(ctors, opts)
+  if opts and opts.default ~= nil and type(opts.default) ~= "function" then
+    error("factory_method.new: opts.default must be a function", 2)
+  end
   local self = setmetatable({ ctors = {}, order = {}, default = opts and opts.default }, F)
   for kind, ctor in pairs(ctors or {}) do
     self:register(kind, ctor)

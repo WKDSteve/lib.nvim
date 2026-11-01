@@ -66,6 +66,12 @@ end
 ---@param fn function
 ---@return fun() unsubscribe
 function B:on(topic, fn)
+  if topic == nil or topic ~= topic then
+    error("event_bus.on: topic must not be nil or NaN", 2)
+  end
+  if type(fn) ~= "function" then
+    error("event_bus.on: listener must be a function", 2)
+  end
   local list = self.topics[topic]
   if not list then
     list = { items = {}, live = 0, dead = 0, emitting = 0 }
@@ -90,6 +96,9 @@ end
 ---@param fn function
 ---@return fun() unsubscribe
 function B:once(topic, fn)
+  if type(fn) ~= "function" then
+    error("event_bus.once: listener must be a function", 2)
+  end
   local off
   off = self:on(topic, function(...)
     off()

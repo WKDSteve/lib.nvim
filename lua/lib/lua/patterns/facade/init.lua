@@ -24,6 +24,9 @@ local M = {}
 ---@param spec table<string, string|function>
 ---@return table
 function M.new(spec)
+  if type(spec) ~= "table" then
+    error("facade.new: spec must be a table", 2)
+  end
   if spec.names ~= nil or spec.loaded ~= nil then
     error("facade.new: 'names' and 'loaded' are reserved entry names", 2)
   end

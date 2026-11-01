@@ -33,6 +33,9 @@ end
 ---@param child table
 ---@return Lib.Patterns.Composite
 function C:add(child)
+  if type(child) ~= "table" then
+    error("composite.add: child must be a table", 2)
+  end
   self.items[#self.items + 1] = child
   return self
 end

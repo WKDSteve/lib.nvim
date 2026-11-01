@@ -17,7 +17,7 @@ require("lib.lua.patterns.builder.@types")
 
 local M = {}
 
-local RESERVED = { set = true, build = true, get = true }
+local RESERVED = { set = true, build = true, get = true, _schema = true, _values = true }
 
 ---@class Lib.Patterns.Builder
 local B = {}
@@ -68,8 +68,15 @@ function B:build()
     if v == nil and spec.required then
       return nil, ("missing required field %q"):format(name)
     end
-    if v ~= nil and spec.validate and not spec.validate(v) then
-      return nil, ("invalid value for field %q"):format(name)
+    if v ~= nil and spec.validate then
+      -- a validator that raises is a rejected value, not a crash of the caller
+      local vok, valid = pcall(spec.validate, v)
+      if not vok then
+        return nil, ("validator of field %q raised: %s"):format(name, tostring(valid))
+      end
+      if not valid then
+        return nil, ("invalid value for field %q"):format(name)
+      end
     end
     out[name] = v
   end
@@ -80,6 +87,9 @@ end
 ---@param schema table<string, Lib.Patterns.Builder.Field>
 ---@return fun(): Lib.Patterns.Builder
 function M.new(schema)
+  if type(schema) ~= "table" then
+    error("builder.new: schema must be a table", 2)
+  end
   for name in pairs(schema) do
     if RESERVED[name] then
       error(("builder.new: field name %q is reserved"):format(name), 2)

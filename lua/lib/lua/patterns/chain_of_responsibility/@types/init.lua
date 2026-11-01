@@ -3,6 +3,8 @@
 
 ---@class Lib.Patterns.Chain
 ---@field handlers { name: string, fn: function }[]
+---@field index table<string, boolean>
+---@field handling integer
 ---@field add fun(self: Lib.Patterns.Chain, name: string, fn: function, opts: { first: boolean|nil }|nil): Lib.Patterns.Chain
 ---@field remove fun(self: Lib.Patterns.Chain, name: string): boolean
 ---@field names fun(self: Lib.Patterns.Chain): string[]
