@@ -704,4 +704,42 @@ return function(H)
         .. "-- a credential passed this way is NOT protected the way headers/bearer_token/auth are"
     )
   end
+
+  -- fetch_stream: ONE vim.schedule per stdout chunk (not per line), on_chunk still fires per line in
+  -- order, and an on_chunk that throws does not lose the rest of its chunk.
+  do
+    local real_system, real_schedule = vim.system, vim.schedule
+    local stdout_handler
+    vim.system = function(_, opts, _)
+      stdout_handler = opts.stdout
+      return {}
+    end
+
+    local seen = {}
+    curl.fetch_stream("http://127.0.0.1:1/", nil, {
+      on_chunk = function(line)
+        seen[#seen + 1] = line
+        if line == "b" then
+          error("on_chunk boom")
+        end
+      end,
+    })
+
+    local queued = {}
+    vim.schedule = function(fn)
+      queued[#queued + 1] = fn
+    end
+    stdout_handler(nil, "a\nb\nc\npart")
+    vim.schedule = real_schedule
+    vim.system = real_system
+
+    eq(#queued, 1, "fetch_stream: one vim.schedule for a chunk of three lines, got " .. #queued)
+    local call_ok = pcall(queued[1])
+    ok(not call_ok, "fetch_stream: the first on_chunk error is raised after the chunk")
+    ok(
+      vim.deep_equal(seen, { "a", "b", "c" }),
+      "fetch_stream: a throwing on_chunk loses no later line of its chunk: got "
+        .. vim.inspect(seen)
+    )
+  end
 end

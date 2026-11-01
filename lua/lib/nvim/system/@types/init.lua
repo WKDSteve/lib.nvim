@@ -30,6 +30,7 @@
 --- `lib.nvim.system.lines` module surface.
 ---@class Lib.System.Lines
 ---@field collector fun(): Lib.System.Lines.Collector
+---@field deliver fun(batch: string[], fn: fun(line: string))
 ---@field buffered fun(cb: (fun(err: nil, line: string))|nil): (fun(err: string|nil, data: string|nil))|nil
 
 --- Aggregator surface of `require("lib.nvim.system")`.

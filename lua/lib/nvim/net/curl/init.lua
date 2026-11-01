@@ -988,12 +988,13 @@ function M.fetch_stream(url, opts, handlers)
     if not data then
       return -- stdout closed; on_exit (below) still fires separately
     end
-    for _, line in ipairs(collector.feed(data)) do
-      if handlers.on_chunk then
-        vim.schedule(function()
-          handlers.on_chunk(line)
-        end)
-      end
+    -- One scheduled callback per chunk, not per line; `on_chunk` still fires
+    -- once per line, in order, and a throwing one does not lose the rest.
+    local got = collector.feed(data)
+    if handlers.on_chunk and #got > 0 then
+      vim.schedule(function()
+        line_stream.deliver(got, handlers.on_chunk)
+      end)
     end
   end
 

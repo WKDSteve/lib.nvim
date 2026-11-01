@@ -146,6 +146,21 @@ return function(H)
     eq(c.flush(), nil, "collector: nothing left after it")
   end
 
+  -- deliver: every line, in order; the first error is raised after the last line.
+  do
+    local got = {}
+    local done_ok, err = pcall(lines.deliver, { "x", "y", "z" }, function(line)
+      got[#got + 1] = line
+      if line ~= "z" then
+        error("boom " .. line)
+      end
+    end)
+    ok(not done_ok, "deliver: raises when a line's callback threw")
+    ok(tostring(err):find("boom x", 1, true) ~= nil, "deliver: ...the FIRST error")
+    eq(table.concat(got, ","), "x,y,z", "deliver: ...after every line was delivered")
+    ok(pcall(lines.deliver, {}, function() end), "deliver: an empty batch is fine")
+  end
+
   -- buffered: the vim.system handler shape --------------------------------
   eq(lines.buffered(nil), nil, "buffered: a nil callback yields no handler")
 

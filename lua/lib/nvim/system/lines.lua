@@ -113,6 +113,27 @@ function M.collector()
   }
 end
 
+---Call `fn(line)` for every line, in order. A `fn` that throws must not take the
+---rest of its batch down with it: every line is delivered first and the first
+---error is raised afterwards, where `vim.schedule` still reports it. Meant to
+---run inside ONE scheduled callback per chunk (a chunk of thousands of short
+---lines would otherwise queue thousands of closures).
+---@param batch string[]
+---@param fn fun(line: string)
+---@return nil
+function M.deliver(batch, fn)
+  local first_err
+  for _, line in ipairs(batch) do
+    local ok, err = xpcall(fn, debug.traceback, line)
+    if not ok and first_err == nil then
+      first_err = err
+    end
+  end
+  if first_err ~= nil then
+    error(first_err, 0)
+  end
+end
+
 ---A `vim.system` `stdout`/`stderr` handler that calls `cb` once per whole
 ---line, on the main loop.
 ---
@@ -144,25 +165,14 @@ function M.buffered(cb)
       return
     end
 
-    -- One scheduled callback per chunk, not per line: a chunk of thousands of
-    -- short lines would otherwise queue thousands of closures. The caller
-    -- still sees one call per line, in order. A cb that throws must not take
-    -- the rest of its chunk down with it (with one closure per line an error
-    -- only ever cost its own line), so every line is delivered first and the
-    -- first error is raised afterwards, where vim.schedule still reports it.
+    -- One scheduled callback per chunk, not per line; the caller still sees
+    -- one call per line, in order (see `M.deliver`).
     local got = collector.feed(data)
     if #got > 0 then
       vim.schedule(function()
-        local first_err
-        for _, line in ipairs(got) do
-          local ok, err = xpcall(cb, debug.traceback, nil, line)
-          if not ok and first_err == nil then
-            first_err = err
-          end
-        end
-        if first_err ~= nil then
-          error(first_err, 0)
-        end
+        M.deliver(got, function(line)
+          cb(nil, line)
+        end)
       end)
     end
   end
