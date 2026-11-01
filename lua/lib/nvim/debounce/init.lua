@@ -124,7 +124,14 @@ function M.new_with_counter(fn, ms)
     return skipped
   end
 
-  return { call = call, cancel = handle.cancel }, get_skipped
+  -- A cancelled run never reaches the wrapper above, so `pending` has to be reset
+  -- here, or the next call would be counted as superseding it.
+  local function cancel()
+    pending = false
+    handle.cancel()
+  end
+
+  return { call = call, cancel = cancel }, get_skipped
 end
 
 ---@type Lib.Debounce

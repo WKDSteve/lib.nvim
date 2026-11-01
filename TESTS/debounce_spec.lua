@@ -56,36 +56,60 @@ return function(H)
     vim.schedule = function(f)
       queued[#queued + 1] = f
     end
+    -- restore vim.schedule even when an assertion below throws: the specs after this one run
+    -- in the same editor
+    local run_ok, run_err = pcall(function()
+      local n = 0
+      local d = debounce.new(function()
+        n = n + 1
+      end, 10)
 
-    local n = 0
-    local d = debounce.new(function()
-      n = n + 1
-    end, 10)
+      d.call()
+      vim.wait(500, function()
+        return #queued > 0
+      end, 5)
+      ok(#queued == 1, "the fired timer queued its run")
+      d.cancel()
+      queued[1]()
+      eq(n, 0, "cancel() drops a run that is already queued")
 
-    d.call()
-    vim.wait(500, function()
-      return #queued > 0
-    end, 5)
-    ok(#queued == 1, "the fired timer queued its run")
-    d.cancel()
-    queued[1]()
-    eq(n, 0, "cancel() drops a run that is already queued")
+      queued = {}
+      d.call()
+      vim.wait(500, function()
+        return #queued > 0
+      end, 5)
+      d.call() -- a newer call supersedes the queued run
+      queued[1]()
+      eq(n, 0, "a newer call drops the older queued run")
 
-    queued = {}
-    d.call()
-    vim.wait(500, function()
-      return #queued > 0
-    end, 5)
-    d.call() -- a newer call supersedes the queued run
-    queued[1]()
-    eq(n, 0, "a newer call drops the older queued run")
-
-    vim.wait(500, function()
-      return #queued > 1
-    end, 5)
-    queued[2]()
+      vim.wait(500, function()
+        return #queued > 1
+      end, 5)
+      queued[2]()
+      eq(n, 1, "...and only the newest call's run is delivered")
+    end)
     vim.schedule = real_schedule
-    eq(n, 1, "...and only the newest call's run is delivered")
+    if not run_ok then
+      error(run_err, 0)
+    end
+  end
+
+  -- new_with_counter: a cancelled run is not "superseded" by the next call.
+  do
+    local fired = 0
+    local d, skipped = debounce.new_with_counter(function()
+      fired = fired + 1
+    end, 20)
+    d.call()
+    d.call()
+    eq(skipped(), 1, "counter: a call that supersedes a pending one is counted")
+    d.cancel()
+    d.call()
+    eq(skipped(), 1, "counter: the call after cancel() is not counted as superseding")
+    vim.wait(1000, function()
+      return fired > 0
+    end, 5)
+    eq(fired, 1, "counter: the last call still runs once")
   end
 
   -- No timer handle stays open after the run (libuv idle handles are not free).
