@@ -48,7 +48,7 @@ Adapter fields: `name` (required), `filetypes` **or** `detect(buf)` (one is requ
 `current_path?(buf)`, `reload?()`.
 
 Built in, in this order: `neo-tree`, `nvim-tree`, `netrw`, `oil`. netrw has no `reload`: it re-reads a
-directory whenever its buffer is entered. The `oil` reload is the `refresh` action and is best effort.
+directory whenever its buffer is entered. The `oil` reload is the `refresh` action and only runs from an oil buffer (it acts on the current buffer and may ask about unsaved edits; elsewhere oil watches the disk itself).
 
 ## When it helps / when it does not (Lua view)
 

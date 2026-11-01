@@ -98,12 +98,20 @@ return function(H)
   eq(explorer.current_path(oil_buf), "/proj/a.lua", "oil: dir plus cursor entry")
   local nt = buf_with("NvimTree")
   eq(explorer.current_path(nt), "/proj/b.lua", "nvim-tree: absolute path of the node")
+  explorer.reload_all()
+  eq(
+    table.concat(reloads, ","),
+    "nvim-tree",
+    "oil is not refreshed from a buffer that is not an oil buffer"
+  )
+  reloads = {}
+  vim.api.nvim_set_current_buf(oil_buf)
   eq(
     table.concat(explorer.reload_all(), ","),
     "nvim-tree,oil",
     "loaded explorers reload, in registration order"
   )
-  eq(table.concat(reloads, ","), "nvim-tree,oil", "both reloads ran")
+  eq(table.concat(reloads, ","), "nvim-tree,oil", "from an oil buffer both reloads ran")
   package.loaded["oil"], package.loaded["oil.actions"] = nil, nil
   package.loaded["nvim-tree"], package.loaded["nvim-tree.api"] = nil, nil
 

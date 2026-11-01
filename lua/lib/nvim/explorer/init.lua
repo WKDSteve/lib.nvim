@@ -98,8 +98,12 @@ local BUILTIN = {
       end
       return nil
     end,
+    -- oil's refresh acts on the current buffer (and may ask about unsaved edits): only
+    -- from an oil buffer. Elsewhere oil watches the disk itself.
     reload = function()
-      require("oil.actions").refresh.callback()
+      if vim.bo.filetype == "oil" then
+        require("oil.actions").refresh.callback()
+      end
     end,
   },
 }
