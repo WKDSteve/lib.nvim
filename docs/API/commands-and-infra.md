@@ -306,6 +306,19 @@ Unknown event names are errors.
 
 ---
 
+## `lib.nvim.explorer` (see README)
+
+File-explorer adapter registry on `lib.nvim.registry`; built in: neo-tree, NvimTree, netrw, oil.
+
+```
+M.register(adapter: { name, filetypes? | detect?(buf), module?, current_path?(buf), reload?() })   M.unregister(name): boolean
+M.adapters(): adapter[]   M.detect(buf?): adapter|nil   M.current(buf?): string|nil   M.current_path(buf?): string|nil
+M.reload_all(): string[]  M.reset()
+```
+Soft: a missing plugin answers `nil`, a raising adapter is skipped.
+
+---
+
 ## `lib.nvim.registry` (see README)
 
 Generic ordered key -> value registry with a lazy loader, validation and `reset()`.
