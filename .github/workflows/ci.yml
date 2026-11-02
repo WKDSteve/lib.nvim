@@ -70,6 +70,17 @@ jobs:
         with:
           neovim: true
           version: stable
+      # cross_open_default_container_spec.lua runs xdg-open handling in a Linux container
+      # (testing.container of testing.nvim); without the image it reports n/a instead of running.
+      - uses: actions/checkout@v5
+        if: runner.os == 'Linux'
+        with:
+          repository: WKDSteve/testing.nvim
+          path: .deps/testing.nvim
+          ref: ci-verified
+      - name: Build the Linux container image
+        if: runner.os == 'Linux'
+        run: podman build -t localhost/testing-linux:1 .deps/testing.nvim/containers/linux
       - run: |
           exec > >(tee -a "$RUNNER_TEMP/test-output.log") 2>&1
           nvim -n -i NONE --headless -u NONE -l TESTS/run.lua

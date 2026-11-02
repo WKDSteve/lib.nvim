@@ -40,7 +40,7 @@ return function(H)
     "-l",
     "/repos/lib.nvim/TESTS/container/open_default_linux.lua",
     "/repos",
-  }, { mounts = { [repos] = "/repos" } })
+  }, { mounts = { [root] = "/repos/lib.nvim" } })
   local out = res.stdout .. res.stderr
   H.ok(res.code == 0, "the container run succeeds: " .. out)
   H.ok(out:find("OPEN_OK", 1, true) ~= nil, "and reports OPEN_OK: " .. out)
