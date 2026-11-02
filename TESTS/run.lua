@@ -316,6 +316,7 @@ local failed = {}
 for _, name in ipairs(specs) do
   local run = dofile(dir .. name)
   local ok, err = pcall(run, H)
+  H.run_after_spec()
   if ok then
     say(("ok    %s"):format(name))
   else

@@ -4,6 +4,7 @@
 -- TESTS/ui_kit_confirm_answers_spec.lua -- lib.nvim.ui.kit.confirm answers exactly once, whichever way its float goes away (button, <Esc>/q, closed from outside, replaced, close(), the new dialog raising). Port of ui.nvim's spec of the same name.
 
 return function(H)
+  H.confirm_focus_first() -- the safe button is the default now; these specs drive Yes
   local kit = require("lib.nvim.ui.kit")
   local confirm = require("lib.nvim.ui.kit.confirm")
   local api = vim.api

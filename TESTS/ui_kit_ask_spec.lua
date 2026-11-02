@@ -6,6 +6,7 @@
 -- gets no answer, and falls back to vim.ui.select when the float cannot open.
 
 return function(H)
+  H.confirm_focus_first() -- the safe button is the default now; these specs drive Yes
   local eq, ok = H.eq, H.ok
   local kit = require("lib.nvim.ui.kit")
   local confirm = require("lib.nvim.ui.kit.confirm")

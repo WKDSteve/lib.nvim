@@ -31,6 +31,9 @@ return function(H)
     --- Open a dialog; returns its answers (a list: `nil` becomes the string "nil") and its surface.
     local function open(opts)
       local calls = {}
+      if opts.default == nil and not opts.safe_default then
+        opts.default = 1 -- these tests drive the first button; `safe_default` keeps the real default
+      end
       opts.on_answer = function(v)
         calls[#calls + 1] = v == nil and "nil" or v
       end
@@ -63,7 +66,22 @@ return function(H)
     eq(confirm.current_focus(), 3, "default by label")
     confirm.cancel()
     open({ question = "Which?", choices = { "a", "b" }, default = 9 })
-    eq(confirm.current_focus(), 1, "a default that names no button falls back to the first")
+    eq(confirm.current_focus(), 2, "a default that names no button falls back to the safe button")
+    confirm.cancel()
+
+    -- without a default the safe button is focused: No, a no/cancel label, else the last button
+    calls = open({ question = "Delete?", safe_default = true })
+    eq(confirm.current_focus(), 2, "Yes/No without default starts on No")
+    type_keys("<CR>")
+    eq(calls, { false }, "a stray <CR> answers No")
+    open({ question = "Which?", choices = { "Delete", "Cancel", "Later" }, safe_default = true })
+    eq(confirm.current_focus(), 2, "a Cancel label is the safe button")
+    confirm.cancel()
+    open({ question = "Which?", choices = "&Remove\n&Keep", safe_default = true })
+    eq(confirm.current_focus(), 2, "no no/cancel label: the last button")
+    confirm.cancel()
+    open({ question = "Which?", choices = { "a", "b" }, default = 1 })
+    eq(confirm.current_focus(), 1, "an explicit default 1 still starts on the first button")
     confirm.cancel()
 
     -- ---------------------------------------------------------------- hotkeys
@@ -343,6 +361,7 @@ return function(H)
     kit.confirm({
       question = "Same text",
       choices = { "Keep", "Keep" },
+      default = 1,
       on_answer = function(label, index)
         picked_label, picked_index = label, index
       end,

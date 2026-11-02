@@ -6,6 +6,7 @@
 -- name; the typed-keys spec of a child Neovim with a UI lives in ui.nvim only.
 
 return function(H)
+  H.confirm_focus_first() -- the safe button is the default now; these specs drive Yes
   local restores = {}
   --- Every stub is put back, also when the body fails: a later spec of this shared run must not
   --- find a stubbed component.

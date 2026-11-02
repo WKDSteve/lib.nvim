@@ -104,6 +104,41 @@ function H.with_stdpath_config(link, fn)
   end, fn)
 end
 
+local after_spec = {}
+
+--- Put `fn` on the list the runner calls after the current spec, whatever its outcome.
+---@param fn fun()
+function H.after_spec(fn)
+  after_spec[#after_spec + 1] = fn
+end
+
+--- Run the callbacks `H.after_spec` collected, newest first, then forget them.
+function H.run_after_spec()
+  for i = #after_spec, 1, -1 do
+    pcall(after_spec[i])
+    after_spec[i] = nil
+  end
+end
+
+--- Make `kit.confirm`/`kit.ask` dialogs opened without a `default` start on the first button until
+--- the spec ends. Since `kit.confirm` focuses the safe button (No) when no `default` is given, specs
+--- that drive "Yes" with a bare `confirm.confirm()` ask for the old focus explicitly.
+function H.confirm_focus_first()
+  local confirm = require("lib.nvim.ui.kit.confirm")
+  for _, name in ipairs({ "open", "ask" }) do
+    local orig = confirm[name]
+    confirm[name] = function(opts)
+      if type(opts) == "table" and opts.default == nil then
+        opts = vim.tbl_extend("force", opts, { default = 1 })
+      end
+      return orig(opts)
+    end
+    H.after_spec(function()
+      confirm[name] = orig
+    end)
+  end
+end
+
 --- The runner's closing line for a failed run: the count AND the names of the failed specs.
 ---
 --- The per-spec `FAIL` lines scroll away in a long run, and a run that is read through `tail`

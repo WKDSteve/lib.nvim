@@ -17,7 +17,8 @@
 ---                                 on_answer(nil) for a custom choice list.
 ---
 --- Options beyond `question`/`choices`/`title`/`theme`:
----   - `default`: the button that starts focused (index or label; default the first).
+---   - `default`: the button that starts focused (index or label; default the safe
+---     button: No, else a no/cancel-style label, else the last button).
 ---   - `choices` as a list of labels, or as a `vim.fn.confirm` string ("&Delete\n&Cancel": buttons
 ---     separated by a newline, `&` before the letter that picks the button). Every button has a
 ---     hotkey, marked in its label: `y`/`n` for Yes/No, the `&` letters, else the first free letter
@@ -397,7 +398,10 @@ local function answer_hooked(opts, value)
 end
 
 ---@internal
---- 1-based index of the button `default` names (an index, or a label), 1 when it names none.
+--- 1-based index of the button `default` names (an index, or a label). When it names none, the
+--- safe button: "No" of the Yes/No default, else the first button labelled no/cancel/nein/abbrechen
+--- (case-insensitive, hotkey `&` ignored), else the last button (the convention puts the way out
+--- last). A stray <CR> then never confirms a destructive action.
 ---@param default integer|string|nil
 ---@param labels string[]
 ---@return integer
@@ -412,7 +416,16 @@ local function default_index(default, labels)
       end
     end
   end
-  return 1
+  if #labels == 2 and labels[1] == "Yes" and labels[2] == "No" then
+    return 2
+  end
+  for i, l in ipairs(labels) do
+    local plain = tostring(l):lower():gsub("&", "")
+    if plain == "no" or plain == "cancel" or plain == "nein" or plain == "abbrechen" then
+      return i
+    end
+  end
+  return #labels
 end
 
 ---@internal

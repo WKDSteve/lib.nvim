@@ -4,6 +4,7 @@
 -- TESTS/ui_kit_ask_modal_spec.lua -- lib.nvim.ui.kit.confirm.ask waits for ANY modal kit dialog, is woken by its close instead of polling, takes a `choices` list, and ends the wait with one timer. Port of ui.nvim's spec of the same name.
 
 return function(H)
+  H.confirm_focus_first() -- the safe button is the default now; these specs drive Yes
   local kit = require("lib.nvim.ui.kit")
   local confirm = require("lib.nvim.ui.kit.confirm")
   local modal = require("lib.nvim.ui.kit.modal")

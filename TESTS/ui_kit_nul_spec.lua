@@ -14,6 +14,7 @@
 -- two cells like the `^@` a NUL is drawn as -- and what a caller is handed back stays its own string.
 
 return function(H)
+  H.confirm_focus_first() -- the safe button is the default now; these specs drive Yes
   local eq, ok = H.eq, H.ok
   local kit = require("lib.nvim.ui.kit")
   local confirm = require("lib.nvim.ui.kit.confirm")

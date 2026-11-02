@@ -12,6 +12,7 @@
 -- hands back stays the caller's own string.
 
 return function(H)
+  H.confirm_focus_first() -- the safe button is the default now; these specs drive Yes
   local eq, ok = H.eq, H.ok
   local kit = require("lib.nvim.ui.kit")
   local api = vim.api
