@@ -21,6 +21,11 @@ return function(H)
 
   local original_trim = lib.trim
 
+  -- a throwing function inside a wrapped submodule table (removed again below)
+  rawset(lib.dict, "spec_boom", function()
+    error("boom", 0)
+  end)
+
   local inst = telemetry_wrap.setup({ namespace = "spec.telemetry_wrap", persist = false })
   H.ok(inst ~= nil, "setup() returns the instance it created")
 
@@ -39,6 +44,17 @@ return function(H)
   )
   H.eq(lib.trim("  x  "), "x", "the wrapper is transparent -- a real call still behaves correctly")
 
+  -- errors are counted by default, like `telemetry.auto()`
+  H.ok(not pcall(lib.dict.spec_boom), "the wrapper rethrows the error")
+  local boom_entry
+  for _, e in ipairs(inst.report().entries) do
+    if e.key == "dict.spec_boom" then
+      boom_entry = e
+    end
+  end
+  H.ok(boom_entry ~= nil, "the throwing function was counted")
+  H.eq(boom_entry and boom_entry.errors, 1, "setup() counts thrown errors by default")
+
   local found = nil
   for _, e in ipairs(inst.report().entries) do
     if e.key == "trim" then
@@ -55,6 +71,7 @@ return function(H)
   )
 
   telemetry_wrap.teardown()
+  rawset(lib.dict, "spec_boom", nil)
   H.eq(lib.trim, original_trim, "teardown() restores the original object exactly")
   H.eq(rawget(lib, "trim"), nil, "...and removes the rawset materialization")
   H.eq(

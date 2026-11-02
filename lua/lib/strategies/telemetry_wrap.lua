@@ -33,7 +33,7 @@ local M = {}
 
 ---`require("lib.strategies.telemetry_wrap")` itself.
 ---@class Lib.Strategies.TelemetryWrap
----@field setup fun(opts?: { namespace?: string, profile_args?: boolean, timing?: boolean, persist?: boolean, dir?: string, wrap_opts?: RA.Telemetry.WrapOpts }): RA.Telemetry.Instance|nil
+---@field setup fun(opts?: { namespace?: string, profile_args?: boolean, timing?: boolean, errors?: boolean, persist?: boolean, dir?: string, wrap_opts?: RA.Telemetry.WrapOpts }): RA.Telemetry.Instance|nil
 ---@field teardown fun(): nil
 
 ---@type RA.Telemetry.Instance|nil
@@ -72,7 +72,7 @@ end
 ---Create a telemetry instance for `require("lib")`'s aggregate, wrap it, and
 ---start it. Returns `nil` (rather than erroring) when runtime-analysis.nvim
 ---is not installed — the caller's own soft-dependency point.
----@param opts? { namespace?: string, profile_args?: boolean, timing?: boolean, persist?: boolean, dir?: string, wrap_opts?: RA.Telemetry.WrapOpts }
+---@param opts? { namespace?: string, profile_args?: boolean, timing?: boolean, errors?: boolean, persist?: boolean, dir?: string, wrap_opts?: RA.Telemetry.WrapOpts }
 ---@return RA.Telemetry.Instance|nil
 function M.setup(opts)
   if instance then
@@ -99,6 +99,7 @@ function M.setup(opts)
   instance.start({
     profile_args = opts.profile_args or nil,
     time = opts.timing or nil,
+    errors = opts.errors ~= false or nil, -- counted unless opted out, like `telemetry.auto()`
   })
 
   return instance
