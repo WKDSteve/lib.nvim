@@ -181,12 +181,22 @@ local function render_gallery(resolved)
     local start = #prefix + #"[ Yes ]  "
     hls[#hls + 1] =
       { row = #lines - 1, col0 = start, col1 = start + #"[ No ]", group = "KitSelection" }
+    -- the hotkey letter of each button (y, n, c): KitHotkey underlines it, KitAccent colours it
+    for _, label in ipairs({ "Yes", "No", "Cancel" }) do
+      local at = lines[#lines]:find("[ " .. label .. " ]", 1, true)
+      if at then
+        local col = at + 1 -- 0-based column of the first letter after "[ "
+        for _, group in ipairs({ "KitAccent", "KitHotkey" }) do
+          hls[#hls + 1] = { row = #lines - 1, col0 = col, col1 = col + 1, group = group }
+        end
+      end
+    end
   end
   if g then
     push(g.bl .. string.rep(g.h, W) .. g.br, "KitBorder")
   end
   push("")
-  push("q = close · <Tab> cycles presets", "KitMuted")
+  push("underlined letter = hotkey (KitHotkey) · q = close · <Tab> cycles presets", "KitMuted")
 
   return lines, hls
 end

@@ -1063,6 +1063,34 @@ return function(H)
   ok(confirm.is_open(), "prompt layout=buttons opens the button-confirm")
   confirm.close()
 
+  -- the default list (no layout, no choices) answers to y and n like the button dialog
+  for _, case in ipairs({ { key = "y", want = true }, { key = "n", want = false } }) do
+    local got = "unset"
+    kit.prompt({
+      question = "List?",
+      answer_type = "confirm",
+      on_answer = function(a)
+        got = a
+      end,
+    })
+    local chooser_mod = require("lib.nvim.ui.kit.chooser")
+    ok(chooser_mod.is_open(), "prompt without layout opens the list chooser")
+    vim.api.nvim_feedkeys(case.key, "x", false)
+    eq(got, case.want, "prompt list: " .. case.key .. " answers " .. tostring(case.want))
+    ok(not chooser_mod.is_open(), "prompt list: " .. case.key .. " closes the list")
+  end
+
+  -- a custom choice list has no y/n pair
+  kit.prompt({
+    question = "Custom?",
+    answer_type = "confirm",
+    choices = { "A", "B" },
+    on_answer = function() end,
+  })
+  local pressed = vim.fn.maparg("y", "n", false, true)
+  ok(pressed.buffer ~= 1, "custom list: y is not mapped in its buffer")
+  require("lib.nvim.ui.kit.chooser").close()
+
   -- focused button carries the selection highlight
   ok(vim.fn.hlexists("KitSelection") == 1, "KitSelection group defined for confirm focus")
 

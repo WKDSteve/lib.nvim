@@ -66,7 +66,7 @@ function M.open(opts)
   local custom = type(opts.choices) == "table" and #opts.choices > 0
   local choices = custom and opts.choices or { "Yes", "No" }
 
-  return select.open({
+  local surf = select.open({
     title = opts.question,
     selection = choices,
     theme = opts.theme,
@@ -90,6 +90,24 @@ function M.open(opts)
       end
     end,
   })
+
+  -- The default Yes/No list answers to y and n as the button dialog does. A custom list has no such pair.
+  if surf and not custom and surf.bufnr and vim.api.nvim_buf_is_valid(surf.bufnr) then
+    local chooser = require("lib.nvim.ui.kit.chooser")
+    local function answer_with(row)
+      chooser.move(row - (chooser.current_index() or row))
+      chooser.submit()
+    end
+    local mo = { buffer = surf.bufnr, nowait = true, record = false }
+    local map = require("lib.nvim.bindings.keymap")
+    map("n", "y", function()
+      answer_with(1)
+    end, mo)
+    map("n", "n", function()
+      answer_with(2)
+    end, mo)
+  end
+  return surf
 end
 
 return M
