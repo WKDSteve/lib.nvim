@@ -321,7 +321,7 @@ return function(H)
   -- :only / <C-w>o in the code window closes the sidebar and restores nothing: the user asked for
   -- one window.
   a = sidebar.open({ name = "a" })
-  local e = sidebar.open({ name = "e" })
+  e = sidebar.open({ name = "e" })
   ok(not a:is_visible(), "e displaces a")
   api.nvim_set_current_win(main)
   vim.cmd("only")

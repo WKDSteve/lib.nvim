@@ -31,19 +31,16 @@ return function(H)
     return
   end
 
-  local res = container.run(
-    {
-      "nvim",
-      "--headless",
-      "--clean",
-      "-u",
-      "NONE",
-      "-l",
-      "/repos/lib.nvim/TESTS/container/open_default_linux.lua",
-      "/repos",
-    },
-    { mounts = { [repos] = "/repos" } }
-  )
+  local res = container.run({
+    "nvim",
+    "--headless",
+    "--clean",
+    "-u",
+    "NONE",
+    "-l",
+    "/repos/lib.nvim/TESTS/container/open_default_linux.lua",
+    "/repos",
+  }, { mounts = { [repos] = "/repos" } })
   local out = res.stdout .. res.stderr
   H.ok(res.code == 0, "the container run succeeds: " .. out)
   H.ok(out:find("OPEN_OK", 1, true) ~= nil, "and reports OPEN_OK: " .. out)
