@@ -100,6 +100,30 @@ return function(H)
     handle:close()
   end
 
+  -- the `-` key unloads only for a caller that has an `on_unload`; otherwise the next `+` would skip the page
+  for _, with_cb in ipairs({ false, true }) do
+    local pages = { { { time_ms = 0, content = "old" } } }
+    local handle = message_log.open({
+      now_ms = function()
+        return 0
+      end,
+      entries = { { time_ms = 0, content = "now" } },
+      load_more = function()
+        return table.remove(pages, 1) or {}
+      end,
+      on_unload = with_cb and function() end or nil,
+    })
+    handle:load_more("older")
+    vim.api.nvim_set_current_win(handle.surf.winid)
+    vim.api.nvim_feedkeys("-", "x", false)
+    eq(
+      #lines(handle),
+      with_cb and 1 or 2,
+      "`-` unloads the page only with an on_unload (" .. tostring(with_cb) .. ")"
+    )
+    handle:close()
+  end
+
   -- Two concurrently-open instances share one module-level namespace
   -- (no per-open leak) without cross-instance interference.
   do

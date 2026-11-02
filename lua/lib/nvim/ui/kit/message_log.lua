@@ -662,9 +662,11 @@ local KEYS = {
   },
   {
     keys = { "<C-k>", "-" },
-    desc = "unload the last loaded older page, else load newer entries",
+    desc = "unload the last loaded older page (with on_unload), else load newer entries",
     run = function(self)
-      if not self:unload_older() then
+      -- unloading is for callers that move their page cursor back (`on_unload`): without one the next
+      -- `+` would skip the unloaded page
+      if not (type(self.opts.on_unload) == "function" and self:unload_older()) then
         self:load_more("newer")
       end
     end,
