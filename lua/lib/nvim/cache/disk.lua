@@ -42,7 +42,8 @@ end
 ---@internal
 --- A crash between the temp write and the rename of `fs.write.atomic` leaves
 --- `<file>.atomic-tmp.<pid>.<hrtime>` behind, which nothing reads or deletes. Remove the ones of
---- this cache file that are older than a day (a younger one may belong to a write in progress).
+--- this cache file that are older than a day (a younger one may belong to a write in progress). Only `save`
+--- sweeps: `load` is a hot path and a directory scan per read is not worth it.
 ---@param path string  # the cache file
 local function sweep_tmp(path)
   local dir = vim.fn.fnamemodify(path, ":h")
@@ -205,7 +206,6 @@ end
 ---@return string|nil err
 function M.load(namespace, opts)
   opts = opts or {}
-  sweep_tmp(cache_path(namespace, opts))
   local entry, err = read_entry(namespace, opts)
   if not entry then
     return nil, err
