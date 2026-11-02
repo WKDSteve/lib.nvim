@@ -124,6 +124,12 @@ env.array({vars})                                            *spawn_env.array()*
   `uv.spawn` wants an array where `build()` returns a `{ [key] = value }`
   dict (the shape `vim.system`/`jobstart` want).
 
+  On Windows the array can hold hidden entries whose name starts with `=`
+  (`=C:` is the working directory of drive C, `=ExitCode` is set by
+  cmd.exe); they are passed through unchanged, as native inheritance does,
+  e.g. `=C:=C:\dir`. A caller that splits key and value must look for the
+  `=` from the second character on, not the first.
+
   Parameters: ~
     {vars} `table<string,string>|nil` - explicit overrides, applied last
 

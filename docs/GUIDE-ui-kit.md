@@ -70,6 +70,9 @@ semantic highlight groups). Built-in **presets** differ mainly in border:
 | `solid`     | single | `Statement` accents, bold `Title` |
 | `double`    | double | `Special` border, `WarningMsg` accents |
 | `ascii`     | ASCII glyphs | `Comment` border, `Identifier` accents |
+| `dock_left` | glyph-less left edge | for a panel docked against the screen's left edge |
+| `menu`      | rounded | coloured frame and title (`Function`); `kit.menu`'s default |
+| `hacker`    | ASCII glyphs | fixed green-on-black palette, does not follow the colorscheme |
 
 Presets differ in border **and** in which standard highlight groups they link
 to, so they look distinct under any colorscheme — no colors are hardcoded, so
@@ -134,7 +137,10 @@ vim.api.nvim_buf_set_extmark(buf, ns, row, 0, { line_hl_group = "KitDim" }) -- a
 **confirm** — `kit.confirm({ question, choices?, on_answer })`. Default
 `Yes`/`No` yields a boolean; a custom `choices` list yields the chosen string
 (cancel → `nil`). `h`/`l`/arrows move focus, `<CR>` confirms, `<Esc>`/`q`
-cancels. One key picks a button directly: `y`/`n` for Yes/No, else the first
+cancels. Without `default` (index or label) the safe button starts focused, so a stray `<CR>`
+never confirms a destructive action: `No` of the Yes/No pair, else the first button labelled
+No/Cancel (also `Nein`/`Abbrechen`), else the last button. Behaviour change: before, the first
+button was focused; a caller that wants it sets `default = 1`. One key picks a button directly: `y`/`n` for Yes/No, else the first
 free letter of the label (`Cancel`, `Close`, `Copy` → `c`, `o`, `p`), else its
 digit; the key is underlined in the button (see the kit README for the rules). A left click on a button focuses and confirms it directly (needs
 `mouse=a`); clicking blank space in the dialog is a no-op, not a cancel.
@@ -264,8 +270,8 @@ re-renders instantly with your theme's borders and `KitSelection` / `KitAccent`
 / `KitTitle` / `KitMuted` colors. A quick-reference of presets and `hl` keys
 sits **below** the return value in the config buffer.
 
-- **`<Tab>`** cycles the built-in presets (`minimal` → `rounded` → `solid` →
-  `double` → `ascii`).
+- **`<Tab>`** cycles the five border presets (`minimal` → `rounded` → `solid` →
+  `double` → `ascii`); `dock_left`, `menu` and `hacker` are not in the cycle.
 - **`<S-Tab>`** cycles installed **nvim colorschemes** and applies them live —
   because the kit's highlights link to standard groups, the whole preview
   restyles under each colorscheme. Your original scheme is restored on close.

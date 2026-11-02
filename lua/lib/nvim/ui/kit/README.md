@@ -7,8 +7,8 @@
 > README, `@types` and those in step.
 >
 > History: from 2026-09-14 to 2026-10-28 `ui.nvim` held the canonical copy and
-> this one was frozen (bug fixes mirrored, `kit_drift_spec` comparing the two);
-> moving the code back here ended the duplication.
+> this one was frozen; moving the code back here ended the duplication (and the
+> drift spec that compared the two).
 
 A themed, composable UI toolkit. Pick a preset once and every popup is visually
 coordinated, or override colors/borders per call. Built in layers on top of
