@@ -40,6 +40,34 @@ local function cache_path(namespace, opts)
 end
 
 ---@internal
+--- A crash between the temp write and the rename of `fs.write.atomic` leaves
+--- `<file>.atomic-tmp.<pid>.<hrtime>` behind, which nothing reads or deletes. Remove the ones of
+--- this cache file that are older than a day (a younger one may belong to a write in progress).
+---@param path string  # the cache file
+local function sweep_tmp(path)
+  local dir = vim.fn.fnamemodify(path, ":h")
+  local prefix = vim.fn.fnamemodify(path, ":t") .. ".atomic-tmp."
+  local handle = uv.fs_scandir(dir)
+  if not handle then
+    return
+  end
+  local limit = os.time() - 24 * 60 * 60
+  while true do
+    local name = uv.fs_scandir_next(handle)
+    if not name then
+      return
+    end
+    if name:sub(1, #prefix) == prefix and name:sub(#prefix + 1):match("^%d+%.%d+$") then
+      local full = dir .. "/" .. name
+      local stat = uv.fs_stat(full)
+      if stat and stat.mtime.sec < limit then
+        pcall(os.remove, full)
+      end
+    end
+  end
+end
+
+---@internal
 ---Read and JSON-decode the cache file for `namespace`, if any.
 ---
 ---A decode failure on non-empty content is not the same situation as no
@@ -155,6 +183,7 @@ function M.save(namespace, data, opts)
   -- Temp file, flushed, renamed over the target: a crash or power loss leaves the old content or the new, never the
   -- zero-filled file `io.open(path, "w")` (truncate in place, write later) leaves on NTFS -- 29 telemetry caches were
   -- found like that, all from the same minute, each read back as "corrupt" and the counts started again.
+  sweep_tmp(path)
   local ok_write, write_err = require("lib.nvim.fs.write.atomic")(path, encoded)
   if not ok_write then
     return false, "write failed: " .. tostring(write_err or path)
@@ -176,6 +205,7 @@ end
 ---@return string|nil err
 function M.load(namespace, opts)
   opts = opts or {}
+  sweep_tmp(cache_path(namespace, opts))
   local entry, err = read_entry(namespace, opts)
   if not entry then
     return nil, err

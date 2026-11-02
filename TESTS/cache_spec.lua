@@ -18,6 +18,29 @@ return function(H)
   )
   eq(disk.stats("missing", opts).exists, false, "cache.disk: stats on missing namespace")
 
+  -- Temp files a crashed atomic write left behind: a day old ones go, young ones stay (maybe in progress).
+  do
+    local stale = dir .. "/sweep.json.atomic-tmp.111.222"
+    local young = dir .. "/sweep.json.atomic-tmp.333.444"
+    local other = dir .. "/other.json.atomic-tmp.111.222"
+    for _, f in ipairs({ stale, young, other }) do
+      vim.fn.writefile({ "x" }, f)
+    end
+    local two_days_ago = os.time() - 2 * 24 * 60 * 60
+    for _, f in ipairs({ stale, other }) do
+      vim.uv.fs_utime(f, two_days_ago, two_days_ago)
+    end
+    disk.save("sweep", { 1 }, opts)
+    eq(vim.uv.fs_stat(stale), nil, "cache.disk: save removes this file's day-old temp leftover")
+    ok(vim.uv.fs_stat(young) ~= nil, "cache.disk: a young temp file stays")
+    ok(vim.uv.fs_stat(other) ~= nil, "cache.disk: another cache file's leftover is not touched")
+    vim.uv.fs_utime(young, two_days_ago, two_days_ago)
+    disk.load("sweep", opts)
+    eq(vim.uv.fs_stat(young), nil, "cache.disk: load sweeps too")
+    os.remove(other)
+    disk.clear("sweep", opts)
+  end
+
   -- A file that exists but cannot be read is not the same as no file: a
   -- directory squatting on the path makes io.open (Windows) or read (POSIX)
   -- fail on every platform, which is the shape of a real transient failure.
