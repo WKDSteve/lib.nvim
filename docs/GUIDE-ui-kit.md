@@ -139,8 +139,8 @@ vim.api.nvim_buf_set_extmark(buf, ns, row, 0, { line_hl_group = "KitDim" }) -- a
 (cancel → `nil`). `h`/`l`/arrows move focus, `<CR>` confirms, `<Esc>`/`q`
 cancels. Without `default` (index or label) the safe button starts focused, so a stray `<CR>`
 never confirms a destructive action: `No` of the Yes/No pair, else the first button labelled
-No/Cancel (also `Nein`/`Abbrechen`), else the last button. Behaviour change: before, the first
-button was focused; a caller that wants it sets `default = 1`. One key picks a button directly: `y`/`n` for Yes/No, else the first
+No/Cancel (also `Nein`/`Abbrechen`), else the first button (a menu-like list has no safer one).
+Behaviour change: before, the first button was always focused. One key picks a button directly: `y`/`n` for Yes/No, else the first
 free letter of the label (`Cancel`, `Close`, `Copy` → `c`, `o`, `p`), else its
 digit; the key is underlined in the button (see the kit README for the rules). A left click on a button focuses and confirms it directly (needs
 `mouse=a`); clicking blank space in the dialog is a no-op, not a cancel.

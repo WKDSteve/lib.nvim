@@ -66,10 +66,14 @@ return function(H)
     eq(confirm.current_focus(), 3, "default by label")
     confirm.cancel()
     open({ question = "Which?", choices = { "a", "b" }, default = 9 })
-    eq(confirm.current_focus(), 2, "a default that names no button falls back to the safe button")
+    eq(
+      confirm.current_focus(),
+      1,
+      "a default that names no button falls back to the first (no No/Cancel label)"
+    )
     confirm.cancel()
 
-    -- without a default the safe button is focused: No, a no/cancel label, else the last button
+    -- without a default the safe button is focused: No, a no/cancel label, else the first button
     calls = open({ question = "Delete?", safe_default = true })
     eq(confirm.current_focus(), 2, "Yes/No without default starts on No")
     type_keys("<CR>")
@@ -78,7 +82,7 @@ return function(H)
     eq(confirm.current_focus(), 2, "a Cancel label is the safe button")
     confirm.cancel()
     open({ question = "Which?", choices = "&Remove\n&Keep", safe_default = true })
-    eq(confirm.current_focus(), 2, "no no/cancel label: the last button")
+    eq(confirm.current_focus(), 1, "no no/cancel label: the first button")
     confirm.cancel()
     open({ question = "Which?", choices = { "a", "b" }, default = 1 })
     eq(confirm.current_focus(), 1, "an explicit default 1 still starts on the first button")

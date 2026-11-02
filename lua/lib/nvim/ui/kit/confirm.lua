@@ -18,7 +18,7 @@
 ---
 --- Options beyond `question`/`choices`/`title`/`theme`:
 ---   - `default`: the button that starts focused (index or label; default the safe
----     button: No, else a no/cancel-style label, else the last button).
+---     button: No, else a no/cancel-style label, else the first button).
 ---   - `choices` as a list of labels, or as a `vim.fn.confirm` string ("&Delete\n&Cancel": buttons
 ---     separated by a newline, `&` before the letter that picks the button). Every button has a
 ---     hotkey, marked in its label: `y`/`n` for Yes/No, the `&` letters, else the first free letter
@@ -400,8 +400,8 @@ end
 ---@internal
 --- 1-based index of the button `default` names (an index, or a label). When it names none, the
 --- safe button: "No" of the Yes/No default, else the first button labelled no/cancel/nein/abbrechen
---- (case-insensitive, hotkey `&` ignored), else the last button (the convention puts the way out
---- last). A stray <CR> then never confirms a destructive action.
+--- (case-insensitive, hotkey `&` ignored), else the first button (a menu-like list has no safer
+--- one). A stray <CR> then never confirms a destructive action where the dialog offers a way out.
 ---@param default integer|string|nil
 ---@param labels string[]
 ---@return integer
@@ -425,7 +425,7 @@ local function default_index(default, labels)
       return i
     end
   end
-  return #labels
+  return 1
 end
 
 ---@internal
