@@ -1,10 +1,9 @@
 -- Test code: when something here comes back nil, this file must crash and
 -- name it rather than silently skip -- see TESTS/ui_kit_spec.lua's header.
 ---@diagnostic disable: need-check-nil
--- TESTS/ui_kit_message_log_spec.lua — lib.nvim.ui.kit.message_log, the
--- frozen mirror of ui.nvim's component (see TESTS/kit_drift_spec.lua in
--- ui.nvim, which enforces this file stays byte-identical, modulo the
--- documented namespace substitutions). Full behavioral coverage lives in
+-- TESTS/ui_kit_message_log_spec.lua — lib.nvim.ui.kit.message_log,
+-- the kit's canonical component since 2026-10-28 (ui.nvim re-exports it).
+-- Further behavioral coverage lives in
 -- ui.nvim's own TESTS/ui_kit_message_log_spec.lua; this file only pins
 -- down the two fixes that this copy must carry too: the `max_entries` cap
 -- on a live-feed `append()` (and its deliberate exemption for `load_more`

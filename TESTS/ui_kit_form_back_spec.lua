@@ -4,8 +4,7 @@
 -- TESTS/ui_kit_form_back_spec.lua — lib.nvim.ui.kit's copy of `kit.form`'s
 -- opt-in back navigation, `kit.input`'s `on_back`/`buttons` and the shared
 -- `ui.kit.buttons` row helper (what `kit.confirm` lays its buttons out with).
--- Mirrored from ui.nvim, whose TESTS/kit_drift_spec.lua requires this copy to
--- carry the same code; full behavioural coverage lives in ui.nvim's
+-- The kit code lives in lib.nvim; full behavioural coverage also lives in ui.nvim's
 -- TESTS/ui_kit_spec.lua and TESTS/ui_kit_form_back_ui_spec.lua (the latter in
 -- a real, UI-attached Neovim, which a shared headless run like this one
 -- cannot be). This file pins what the copy must still do: stay off unless
