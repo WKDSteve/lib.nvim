@@ -318,6 +318,19 @@ return function(H)
   ok(a:is_visible() and b:is_visible(), "a and b share the slot again")
   reset()
 
+  -- :only / <C-w>o in the code window closes the sidebar and restores nothing: the user asked for
+  -- one window.
+  a = sidebar.open({ name = "a" })
+  local e = sidebar.open({ name = "e" })
+  ok(not a:is_visible(), "e displaces a")
+  api.nvim_set_current_win(main)
+  vim.cmd("only")
+  ok(e:is_closed(), ":only closes the sidebar")
+  settle()
+  ok(not a:is_visible(), ":only does not bring the displaced sidebar back")
+  ok(a:show(), "a can be shown again by hand")
+  reset()
+
   -- ---------------------------------------------------------------- tabpages
   -- The displacing sidebar closed from another tabpage: the displaced one comes back there.
   a = sidebar.open({ name = "a" })

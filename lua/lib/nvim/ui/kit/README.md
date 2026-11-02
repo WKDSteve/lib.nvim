@@ -163,7 +163,9 @@ sidebar.close_all()      -- the one cleanup: every sidebar, visible or hidden
   tabpage; `show`, `focus` and `open` by name move a sidebar visible in another tabpage
   here (`show` returns false when it is that tabpage's last window).
 - **Lifecycle**: `close()`, `:q` on the window or `<C-w>o` close the sidebar for good (its
-  buffer is wiped, `on_close` runs once, what it displaced comes back); `hide()` keeps it.
+  buffer is wiped, `on_close` runs once); `hide()` keeps it. What it displaced comes back
+  after `close()`, `hide()` and `:q` / `<C-w>c` in the sidebar window itself, but not after
+  `:only` / `<C-w>o` from another window (the user asked for one window; show it by hand).
   The tabpage's last window cannot hide; closing it closes that tabpage, or, in the
   last tabpage, leaves the window showing another buffer with the sidebar's window
   options reset. `close_all()` closes everything and restores

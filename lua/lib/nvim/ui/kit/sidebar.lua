@@ -264,7 +264,8 @@ end
 --- The window went away: a real close of the sidebar (any cause but `hide`).
 ---@param self Lib.UI.Kit.Sidebar
 ---@param was_visible boolean
-function finish(self, was_visible)
+---@param bring_back? boolean  false: what it displaced is forgotten, not restored (`:only`)
+function finish(self, was_visible, bring_back)
   if self._closed then
     return
   end
@@ -278,19 +279,22 @@ function finish(self, was_visible)
   for _, cb in ipairs(self._on_close) do
     pcall(cb)
   end
-  if target and was_visible and not closing_all then
+  if target and was_visible and bring_back ~= false and not closing_all then
     restore(target)
   end
 end
 
---- Close callbacks and restore when the window closes by any other path (`:q`, `<C-w>o`).
+--- Close callbacks when the window closes by any other path (`:q`, `<C-w>o`). What it
+--- displaced comes back only when the user closed the sidebar window itself (it is the
+--- current window, as for `:q` and `<C-w>c`); `:only` / `<C-w>o` run in another window and
+--- want a single window, so nothing is restored then.
 ---@param self Lib.UI.Kit.Sidebar
 local function watch(self)
   local autocmd = require("lib.nvim.bindings.autocmd")
   local group = autocmd.group("lib_ui_kit_sidebar_" .. self.winid, true)
   self._augroup = group
   autocmd.create("WinClosed", function()
-    finish(self, true)
+    finish(self, true, api.nvim_get_current_win() == self.winid)
   end, {
     group = group,
     pattern = tostring(self.winid),
