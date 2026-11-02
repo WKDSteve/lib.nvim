@@ -109,6 +109,7 @@ end
 ---@field package expanded table<table, boolean>  # per-entry override of `collapsed` (true = open)
 ---@field package has_more_older boolean
 ---@field package has_more_newer boolean
+---@field package _older_pages integer[]
 ---@field package _pending table[]  entries parked by `append` until the main loop can draw them
 ---@field package _flush_scheduled boolean
 ---@field package _line_entry (table|nil)[]|nil  # buffer line -> the entry drawn there (nil before the first draw)
@@ -478,12 +479,32 @@ function Handle:load_more(direction)
       merged[#merged + 1] = e
     end
     self.entries = merged
+    self._older_pages[#self._older_pages + 1] = #more
   else
     for _, e in ipairs(more) do
       self.entries[#self.entries + 1] = e
     end
   end
   self:_redraw()
+end
+
+---Take the page `load_more("older")` loaded last out again (`-`): the entries go, `has_more_older` is
+---true again and `opts.on_unload("older", n)` tells the caller how many entries left, so it can move
+---its own page cursor back. Returns whether a page was taken out; false when none was loaded.
+---@return boolean
+function Handle:unload_older()
+  local count = table.remove(self._older_pages)
+  if not count then
+    return false
+  end
+  count = math.min(count, #self.entries) -- a live feed's `max_entries` trim may have dropped some already
+  self.entries = vim.list_slice(self.entries, count + 1)
+  self.has_more_older = type(self.opts.load_more) == "function"
+  if type(self.opts.on_unload) == "function" then
+    pcall(self.opts.on_unload, "older", count)
+  end
+  self:_redraw()
+  return true
 end
 
 ---Fold or unfold every entry at once (first-line-only when collapsed), dropping
@@ -641,9 +662,11 @@ local KEYS = {
   },
   {
     keys = { "<C-k>", "-" },
-    desc = "load newer entries",
+    desc = "unload the last loaded older page, else load newer entries",
     run = function(self)
-      self:load_more("newer")
+      if not self:unload_older() then
+        self:load_more("newer")
+      end
     end,
   },
   {
@@ -773,6 +796,7 @@ function M.open(opts)
     -- `load_more` can supply older data; the caller may know better up front.
     has_more_older = type(opts.load_more) == "function" and opts.has_more_older ~= false,
     has_more_newer = false, -- newest loaded entry is "now"; nothing newer until a live append arrives
+    _older_pages = {}, -- sizes of the pages `load_more("older")` prepended, newest page last
     now_ms_fn = now_ms_fn,
     _title_w = vim.fn.strdisplaywidth(title),
     _hint_gen = 0,

@@ -106,6 +106,7 @@
 ---@field order? "newest_last"|"newest_first"              # default "newest_last"
 ---@field collapsed_default? boolean
 ---@field load_more? fun(direction: "older"|"newer"): Lib.UI.Kit.MessageLog.Entry[]  # pagination; omit to disable
+---@field on_unload? fun(direction: "older", count: integer)  # `-` took the last page `load_more("older")` loaded out again (`count` entries): move your page cursor back
 ---@field has_more_older? boolean                         # false = the caller already knows there is nothing older, so no "more above" hint (default true while `load_more` is set)
 ---@field max_entries? integer                            # cap on entries held locally; oldest dropped past it (default: unbounded) -- bounds both memory and the cost of each redraw for a popup left open against a live feed
 ---@field format_entry_time? fun(entry: Lib.UI.Kit.MessageLog.Entry, now_ms: number): string  # default: "Ns ago"/"Nm Ns ago"
@@ -121,6 +122,7 @@
 ---@class Lib.UI.Kit.MessageLog.Handle
 ---@field append fun(self: Lib.UI.Kit.MessageLog.Handle, new_entries: Lib.UI.Kit.MessageLog.Entry[])
 ---@field load_more fun(self: Lib.UI.Kit.MessageLog.Handle, direction: "older"|"newer")
+---@field unload_older fun(self: Lib.UI.Kit.MessageLog.Handle): boolean  # take the last loaded older page out again; false when none
 ---@field set_collapsed fun(self: Lib.UI.Kit.MessageLog.Handle, value?: boolean)
 ---@field set_entry_collapsed fun(self: Lib.UI.Kit.MessageLog.Handle, value?: boolean, entry?: Lib.UI.Kit.MessageLog.Entry)  # one entry (default: under the cursor); nil flips it
 ---@field toggle_entry fun(self: Lib.UI.Kit.MessageLog.Handle)
