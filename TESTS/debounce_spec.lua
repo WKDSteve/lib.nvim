@@ -85,8 +85,12 @@ return function(H)
       vim.wait(500, function()
         return #queued > 1
       end, 5)
+      ok(
+        queued[2] ~= nil,
+        "the newest call's run was queued within the wait (queued=" .. #queued .. ")"
+      )
       queued[2]()
-      eq(n, 1, "...and only the newest call's run is delivered")
+      eq(n, 1, "...and only the newest call's run is delivered (queued=" .. #queued .. ")")
     end)
     vim.schedule = real_schedule
     if not run_ok then
