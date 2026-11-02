@@ -159,13 +159,14 @@ return function(H)
   do
     local raced = dir .. "/raced/inner"
     local real_mkdir = vim.fn.mkdir
-    vim.fn.mkdir = function(path)
+    local raced_ok, raced_err
+    H.with_patched(vim.fn, "mkdir", function(path)
       vim.fn.delete(path, "rf")
       real_mkdir(path, "p") -- the other process wins
       error("Vim:E739: Cannot create directory " .. path .. ": file already exists")
-    end
-    local raced_ok, raced_err = mutate.mkdir_p(raced)
-    vim.fn.mkdir = real_mkdir
+    end, function()
+      raced_ok, raced_err = mutate.mkdir_p(raced)
+    end)
     eq(raced_ok, true, "mkdir_p: losing a race for the folder is ok")
     eq(raced_err, nil, "mkdir_p: ... and says nothing")
     eq(vim.fn.isdirectory(raced), 1, "mkdir_p: ... the folder is there")
@@ -175,16 +176,17 @@ return function(H)
     local deep = parent .. "/a/b"
     vim.fn.delete(parent, "rf")
     local calls = 0
-    vim.fn.mkdir = function(path, flags)
+    local parent_ok, parent_err
+    H.with_patched(vim.fn, "mkdir", function(path, flags)
       calls = calls + 1
       if calls == 1 then
         real_mkdir(parent, "p")
         error("Vim:E739: Cannot create directory " .. parent .. ": file already exists")
       end
       return real_mkdir(path, flags)
-    end
-    local parent_ok, parent_err = mutate.mkdir_p(deep)
-    vim.fn.mkdir = real_mkdir
+    end, function()
+      parent_ok, parent_err = mutate.mkdir_p(deep)
+    end)
     eq(parent_ok, true, "mkdir_p: losing a race for a parent is ok, the rest of the chain is made")
     eq(parent_err, nil, "mkdir_p: ... and says nothing")
     eq(vim.fn.isdirectory(deep), 1, "mkdir_p: ... the whole chain is there")
@@ -195,7 +197,8 @@ return function(H)
     vim.fn.delete(multi, "rf")
     local lost = { multi, multi .. "/a" }
     calls = 0
-    vim.fn.mkdir = function(path, flags)
+    local multi_ok, multi_err
+    H.with_patched(vim.fn, "mkdir", function(path, flags)
       calls = calls + 1
       local link = lost[calls]
       if link then
@@ -203,12 +206,30 @@ return function(H)
         error("Vim:E739: Cannot create directory " .. link .. ": file already exists")
       end
       return real_mkdir(path, flags)
-    end
-    local multi_ok, multi_err = mutate.mkdir_p(multi_deep)
-    vim.fn.mkdir = real_mkdir
+    end, function()
+      multi_ok, multi_err = mutate.mkdir_p(multi_deep)
+    end)
     eq(multi_ok, true, "mkdir_p: losing the race twice on different links is ok")
     eq(multi_err, nil, "mkdir_p: ... and says nothing")
     eq(vim.fn.isdirectory(multi_deep), 1, "mkdir_p: ... the whole chain is there")
+
+    -- No new link since the last try (a permission failure, the chain stays the same): the loop ends at once with
+    -- the error instead of trying as often as the path has links.
+    local stuck = dir .. "/stuck/a/b/c/d"
+    calls = 0
+    local stuck_ok, stuck_err
+    H.with_patched(vim.fn, "mkdir", function(path)
+      calls = calls + 1
+      error("Vim:E739: Cannot create directory " .. path .. ": permission denied")
+    end, function()
+      stuck_ok, stuck_err = mutate.mkdir_p(stuck)
+    end)
+    eq(stuck_ok, false, "mkdir_p: a chain that does not grow is an error")
+    ok(
+      tostring(stuck_err):find("permission denied", 1, true),
+      "mkdir_p: ... with the reason of the last try"
+    )
+    eq(calls, 2, "mkdir_p: ... after the first try and one retry, not one per link")
 
     local blocker = dir .. "/blocker"
     local fh = assert(io.open(blocker, "wb"))

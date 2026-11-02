@@ -5,6 +5,18 @@ return function(H)
 
   local run_argv = require("lib.nvim.cross.run_argv")
 
+  -- A child that really starts on every platform (no `sh` needed): this Neovim running a script that writes
+  -- `out_text` to stdout and `err_text` to stderr and exits with `code`. `ENOENT` cannot satisfy a check on its text.
+  local function exiting_child(code, out_text, err_text)
+    local script = vim.fn.tempname() .. ".lua"
+    vim.fn.writefile({
+      ("vim.uv.fs_write(1, %q)"):format(out_text),
+      ("vim.uv.fs_write(2, %q)"):format(err_text),
+      ("os.exit(%d)"):format(code),
+    }, script)
+    return { vim.v.progpath, "-n", "-i", "NONE", "-u", "NONE", "--headless", "-l", script }
+  end
+
   -- ------------------------------------------------------------ run_blocking
 
   -- A real, trivially-successful command.
@@ -13,9 +25,12 @@ return function(H)
   eq(echo_err, nil, "run_blocking: a successful command has no error")
 
   -- A real command that exits non-zero.
-  local fail_ok, fail_err = run_argv.run_blocking({ "sh", "-c", "exit 3" })
+  local fail_ok, fail_err = run_argv.run_blocking(exiting_child(3, "", "child-stderr-text"))
   eq(fail_ok, false, "run_blocking: a non-zero exit reports failure")
-  ok(fail_err ~= nil, "run_blocking: a non-zero exit reports an error")
+  ok(
+    tostring(fail_err):find("child-stderr-text", 1, true) ~= nil,
+    "run_blocking: a non-zero exit reports the child's stderr, so the child did run"
+  )
 
   -- Regression: a command that can't be spawned at all (ENOENT) used to
   -- raise synchronously through vim.system() instead of returning
@@ -34,8 +49,13 @@ return function(H)
   eq(cap_ok, true, "run_blocking_captured: a successful command reports ok")
   ok(cap_out:find("captured text", 1, true) ~= nil, "run_blocking_captured: stdout is captured")
 
-  local cap_fail_ok, cap_fail_out = run_argv.run_blocking_captured({ "sh", "-c", "exit 1" })
+  local cap_fail_ok, cap_fail_out =
+    run_argv.run_blocking_captured(exiting_child(1, "child-stdout-text", ""))
   eq(cap_fail_ok, false, "run_blocking_captured: a non-zero exit reports failure")
+  ok(
+    tostring(cap_fail_out):find("child-stdout-text", 1, true) ~= nil,
+    "run_blocking_captured: ... with the stdout of the child that did run"
+  )
   eq(
     type(cap_fail_out),
     "string",
