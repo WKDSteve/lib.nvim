@@ -129,7 +129,19 @@ return function(H)
   )
 
   -- ── M.current_ref ────────────────────────────────────────────────────
-  H.eq(git.current_ref(root), "main", "git.current_ref: branch when not detached")
+  -- The branch this checkout is on (a task worktree is not on `main`); a detached HEAD (CI checks out a commit) has none.
+  local branch = vim
+    .system({ "git", "-C", root, "symbolic-ref", "--short", "-q", "HEAD" }, { text = true })
+    :wait()
+  if branch.code == 0 then
+    H.eq(
+      git.current_ref(root),
+      vim.trim(branch.stdout),
+      "git.current_ref: branch when not detached"
+    )
+  else
+    H.ok(git.current_ref(root) ~= nil, "git.current_ref: a detached HEAD still has a ref")
+  end
   local outside_ref = vim.fn.tempname() .. "-not-a-repo-current-ref"
   vim.fn.mkdir(outside_ref, "p")
   H.eq(git.current_ref(outside_ref), nil, "git.current_ref: outside any repo, nil")

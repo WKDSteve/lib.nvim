@@ -34,7 +34,7 @@ end
 
 -- runtime-analysis.nvim is a runtime dependency of telemetry_wrap_spec.lua
 -- only (the thin caller instrumenting `require("lib")` now lives there) —
--- the same three-candidate search runtime-analysis.nvim's own run.lua uses
+-- the same candidate search runtime-analysis.nvim's own run.lua uses
 -- to find lib.nvim, mirrored back. Not fatal if missing: that one spec fails
 -- with a clear `require` error rather than the whole runner refusing to start.
 local function add_runtime_analysis()
@@ -47,6 +47,10 @@ local function add_runtime_analysis()
   end
   candidates[#candidates + 1] = vim.fn.getcwd() .. "/.deps/runtime-analysis.nvim"
   candidates[#candidates + 1] = vim.fs.dirname(vim.fn.getcwd()) .. "/runtime-analysis.nvim"
+  -- a task worktree (`<repos>/.wt/...`) has no such sibling: look in the repos folder as well
+  if vim.env.REPOS_DIR and vim.env.REPOS_DIR ~= "" then
+    candidates[#candidates + 1] = vim.env.REPOS_DIR .. "/runtime-analysis.nvim"
+  end
   for _, dir in ipairs(candidates) do
     if dir and vim.fn.isdirectory(dir) == 1 then
       vim.opt.rtp:append(dir)
