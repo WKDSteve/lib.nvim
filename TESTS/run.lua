@@ -247,6 +247,7 @@ local specs = {
   "git_sync_spec.lua",
   "git_sync_cancel_spec.lua",
   "git_remote_spec.lua",
+  "git_commit_ref_spec.lua",
   "curl_spec.lua",
   "curl_cached_spec.lua",
   "net_github_spec.lua",

@@ -429,6 +429,35 @@ only built. The GitHub shapes are the ones every GitHub link uses; the
 GitLab and Gitea/Forgejo (Codeberg) shapes are the documented ones, not
 verified against a live instance here.
 
+## Commit references: `lib.nvim.git.commit_ref`
+
+Turns a commit reference in text into a commit: a bare hash (7 to 40 hex digits) or `repo@hash`, the form of the
+`commits:` fields and notes of the task vaults. `repo@a..b` is accepted and resolves as its **first** commit
+(`to` keeps the second hash; what a range means is the caller's call).
+
+```lua
+local cr = require("lib.nvim.git.commit_ref")
+
+-- By form only: no git, cheap enough for a hover trigger.
+cr.parse("tasks.nvim@a02ddae")        --> { repo = "tasks.nvim", sha = "a02ddae" }
+cr.parse("deadbeef")                  --> nil  (a hex WORD: a bare hash needs a digit and a letter)
+cr.token_at(line, col)                --> { sha, repo?, to?, first, last } | nil
+
+cr.resolve_async(ref, { dir = buf_dir }, function(res)
+  -- res.status: "local" | "missing" | "ambiguous" | "no_repo"
+  -- local: res.dir, res.full, res.url (web URL, nil for an unknown host), res.remote
+end)
+cr.fetch_async(res, opts, function(ok, err) end)   -- `git fetch <remote> <hash>`, only on request
+cr.lines_async(res, { patch = false }, function(lines, err) end)  -- summary + stat, or the whole `git show`
+```
+
+`repo@` looks for `<root>/<repo>` in `opts.roots` (default `$REPOS_DIR` and `$REPOS_DIR/repos`), wherever the buffer
+is; a bare hash uses `opts.dir`, then the cwd. The web URL comes from the remote (`opts.remote`, default `origin`)
+for the hosts `remote.host_kind` knows plus `opts.hosts`; an unknown host gives no URL and no error. A `local` result
+is cached for the session, `missing` for 30 seconds (`opts.cache = false` skips the cache, `clear_cache()` drops it).
+Every git call goes through `run_async`; a missing object is never lazily fetched. A server that refuses a fetch by
+hash leaves the commit `missing` and `fetch_async` reports git's message. A short hash cannot be named to a server: `fetch_async` then fetches the remote's branches (resolve again afterwards).
+
 ## Diagnostics cleanup helper
 
 ```lua
