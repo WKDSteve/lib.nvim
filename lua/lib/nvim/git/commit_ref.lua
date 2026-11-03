@@ -238,6 +238,23 @@ end
 ---@param on_done fun(res: Lib.Git.CommitRefResolved)
 function M.resolve_async(ref, opts, on_done)
   opts = opts or {}
+  -- `parse` guarantees these; a caller that builds the table itself must not smuggle an option (`-x`) or a path
+  -- (`../x`) into a git argument or a directory name.
+  if type(ref) ~= "table" or type(ref.sha) ~= "string" or not ref.sha:match("^%x+$") then
+    return on_done({
+      sha = type(ref) == "table" and tostring(ref.sha) or "",
+      status = "missing",
+      err = "not a hash",
+    })
+  end
+  if ref.repo ~= nil and not (type(ref.repo) == "string" and ref.repo:match("^%w[%w._-]*$")) then
+    return on_done({
+      sha = ref.sha,
+      repo = tostring(ref.repo),
+      status = "no_repo",
+      err = "not a repository name",
+    })
+  end
   local function finish(extra)
     on_done(vim.tbl_extend("force", { sha = ref.sha, repo = ref.repo, to = ref.to }, extra))
   end
@@ -301,8 +318,8 @@ function M.resolve_async(ref, opts, on_done)
   end
 end
 
---- Web URL for a `missing` commit (no local object to expand a short hash): only the full
---- hash can be linked, so a short one gives `nil`.
+--- Web URL for a `missing` commit: there is no local object to expand the hash, so it is linked as
+--- written (GitHub, GitLab and Codeberg expand a short hash themselves). `nil` without a known host.
 ---@param res Lib.Git.CommitRefResolved
 ---@param opts? Lib.Git.CommitRefOpts
 ---@param on_done fun(url: string|nil)
@@ -332,7 +349,10 @@ function M.fetch_async(res, opts, on_done)
     return on_done(false, "no repository")
   end
   local name = opts.remote or "origin"
-  local args = { "fetch", "--no-tags", "--quiet", name }
+  if type(res.sha) ~= "string" or not res.sha:match("^%x+$") then
+    return on_done(false, "not a hash")
+  end
+  local args = { "fetch", "--no-tags", "--quiet", "--", name }
   if #res.sha == 40 and res.sha:match("^%x+$") then
     args[#args + 1] = res.sha
   end

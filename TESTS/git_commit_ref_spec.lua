@@ -211,6 +211,32 @@ return function(H)
   )
   H.eq(ref.is_ambiguous("fatal: Needed a single revision"), false, "is_ambiguous: another failure")
 
+  -- caller-built tables are validated: nothing reaches git or the file system
+  r = await(function(done)
+    ref.resolve_async({ sha = "--output=x" }, opts, done)
+  end)
+  H.eq(r.status, "missing", "resolve: a sha that is no hash is refused")
+  r = await(function(done)
+    ref.resolve_async({ repo = "../proj.nvim", sha = sha1:sub(1, 8) }, opts, done)
+  end)
+  H.eq(r.status, "no_repo", "resolve: a repo name with a path in it is refused")
+  local fok, fwhy = await(function(done)
+    ref.fetch_async({ dir = proj, sha = "-x" }, nil, done)
+  end)
+  H.eq(fok, false, "fetch: a sha that is no hash is refused")
+  H.eq(fwhy, "not a hash", "fetch: ...with its reason")
+
+  -- url_async: a missing commit is linked as written
+  F.git(proj, { "remote", "set-url", "origin", "https://github.com/WKDSteve/proj.nvim.git" })
+  local url = await(function(done)
+    ref.url_async({ dir = proj, sha = "abcdef0123", status = "missing" }, opts, done)
+  end)
+  H.eq(
+    url,
+    "https://github.com/WKDSteve/proj.nvim/commit/abcdef0123",
+    "url_async: a missing commit"
+  )
+
   -- ── lines_async ──────────────────────────────────────────────────────────
   r = await(function(done)
     ref.resolve_async(
