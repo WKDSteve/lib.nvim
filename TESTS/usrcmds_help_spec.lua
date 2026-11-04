@@ -16,11 +16,6 @@ return function(H)
 
   local composer = require("lib.nvim.bindings.usercmd.composer")
 
-  -- Older than `help.undocumented(verb, { args = true })`: nothing to ask.
-  if type(composer.help.undocumented) ~= "function" then
-    return
-  end
-
   -- Every optional route on, so the verb carries everything it can.
   require("lib.nvim_usrcmds.usrcmds").lib_verb({ powershell_profile = true, deps = true })
   local handle = composer.registry().Lib
