@@ -451,7 +451,11 @@
 ---@class Lib.UI.Kit.ThemeModule
 ---@field resolve fun(theme?: Lib.UI.Kit.ThemeArg): Lib.UI.Kit.Theme
 ---@field apply fun(winid: integer, resolved: Lib.UI.Kit.Theme)
----@field materialize fun(resolved: Lib.UI.Kit.Theme)   # define the Kit* highlight groups (no window)
+---@field materialize fun(resolved: Lib.UI.Kit.Theme)   # define the global Kit* highlight groups (no window)
+---@field window_groups fun(resolved: Lib.UI.Kit.Theme): table<string, string>  # role -> the theme's own group
+---@field role_remaps fun(resolved: Lib.UI.Kit.Theme): table<string, string>  # `winhighlight` entries: global -> own group
+---@field scoped_group fun(winid: integer, group: string): string  # what a window paints for `group`
+---@field refresh fun()  # define the global and the per-theme groups again (`:colorscheme` clears them)
 ---@field border_glyphs fun(resolved: Lib.UI.Kit.Theme): table|nil  # box-drawing glyph set, or nil (borderless)
 ---@field setup fun(opts?: Lib.UI.Kit.SetupOpts)
 ---@field presets fun(): string[]

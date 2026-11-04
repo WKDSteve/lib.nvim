@@ -102,12 +102,6 @@ local SCROLL = {
   half_up = "<C-u>",
 }
 
---- The border group of the window that has focus. Stays a fixed, global
---- name (unlike `BORDER_IDLE` below, computed per-call): only one window is
---- ever focused at a time, so there is no simultaneous-different-colors
---- bleed to isolate against here the way there is for the idle border.
-local BORDER_FOCUSED = "KitAccent"
-
 ---@internal
 --- One key group as the caller wrote it, cleaned up: the non-empty strings of a
 --- list (a bare string counts as a list of one), or nil when none is left. The
@@ -249,7 +243,7 @@ local function set_footer(winid, text)
     return
   end
   pcall(api.nvim_win_set_config, winid, {
-    footer = { { text, "KitMuted" } },
+    footer = { { text, theme.scoped_group(winid, "KitMuted") } },
     footer_pos = "center",
   })
 end
@@ -320,7 +314,10 @@ function M.open(opts)
   -- (below) can restore the idle border to this popup's own color instead of
   -- a globally-shared, easily recolored-by-something-else fixed name (see
   -- theme.lua's own doc comment on `M.window_groups`).
-  local border_idle = theme.window_groups(theme.resolve(opts.theme)).border
+  local groups = theme.window_groups(theme.resolve(opts.theme))
+  local border_idle = groups.border
+  -- A `winhighlight` target is not remapped by the window's `KitAccent` entry.
+  local border_focused = groups.accent
 
   local preview_surf = surface.open(vim.tbl_extend("force", geo.slots.preview, {
     theme = opts.theme,
@@ -428,11 +425,11 @@ function M.open(opts)
     local cur = api.nvim_get_current_win()
     set_border_group(
       results_surf.winid,
-      cur == results_surf.winid and BORDER_FOCUSED or border_idle
+      cur == results_surf.winid and border_focused or border_idle
     )
     set_border_group(
       preview_surf.winid,
-      cur == preview_surf.winid and BORDER_FOCUSED or border_idle
+      cur == preview_surf.winid and border_focused or border_idle
     )
   end
 

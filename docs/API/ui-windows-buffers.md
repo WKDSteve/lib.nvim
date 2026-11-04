@@ -360,7 +360,9 @@ surface     -- one themed float + lifecycle handle
 
 theme       -- theme/preset engine (built-ins: minimal, rounded, solid, double, ascii)
   M.resolve(theme?), M.materialize(resolved), M.border_glyphs(resolved),
-  M.apply(winid, resolved), M.setup(opts?), M.presets(): string[], M.default(): string
+  M.apply(winid, resolved), M.window_groups(resolved), M.role_remaps(resolved),
+  M.scoped_group(winid, group), M.refresh(), M.setup(opts?), M.presets(): string[],
+  M.default(): string
 
 config      -- static defaults: M.defaults = { default = "rounded" }
 

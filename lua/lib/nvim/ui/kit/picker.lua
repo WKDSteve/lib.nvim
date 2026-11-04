@@ -11,6 +11,7 @@
 
 local layout = require("lib.nvim.ui.kit.layout")
 local input = require("lib.nvim.ui.kit.input")
+local theme = require("lib.nvim.ui.kit.theme")
 local map = require("lib.nvim.bindings.keymap")
 
 local api = vim.api
@@ -102,7 +103,7 @@ function M.open(opts)
   pcall(
     api.nvim_set_option_value,
     "winhighlight",
-    cur .. sep .. "CursorLine:KitSelection",
+    cur .. sep .. "CursorLine:" .. theme.scoped_group(results.winid, "KitSelection"),
     { win = results.winid }
   )
 

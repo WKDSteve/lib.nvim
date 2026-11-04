@@ -51,6 +51,7 @@
 --- for a caller that wants it — out of scope for now.
 
 local surface = require("lib.nvim.ui.kit.surface")
+local kit_theme = require("lib.nvim.ui.kit.theme")
 local input = require("lib.nvim.ui.kit.input")
 local map = require("lib.nvim.bindings.keymap")
 local notify = require("lib.nvim.notify").create("[lib.nvim.ui.kit.compare]")
@@ -346,7 +347,7 @@ function M.open(opts)
     pcall(
       api.nvim_set_option_value,
       "winhighlight",
-      cur .. sep .. "CursorLine:KitSelection",
+      cur .. sep .. "CursorLine:" .. kit_theme.scoped_group(rs.winid, "KitSelection"),
       { win = rs.winid }
     )
 

@@ -120,20 +120,22 @@ local function decorate(self)
 
   -- A split copies the options of the window it was made from: set every one of them
   -- (`winhighlight` from scratch, not merged into a code window's own mappings).
-  theme.materialize(self._resolved)
   local names = theme.window_groups(self._resolved)
   winhighlight.apply(
     win,
-    winhighlight.merge(nil, {
-      Normal = names.normal,
-      NormalNC = names.normal,
-      EndOfBuffer = names.normal,
-      SignColumn = names.normal,
-      WinSeparator = names.border,
-      WinBar = names.title,
-      WinBarNC = names.title,
-      CursorLine = "KitSelection",
-    })
+    winhighlight.merge(
+      nil,
+      vim.tbl_extend("force", theme.role_remaps(self._resolved), {
+        Normal = names.normal,
+        NormalNC = names.normal,
+        EndOfBuffer = names.normal,
+        SignColumn = names.normal,
+        WinSeparator = names.border,
+        WinBar = names.title,
+        WinBarNC = names.title,
+        CursorLine = names.selection,
+      })
+    )
   )
   for name, value in pairs(wo) do
     pcall(api.nvim_set_option_value, name, value, { scope = "local", win = win })

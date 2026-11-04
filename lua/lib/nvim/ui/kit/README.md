@@ -53,8 +53,16 @@ They link to `DiagnosticOk`, `DiagnosticWarn`, `DiagnosticInfo` and `Comment`, a
 preset or an override table sets them like any other token (`hl = { ok = "String" }`,
 or a highlight spec). These global groups follow the active default: `setup()` defines
 them (a list in a plain split or a statusline needs no kit surface to have opened), a
-new `default` recolours them at once, and a surface opened with its own `theme` sets
-them to that theme until the next one.
+new `default` recolours them at once, and `:colorscheme` defines them again.
+
+**Per window.** A surface with its own `theme` leaves the global groups alone and remaps them
+in its window (`KitOk:KitOk_3` in `winhighlight`): an extmark, virtual text or a winbar item
+naming `KitOk` paints that theme's colour, and a toast in the default theme recolours neither
+the globals nor a list that is already open. The target of a `winhighlight` entry is not
+remapped again, so an entry a component adds itself names the scoped group:
+`theme.window_groups(resolved).selection`, or `theme.scoped_group(winid, "KitSelection")` when
+only the window is at hand. A split that writes `winhighlight` itself merges
+`theme.role_remaps(resolved)`.
 
 **Hotkey token.** `KitHotkey` (token `hotkey`, default `{ underline = true }`, no colour) marks
 the key that picks a `kit.confirm` button. It is drawn over the letter's `KitAccent`, so it

@@ -37,6 +37,7 @@ local map = require("lib.nvim.bindings.keymap")
 local nul_safe = require("lib.lua.strings.core").nul_safe
 local max_float_width = require("lib.nvim.window.max_float_width")
 local hook = require("lib.nvim.ui.kit.hook")
+local theme = require("lib.nvim.ui.kit.theme")
 
 local api = vim.api
 
@@ -973,6 +974,7 @@ local function open_new(opts, settle_old)
     if opts.kind ~= nil then
       local group = KIND_GROUPS[opts.kind]
       if group then
+        group = theme.scoped_group(surf.winid, group)
         set_winhighlight(surf.winid, { FloatBorder = group, FloatTitle = group })
       else
         local msg = ("lib.nvim.ui.kit.confirm: unknown kind %q"):format(tostring(opts.kind))

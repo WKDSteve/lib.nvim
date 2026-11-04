@@ -77,6 +77,7 @@ do
 end
 
 local api = vim.api
+local theme = require("lib.nvim.ui.kit.theme")
 
 local M = {}
 
@@ -809,7 +810,7 @@ function M.open(opts)
   pcall(
     api.nvim_set_option_value,
     "winhighlight",
-    cur .. sep .. "CursorLine:KitSelection",
+    cur .. sep .. "CursorLine:" .. theme.scoped_group(surf.winid, "KitSelection"),
     { win = surf.winid }
   )
 

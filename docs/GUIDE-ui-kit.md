@@ -285,8 +285,10 @@ kit alone registers nothing, and `kit.preview()` registers it on the way.
 
 ## 7. Highlight groups
 
-The kit materializes these global groups from the active theme (link targets in
-parens); override them per theme via the `hl` keys:
+The kit materializes these global groups from the active default theme (link targets
+in parens); override them per theme via the `hl` keys. A window opened with another theme
+remaps them to groups of its own in `winhighlight`, so naming `KitOk` in an extmark paints the
+window's colour:
 
 | Group          | Default link       | Used for               |
 | -------------- | ------------------ | ---------------------- |

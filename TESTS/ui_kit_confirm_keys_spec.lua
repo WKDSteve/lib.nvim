@@ -192,13 +192,13 @@ return function(H)
     -- ---------------------------------------------------------------- kind, legend
     surf = select(2, open({ question = "Delete everything?", kind = "danger", title = "Danger" }))
     ok(
-      vim.wo[surf.winid].winhighlight:find("FloatBorder:KitError", 1, true),
+      vim.wo[surf.winid].winhighlight:find("FloatBorder:KitError_", 1, true),
       "danger colours the border"
     )
-    ok(vim.wo[surf.winid].winhighlight:find("FloatTitle:KitError", 1, true), "and the title")
+    ok(vim.wo[surf.winid].winhighlight:find("FloatTitle:KitError_", 1, true), "and the title")
     confirm.cancel()
     surf = select(2, open({ question = "Careful", kind = "warn" }))
-    ok(vim.wo[surf.winid].winhighlight:find("KitWarn", 1, true), "warn")
+    ok(vim.wo[surf.winid].winhighlight:find("FloatBorder:KitWarn_", 1, true), "warn")
     confirm.cancel()
 
     surf = select(2, open({ question = "With a legend?", legend = true }))
@@ -213,7 +213,7 @@ return function(H)
     confirm.cancel()
     surf = select(2, open({ question = "Plain" }))
     eq(vim.wo[surf.winid].winbar, "", "no legend unless asked for")
-    eq(vim.wo[surf.winid].winhighlight:find("KitError", 1, true), nil, "and no kind colour")
+    eq(vim.wo[surf.winid].winhighlight:find("FloatBorder:KitError", 1, true), nil, "no kind colour")
     confirm.cancel()
 
     -- ---------------------------------------------------------------- review fixes

@@ -21,6 +21,7 @@
 --- and undone before it runs with full Lua/vim API rights.
 
 local theme = require("lib.nvim.ui.kit.theme")
+local winhighlight = require("lib.nvim.ui.winhighlight")
 
 local api = vim.api
 local autocmd = require("lib.nvim.bindings.autocmd")
@@ -217,7 +218,10 @@ function M.render(config_buf, preview_buf)
     hls = { { row = 0, col0 = 0, col1 = #lines[1], group = "KitError" } }
   else
     local resolved = theme.resolve(arg)
-    theme.materialize(resolved)
+    -- The gallery names the global groups: its windows paint them in the previewed theme.
+    for _, win in ipairs(vim.fn.win_findbuf(preview_buf)) do
+      winhighlight.update(win, theme.role_remaps(resolved))
+    end
     lines, hls = render_gallery(resolved)
   end
 

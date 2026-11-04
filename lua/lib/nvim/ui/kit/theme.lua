@@ -10,6 +10,7 @@
 local hl = require("lib.nvim.ui.hl")
 local config = require("lib.nvim.ui.kit.config")
 local autocmd = require("lib.nvim.bindings.autocmd")
+local winhighlight = require("lib.nvim.ui.winhighlight")
 local notify = require("lib.nvim.notify").create("[lib.nvim.ui.kit]")
 
 local M = {}
@@ -138,8 +139,8 @@ local BUILTIN = {
 local presets = vim.deepcopy(BUILTIN)
 local default_name = config.defaults.default
 
---- Global highlight groups a theme materializes. winhighlight maps the float's
---- built-in groups onto these; components use the rest via extmarks.
+--- Global highlight groups of the roles. They carry the active default theme; a
+--- themed window remaps them to its own groups (see `materialize_window_groups`).
 local GROUPS = {
   normal = "KitNormal",
   border = "KitBorder",
@@ -177,19 +178,29 @@ function M.resolve(theme)
   return resolved
 end
 
+---@param spec string|table  a role's highlight: a group name or attributes
+---@return table
+local function hl_opts(spec)
+  return type(spec) == "string" and { link = spec } or spec --[[@as table]]
+end
+
 ---@internal
---- Define the Kit* highlight groups for a resolved theme (idempotent).
+--- Define the Kit* highlight groups for a resolved theme (idempotent). A role
+--- that names its own global group has nothing to define (a link to itself).
 ---@param resolved Lib.UI.Kit.Theme
 local function materialize(resolved)
   for key, group in pairs(GROUPS) do
     local spec = resolved.hl[key]
-    local opts = type(spec) == "string" and { link = spec } or spec
-    hl.set(group, opts)
+    if spec ~= group then
+      hl.set(group, hl_opts(spec))
+    end
   end
 end
 
---- Public: define the Kit* highlight groups for a resolved theme, without
---- touching any window. Used by the preview playground to colour its buffer.
+--- Public: define the global Kit* highlight groups for a resolved theme, without
+--- touching any window. Every window without an entry of its own sees the result,
+--- so outside of `setup` this is for the active default (`M.resolve(nil)`); a
+--- window in another theme uses `M.role_remaps`.
 ---@param resolved Lib.UI.Kit.Theme
 function M.materialize(resolved)
   materialize(resolved)
@@ -229,7 +240,7 @@ end
 
 ---@internal
 --- `M.apply`'s per-window twin of `materialize`. `KitNormal`/`KitBorder`/
---- `KitTitle` are fixed names shared by EVERY open kit surface -- fine as
+--- `KitOk`/... are fixed names shared by EVERY open kit surface -- fine as
 --- long as every simultaneously-open surface resolves to the same colors,
 --- but toasts are explicitly designed to stack (see `lib.nvim.ui.kit.toast`'s own
 --- docs), and two different levels/`opts.hl` overrides resolve to different
@@ -240,6 +251,16 @@ end
 --- `notify.success` toast), since both windows' `winhighlight` referenced
 --- the SAME group name and only the latest materialize() call's colors
 --- exist for that name at any given moment.
+---
+--- So every role gets its own group per theme, and `M.apply` remaps the global
+--- names onto them (`KitOk:KitOk_3`): an extmark, virtual text or a winbar item
+--- naming `KitOk` paints the window's colour, and the globals only ever carry
+--- the active default. The TARGET of a `winhighlight` entry is not remapped a
+--- second time, though (`CursorLine:KitSelection` paints the GLOBAL
+--- `KitSelection`, whatever else the option says): an entry naming a role must
+--- name the scoped group (`M.window_groups`, `M.scoped_group`). For the same
+--- reason a role whose spec names ANOTHER role's global (`border = "KitAccent"`)
+--- links to that global, not to this theme's accent.
 ---
 --- The replacement group is keyed by a fingerprint of the role's resolved
 --- spec, not by `winid`: two surfaces that happen to resolve to the same
@@ -252,9 +273,6 @@ end
 --- presets/`opts.hl` overrides), independent of how many surfaces open over
 --- time.
 ---
---- `KitSelection`/`KitAccent`/`KitMuted`/`KitError`/`KitFlash`/`KitHover`
---- stay global/fixed, unaffected by this: nothing draws two of those roles
---- at once with different colors the way toasts do with border/title.
 --- `lib.nvim.ui.kit.menu` and `lib.nvim.ui.kit.shortlist` paint their OWN border/title
 --- decoration via extmarks (group frames, titled rules) rather than relying
 --- on `winhighlight` alone -- they call `M.window_groups(resolved)` below
@@ -262,60 +280,109 @@ end
 --- right scoped names too, not the fixed globals.
 ---@type table<string, string>
 local window_group_cache = {}
+--- What each scoped group was defined with, to define it again (`M.refresh`).
+---@type table<string, string|table>
+local window_group_specs = {}
 local window_group_counter = 0
 
+--- Define the global groups for the active default and every scoped group again.
+--- `:colorscheme` clears all user groups, and `window_group_cache` would keep the
+--- names of groups that no longer exist.
+function M.refresh()
+  pcall(materialize, M.resolve(nil))
+  for name, spec in pairs(window_group_specs) do
+    pcall(hl.set, name, hl_opts(spec))
+  end
+end
+
 ---@param resolved Lib.UI.Kit.Theme
----@return { normal: string, border: string, title: string }
+---@return table<string, string> names  role -> scoped group
 local function materialize_window_groups(resolved)
+  -- Never defined yet, or cleared with no ColorScheme hook to see it (`-u NONE`,
+  -- a lib.nvim loaded late). Probing one group is enough, they go together.
+  if next(vim.api.nvim_get_hl(0, { name = GROUPS.normal })) == nil then
+    M.refresh()
+  end
   local names = {}
-  for _, role in ipairs({ "normal", "border", "title" }) do
+  for role in pairs(GROUPS) do
     local spec = resolved.hl[role]
     local cache_key = role .. ":" .. vim.inspect(spec)
     local name = window_group_cache[cache_key]
     if not name then
       window_group_counter = window_group_counter + 1
       name = ("Kit%s_%d"):format(role:sub(1, 1):upper() .. role:sub(2), window_group_counter)
-      local opts = type(spec) == "string" and { link = spec } or spec
-      hl.set(name, opts)
+      hl.set(name, hl_opts(spec))
       window_group_cache[cache_key] = name
+      window_group_specs[name] = spec
     end
     names[role] = name
   end
   return names
 end
 
---- Public: the same window-scoped `KitNormal_N`/`KitBorder_N`/`KitTitle_N`
---- group names `M.apply` materializes for `resolved`, for a caller that
---- paints its OWN decoration via extmarks referencing these names directly
---- (`lib.nvim.ui.kit.menu`'s group frames, `lib.nvim.ui.kit.shortlist`'s border) instead of
---- relying solely on `winhighlight`. Safe to call before the surface that
+--- Public: the same window-scoped `KitNormal_N`/`KitBorder_N`/`KitOk_N`/...
+--- group names `M.apply` materializes for `resolved` (role -> name), for a caller
+--- that paints its OWN decoration via extmarks referencing these names directly
+--- (`lib.nvim.ui.kit.menu`'s group frames, `lib.nvim.ui.kit.shortlist`'s border) or
+--- writes a `winhighlight` entry of its own instead of
+--- relying solely on `M.apply`. Safe to call before the surface that
 --- will use them even opens, and safe to call more than once for the same
 --- `resolved` (the cache above returns the same name both times): Neovim
 --- resolves an extmark's highlight group by name at redraw time, not when
 --- the extmark is created, so it doesn't matter whether this or `M.apply`
 --- materializes the group first, as long as both resolve the same theme.
 ---@param resolved Lib.UI.Kit.Theme
----@return { normal: string, border: string, title: string }
+---@return table<string, string> names  role -> scoped group
 function M.window_groups(resolved)
   return materialize_window_groups(resolved)
 end
 
+--- The `winhighlight` entries that make a window paint the global role groups in
+--- `resolved`'s colours (`KitOk` -> `KitOk_3`, ...), for a window that writes the
+--- option itself. A role that names its own global group has none (it is meant
+--- to follow the global).
+---@param resolved Lib.UI.Kit.Theme
+---@return table<string, string> remaps  global group -> scoped group
+function M.role_remaps(resolved)
+  local names = materialize_window_groups(resolved)
+  local remaps = {}
+  for role, group in pairs(GROUPS) do
+    if resolved.hl[role] ~= group then
+      remaps[group] = names[role]
+    end
+  end
+  return remaps
+end
+
+--- The group a window paints for `group`: its `winhighlight` target, else `group`.
+--- For a `winhighlight` entry a component adds to a themed window, whose target
+--- must be the scoped name (see `materialize_window_groups`).
+---@param winid integer
+---@param group string
+---@return string
+function M.scoped_group(winid, group)
+  for _, pair in ipairs(winhighlight.parse(winhighlight.get(winid))) do
+    if pair.from == group then
+      return pair.to
+    end
+  end
+  return group
+end
+
 --- Apply a resolved theme to an open window: materialize its groups and point
---- the float's built-in groups at them via winhighlight.
+--- the float's built-in groups and the global role groups at them via winhighlight.
 ---@param winid integer
 ---@param resolved Lib.UI.Kit.Theme
 function M.apply(winid, resolved)
   if not vim.api.nvim_win_is_valid(winid) then
     return
   end
-  materialize(resolved)
   local names = materialize_window_groups(resolved)
-  local winhl = table.concat({
-    "NormalFloat:" .. names.normal,
-    "FloatBorder:" .. names.border,
-    "FloatTitle:" .. names.title,
-  }, ",")
-  pcall(vim.api.nvim_set_option_value, "winhighlight", winhl, { win = winid })
+  local entries = M.role_remaps(resolved)
+  entries.NormalFloat = names.normal
+  entries.FloatBorder = names.border
+  entries.FloatTitle = names.title
+  winhighlight.apply(winid, winhighlight.merge(nil, entries))
 end
 
 --- Register user presets / change the active default.
@@ -366,8 +433,9 @@ function M.setup(opts)
   -- `default` must reach those groups now, not on the next surface.
   pcall(materialize, M.resolve(nil))
 
-  -- Re-materialize the active default so links refresh after a colorscheme
-  -- change (set up once).
+  -- Define the groups again after a colorscheme change (set up once). Normally
+  -- `plugin/lib_ui_kit_theme.lua` has this group already and this replaces it;
+  -- it is here for an editor that did not source the plugin file (`-u NONE`).
   if not M._colorscheme_hook then
     M._colorscheme_hook = true
     -- Raw nvim_create_augroup on purpose, not autocmd.group(): its name ->
@@ -376,7 +444,7 @@ function M.setup(opts)
     -- leaving a stale duplicate callback registered.
     local group = vim.api.nvim_create_augroup("lib_ui_kit_theme", { clear = true })
     autocmd.create("ColorScheme", function()
-      pcall(materialize, M.resolve(nil))
+      M.refresh()
     end, {
       group = group,
       desc = "lib.nvim.ui.kit: refresh theme highlight groups",

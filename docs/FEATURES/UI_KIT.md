@@ -19,8 +19,8 @@ every one links to standard highlight groups (`NormalFloat`, `FloatBorder`,
 `FloatTitle`, `PmenuSel`, …) so the default look is correct in any
 colorscheme without per-plugin overrides.
 
-- **Module:** `lib.nvim.ui.kit.theme` (`resolve`, `materialize`, `setup`,
-  `presets`, `default`)
+- **Module:** `lib.nvim.ui.kit.theme` (`resolve`, `materialize`, `window_groups`,
+  `role_remaps`, `scoped_group`, `refresh`, `setup`, `presets`, `default`)
 - **Config:** `require("lib.nvim.ui.kit").setup({ default = "rounded",
   presets = { myproject = { border = "double" } } })`
 - **Usercmds:** `:KitPreview` (live theme playground; registered by
