@@ -85,6 +85,7 @@ local specs = {
   "debounce_spec.lua",
   "explorer_spec.lua",
   "count_spec.lua",
+  "binaries_spec.lua",
   "lastcmd_spec.lua",
   "keymap_modifier_spec.lua",
   "autocmd_dispatcher_spec.lua",
