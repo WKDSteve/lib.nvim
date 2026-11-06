@@ -325,7 +325,9 @@ return function(H)
     local function fail(f, ...)
       local passed, err = pcall(f, ...)
       eq(passed, false, "the call must fail")
-      return err
+      -- Neovim 0.11 puts the position of the Lua caller in front of an API error; the wrapper that
+      -- passes the error on is that caller, so the stamp comes and goes. The message is what counts.
+      return (tostring(err):gsub("^vim/keymap%.lua:%d+: ", ""))
     end
 
     local plain_set = fail(vim.keymap.set, "zz", "<M-h>", "x")

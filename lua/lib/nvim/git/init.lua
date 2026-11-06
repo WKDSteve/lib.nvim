@@ -418,10 +418,10 @@ end
 --- `vim.system` raises when it cannot start the command at all, and raises
 --- with level 1, so the reason arrives as `vim/_core/system.lua:324: ENOENT: ...`:
 --- Neovim's own source position, noise to the person reading the message.
---- Removes exactly that leading stamp, once -- and only a stamp at the very front
---- (never preceded by a path) that points into Neovim's runtime (`vim/...:N: `, with or without the `.lua` extension: a build
---- that embeds the runtime reports `vim/_core/system:324:`), so a message without one that merely
---- quotes a `something.lua:12:` from the command is left alone. Only ever
+--- Removes exactly that leading stamp, once -- and only a stamp at the very front that points into
+--- Neovim's runtime (`vim/...:N: `, with or without the `.lua` extension: a build that embeds the
+--- runtime reports `vim/_core/system:324:`; 0.11 reports the whole path, `.../lua/vim/_system.lua:254: `),
+--- so a message without one that merely quotes a `something.lua:12:` from the command is left alone. Only ever
 --- applied to a spawn failure (code `-1`); `docs/conventions.md` explains why
 --- this is the one place the "no pattern stripping" rule gives way: the stamp
 --- is created by Neovim's code, which this library cannot ask to raise with
@@ -429,6 +429,11 @@ end
 ---@param msg string
 ---@return string
 local function unstamp(msg)
+  local stamp = msg:match("^[^\n]-[/\\]lua[/\\]vim[/\\][%w_/\\.]*:%d+: ")
+  -- A `: ` before the end is a sentence that quotes such a path, not a stamp.
+  if stamp and not stamp:sub(1, -3):find(": ", 1, true) then
+    return msg:sub(#stamp + 1)
+  end
   return (msg:gsub("^vim[/\\][%w_/\\.]*:%d+: ", "", 1))
 end
 

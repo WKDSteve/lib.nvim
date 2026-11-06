@@ -47,7 +47,7 @@ end
 
 ---@return integer[]
 local function from_tabpagebuflist()
-  local ok, raw = pcall(vim.fn.tabpagebuflist, 0)
+  local ok, raw = pcall(vim.fn.tabpagebuflist) -- not `0`: before 0.12 that is no tab page, and answers 0
   if not ok then
     return {}
   end

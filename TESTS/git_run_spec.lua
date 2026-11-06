@@ -86,6 +86,29 @@ return function(H)
   H.eq(nobin.stdout, "", "run: ... and no stdout")
   no_position(nobin.stderr, "run spawn failure")
 
+  -- Neovim 0.11 stamps the runtime's whole path, 0.12 only `vim/...`: both come off, and text that
+  -- merely mentions a path stays.
+  do
+    local real_system = vim.system
+    for _, case in ipairs({
+      { ".../nvim-v0.11.4/share/nvim/runtime/lua/vim/_system.lua:254: ENOENT: x", "ENOENT: x" },
+      {
+        "C:/Program Files/Neovim/share/nvim/runtime/lua/vim/_system.lua:1: ENOENT: x",
+        "ENOENT: x",
+      },
+      { "vim/_core/system:324: ENOENT: x", "ENOENT: x" },
+      { "ENOENT: see vim/_system.lua:1: for it", "ENOENT: see vim/_system.lua:1: for it" },
+    }) do
+      vim.system = function()
+        error(case[1], 0)
+      end
+      local ok_run, res = pcall(git.run, { "status" })
+      vim.system = real_system
+      H.ok(ok_run, "run: a raising vim.system is reported, not raised")
+      H.eq(res.stderr, case[2], "run: stamp handling for " .. case[1])
+    end
+  end
+
   -- A child Neovim in place of git: prints what the runner passed it.
   local probe = H.tmpfile(".lua")
   vim.fn.writefile({
