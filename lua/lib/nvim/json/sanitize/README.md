@@ -54,7 +54,14 @@ repair by path.
 | `strict` | for `"table"`: drop the keys `fields` does not name |
 | `of` | for `"list"`: what every element looks like. A bad element is replaced by its placeholder, so the list keeps its length and positions |
 | `drop_invalid` | for `"list"`: leave a bad element out instead |
+| `min`, `max` | for `"number"`: inclusive bounds. Out of bounds counts as wrong (code `value`) |
+| `enum` | for `"string"`: the values allowed. Any other counts as wrong (code `value`) |
 | `warn` | `false`: repair a missing value without reporting it |
+
+A scalar is judged by [`lib.lua.config.schema`](../../../lua/config/schema/README.md),
+so `min`, `max` and `enum` mean what they mean in a config schema, and a NaN or an
+infinity is not a number. `table` and `list` stay here: that schema has one `table`,
+and a repair has to tell a record from a list.
 
 A `default` that raises or does not have the field's `type` is ignored (the neutral
 value of the type is used). `"nan"`, `"inf"` and `"1e999"` are not coerced to numbers.
@@ -69,7 +76,7 @@ A placeholder table is repaired too (a missing `owner` becomes `{ login =
 ## Warnings
 
 `{ path, code, message }`; `path` is `$` for the root, then `.key` / `[i]`.
-`code` is `missing`, `type`, `coerced` or `dropped` (an element left out that no other warning explained); one warning per repair. They come in a stable
+`code` is `missing`, `type`, `value`, `coerced` or `dropped` (an element left out that no other warning explained); one warning per repair. They come in a stable
 order (keys sorted). Options:
 
 - `on_warning(w)` is called for each as it is found (a throwing callback is ignored)
@@ -81,6 +88,5 @@ order (keys sorted). Options:
 
 ## Not this module's job
 
-Parsing text (`lib.nvim.json.decode`), patterns / ranges / enums, notifying the
-user. For config tables with coercion and enums see
+Parsing text (`lib.nvim.json.decode`), patterns, notifying the user. For config tables with coercion and enums see
 [`lib.nvim.normalize`](../../normalize/README.md).

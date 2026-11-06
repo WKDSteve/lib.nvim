@@ -123,6 +123,52 @@ return function(H)
     eq(w2, {}, "silently")
   end
 
+  -- ------------------------------------------------- bounds and enum (the shared schema)
+  do
+    local BOUNDED = {
+      type = "table",
+      fields = {
+        n = { type = "number", min = 0, max = 10, required = true, default = 5 },
+        e = { type = "string", enum = { "a", "b" }, required = true, default = "a" },
+        opt = { type = "number", min = 0 },
+        t = { type = "table" },
+      },
+    }
+    local clean, ws = sanitize.apply({ n = 11, e = "z", opt = -1, t = { 1 } }, BOUNDED)
+    eq(clean.n, 5, "out of bounds: the placeholder")
+    eq(clean.e, "a", "off the enum: the placeholder")
+    eq(clean.opt, nil, "an optional value out of bounds is dropped")
+    eq(
+      table.concat(codes(ws), " "),
+      "$.e:value $.n:value $.opt:value $.t:type",
+      "and each says what was wrong"
+    )
+    ok(ws[1].message:find("value not allowed", 1, true), "a refused value is not a type error")
+    ok(
+      ws[4].message:find("expected table, got list", 1, true),
+      "a list is no table: " .. ws[4].message
+    )
+
+    local kept, none = sanitize.apply({ n = 10, e = "b", opt = 0 }, BOUNDED)
+    eq(kept.n, 10, "a bound is inclusive")
+    eq(kept.e, "b", "an enum value stays")
+    eq(#none, 0, "and nothing is said")
+
+    local _, nan = sanitize.apply(
+      { n = 0 / 0 },
+      { type = "table", fields = { n = { type = "number" } } }
+    )
+    eq(nan[1] and nan[1].code, "value", "a NaN is not a number")
+
+    local d = sanitize.apply({}, {
+      type = "table",
+      fields = {
+        n = { type = "number", max = 3, required = true, default = 9 },
+      },
+    })
+    eq(d.n, 0, "a default outside the bounds is ignored like one of the wrong type")
+  end
+
   -- ------------------------------------------------------------------ coerce
   do
     local f = {

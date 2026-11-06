@@ -13,12 +13,15 @@
 ---@field strict? boolean  For `"table"`: drop the keys `fields` does not name.
 ---@field of? Lib.Json.Sanitize.Field  For `"list"`: what every element must look like.
 ---@field drop_invalid? boolean  For `"list"`: leave out an element that was missing / of the wrong type instead of putting the placeholder in its place.
+---@field min? number  For `"number"`: inclusive lower bound, as in `lib.lua.config.schema`.
+---@field max? number  For `"number"`: inclusive upper bound.
+---@field enum? string[]  For `"string"`: the values allowed.
 ---@field warn? boolean  Report the placeholder of a missing value (default `true`; `false` for a field whose absence is normal).
 
 ---One thing `apply` had to repair.
 ---@class Lib.Json.Sanitize.Warning
 ---@field path string  `items[3].owner.login`; the root is `$`
----@field code "missing"|"type"|"coerced"|"dropped"
+---@field code "missing"|"type"|"value"|"coerced"|"dropped"
 ---@field message string  Human-readable, names the path, the expected and the found kind
 
 ---@class Lib.Json.Sanitize.Opts

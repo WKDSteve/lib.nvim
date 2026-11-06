@@ -43,6 +43,8 @@
 
 require("lib.nvim.json.sanitize.@types")
 
+local schema = require("lib.lua.config.schema")
+
 local M = {}
 
 local NEUTRAL = {
@@ -86,10 +88,14 @@ local function kind(v)
   return vim.islist(v) and "list" or "table"
 end
 
+---Does `v` fit `f`? A scalar is judged by `lib.lua.config.schema`, the one language lib.nvim has for
+---what a value looks like (its bounds and `enum` included). `table` and `list` stay here: the schema
+---has one `table`, and a repair has to tell a record from a list.
 ---@param v any
----@param want Lib.Json.Sanitize.Type
+---@param f Lib.Json.Sanitize.Field
 ---@return boolean
-local function matches(v, want)
+local function matches(v, f)
+  local want = f.type or "any"
   if want == "any" then
     return true
   elseif want == "table" then
@@ -99,7 +105,7 @@ local function matches(v, want)
     local k = kind(v)
     return k == "list" or k == "empty table"
   end
-  return type(v) == want
+  return schema.check(v, { want, min = f.min, max = f.max, enum = f.enum }, "value", {}) ~= nil
 end
 
 ---@param v any
@@ -134,10 +140,10 @@ local function placeholder(f)
   if type(d) == "function" then
     -- a default that raises or has the wrong type must not break the repair: neutral value instead
     local made, v = pcall(d)
-    if made and v ~= nil and matches(v, want) then
+    if made and v ~= nil and matches(v, f) then
       return v, true
     end
-  elseif d ~= nil and matches(d, want) then
+  elseif d ~= nil and matches(d, f) then
     return vim.deepcopy(d), true
   end
   local make = NEUTRAL[want]
@@ -295,25 +301,27 @@ function walk_inner(v, f, path, ctx, silent)
     end
     return nil
   end
-  if not matches(v, want) then
+  if not matches(v, f) then
     local cv, changed = v, false
     if f.coerce then
       cv, changed = coerce(v, want)
     end
-    if changed and matches(cv, want) then
+    if changed and matches(cv, f) then
       if say then
         warn(ctx, path, "coerced", ("%s converted to %s"):format(kind(v), want))
       end
       v = cv
     else
       if say then
+        -- The right type and still refused: a bound or `enum`, which "expected string, got string" does not say.
+        local refused = want ~= "table" and type(v) == want
         warn(
           ctx,
           path,
-          "type",
-          ("expected %s, got %s%s"):format(
-            want,
-            kind(v),
+          refused and "value" or "type",
+          ("%s %s%s"):format(
+            refused and "value not allowed for" or ("expected %s, got"):format(want),
+            refused and want or kind(v),
             (f.required or f.default ~= nil) and ", placeholder used" or ", dropped"
           )
         )
