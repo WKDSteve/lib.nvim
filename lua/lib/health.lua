@@ -11,7 +11,7 @@ local h_warn = H.warn or H.report_warn
 local h_error = H.error or H.report_error
 local h_info = H.info or H.report_info
 
-local MIN_NVIM = { 0, 10, 0 }
+local MIN_NVIM = { 0, 11, 0 }
 
 local version_ok = require("lib.nvim.health").version_ok
 
@@ -189,7 +189,7 @@ function M.check()
         MIN_NVIM[2],
         MIN_NVIM[3]
       ),
-      { "Some lib.nvim modules use vim.uv / vim.fs and may not work." }
+      { "Some lib.nvim modules need the single-value vim.validate form and will fail." }
     )
   end
   if vim.uv or vim.loop then

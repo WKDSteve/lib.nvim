@@ -4,7 +4,7 @@
 
 | | |
 | --- | --- |
-| Neovim | **0.10+** |
+| Neovim | **0.11+** |
 | Third-party plugins | none — only `vim` and itself |
 
 Individual modules reach for external tools where one exists (git, a system
