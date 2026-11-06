@@ -11,15 +11,15 @@ plugins (markdown.nvim's own copy, for one, has no WSL handling at all).
 
 Platform dispatch:
 
-- **Windows (native)**: `explorer.exe <target>`. Deliberately not
-  `cmd.exe /C start` — `cmd.exe`'s tokenizer treats a bare `&` outside
-  quotes as a command separator and silently truncates any URL/path with an
-  unescaped `&` (i.e. any link with 2+ query params), since `vim.system`/libuv
-  only quote an argv entry that contains whitespace. `explorer.exe` hands the
-  target straight to the registered handler with no re-tokenizing.
-- **WSL**: a URL goes straight to `explorer.exe`; a filesystem path is
-  converted to its Windows equivalent via `wslpath -w` and then opened the
-  same way; if `wslpath` fails to produce a path, falls back to `xdg-open`
+- **Windows (native)**: a URL goes to `rundll32 url.dll,FileProtocolHandler
+  <url>` (ShellExecute), a path to `explorer.exe <absolute backslashed path>`.
+  Deliberately not `cmd.exe /C start`: its tokenizer treats a bare `&` as a
+  command separator and cuts any link with 2+ query params. And a URL not to
+  `explorer.exe`: given `?`, `&` or a `%xx` escape it opens the Documents folder
+  instead of the browser.
+- **WSL**: a URL goes straight to `rundll32`; a filesystem path is
+  converted to its Windows equivalent via `wslpath -w` and handed to
+  `explorer.exe`; if `wslpath` fails to produce a path, falls back to `xdg-open`
   for a Linux-side file with no Windows-side equivalent, or returns
   `false, "cannot determine how to open: " .. target"` if `xdg-open` isn't
   present either.
@@ -28,7 +28,7 @@ Platform dispatch:
   `xdg-open` isn't on PATH.
 
 `target` is passed through `lib.nvim.cross.fs.expand_path` before dispatch
-(except the WSL URL branch, which skips straight to `explorer.exe`). The
+(except the URL branches of Windows and WSL, which hand it over untouched). The
 resolved command is always spawned detached via
 `lib.nvim.cross.run.run_detached` — the browser/viewer keeps running after
 Neovim exits.
@@ -46,6 +46,22 @@ end
 ```
 
 Returns `false, "empty target"` if `target` is not a non-empty string.
+
+## `opts.schemes`
+
+Every URI scheme reaches its registered handler by default, which `ssh:`,
+`mailto:` and `magnet:` links need. When `target` comes from untrusted text (a
+Markdown link, a search hit), that also includes handlers such as `ms-msdt:` or
+`search-ms:` on Windows. Pass the schemes this call may open:
+
+```lua
+local ok, err = open_default(link, { schemes = { "http", "https", "mailto" } })
+-- link = "ms-msdt:/id x" -> false, "URI scheme not allowed: ms-msdt"
+```
+
+Names match in any case, and a bare `www.` target counts as `https`. Paths are
+not judged. A value that is not a list of strings returns `false` and opens
+nothing, so a typo cannot turn the limit off.
 
 ## `opts.on_exit`
 

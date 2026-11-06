@@ -65,6 +65,32 @@ return function(H)
     ok(not captured[2]:find("/", 1, true), "absolute and backslashed")
     eq(#captured, 2, "two elements")
 
+    -- opts.schemes: an allowlist per call; without it everything above stays as it was.
+    local allow = { schemes = { "HTTPS", "mailto" } }
+    captured = nil
+    ok(open_default("https://example.com/x", allow), "an allowed scheme opens")
+    eq(captured[3], "https://example.com/x", "and reaches the opener")
+    ok(open_default("MAILTO:a@b.de", allow), "the scheme matches in any case")
+    ok(open_default("www.example.com", allow), "a www. target counts as https")
+    captured = nil
+    local opened, why = open_default("ms-msdt:/id x", allow)
+    eq(opened, false, "a scheme off the list is refused")
+    eq(why, "URI scheme not allowed: ms-msdt", "and named")
+    eq(captured, nil, "and nothing is started")
+    opened = open_default("www.example.com", { schemes = { "mailto" } })
+    eq(opened, false, "a www. target is refused without https on the list")
+    opened = open_default("https://example.com", { schemes = {} })
+    eq(opened, false, "an empty list allows no URL")
+    ok(open_default("C:/x/y.txt", allow), "a path is not judged")
+    eq(captured[1], "explorer.exe", "and stays a path")
+    captured = nil
+    for _, bad in ipairs({ { "https", 1 }, { https = true }, "https", false }) do
+      opened, why = open_default("https://example.com", { schemes = bad })
+      eq(opened, false, "a value that is not a list fails closed: " .. vim.inspect(bad))
+      eq(why, "opts.schemes must be a list of strings", "and says so")
+    end
+    eq(captured, nil, "a malformed list starts nothing")
+
     -- WSL: a URL still goes to rundll32
     package.loaded["lib.nvim.cross.platform.is_wsl"] = function()
       return true

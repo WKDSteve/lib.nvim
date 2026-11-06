@@ -32,6 +32,36 @@ local function looks_like_url(text)
   return text:match("^%a[%w+.-]+:") ~= nil or text:match("^www%.") ~= nil
 end
 
+--- Whether `opts.schemes` lets `target` through. Only a URL is judged: a path has no scheme. A
+--- value that is not a list of strings fails closed, because the caller asked for a limit and a
+--- typo must not turn it into no limit at all.
+---@internal
+---@param target string
+---@param schemes string[]
+---@return boolean ok
+---@return string|nil err
+local function scheme_allowed(target, schemes)
+  if type(schemes) ~= "table" or not vim.islist(schemes) then
+    return false, "opts.schemes must be a list of strings"
+  end
+  local wanted = {}
+  for _, name in ipairs(schemes) do
+    if type(name) ~= "string" then
+      return false, "opts.schemes must be a list of strings"
+    end
+    wanted[name:lower()] = true
+  end
+  if not looks_like_url(target) then
+    return true
+  end
+  -- A bare `www.` target has no scheme of its own; the browser reads it as https.
+  local scheme = (target:match("^(%a[%w+.-]+):") or "https"):lower()
+  if wanted[scheme] then
+    return true
+  end
+  return false, "URI scheme not allowed: " .. scheme
+end
+
 ---@internal
 ---@param unix_path string
 ---@return string|nil
@@ -75,8 +105,13 @@ end
 ---`run_detached` path, whose `ok` return says only that a command was
 ---dispatched. Absorbed from this repo's former, less complete URL-opener
 ---module (removed 2026-09-06 once every caller migrated to this function).
+---
+---`opts.schemes`, when given, is the list of URI schemes this call may open (any case; a bare
+---`www.` target counts as `https`). Pass it when `target` comes from untrusted text such as a
+---Markdown link: without it every scheme reaches the registered handler, on Windows also
+---`ms-msdt:` or `search-ms:`. Paths are not affected.
 ---@param target string
----@param opts? { on_exit?: fun(code: integer) }
+---@param opts? { on_exit?: fun(code: integer), schemes?: string[] }
 ---@return boolean ok
 ---@return string|nil err
 return function(target, opts)
@@ -85,6 +120,13 @@ return function(target, opts)
   end
 
   opts = opts or {}
+
+  if opts.schemes ~= nil then
+    local allowed, why = scheme_allowed(target, opts.schemes)
+    if not allowed then
+      return false, why
+    end
+  end
 
   local is_windows = require("lib.nvim.cross.platform.is_windows")()
   local is_wsl = require("lib.nvim.cross.platform.is_wsl")()
