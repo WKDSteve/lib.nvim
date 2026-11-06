@@ -525,8 +525,8 @@ return M
   ---@param which? string   # The script, default the host of `HOST_MODULE`.
   local function run_child(stdin, env, which)
     local base = {
-      NVIM = vim.NIL,
-      NVIM_LISTEN_ADDRESS = vim.NIL,
+      NVIM = "",
+      NVIM_LISTEN_ADDRESS = "",
       REPOS_DIR = "",
       LIB_NVIM_DIR = "",
       LIB_NVIM_PATH = "",

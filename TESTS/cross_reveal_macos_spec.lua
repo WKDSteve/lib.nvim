@@ -11,9 +11,10 @@ return function(H)
     return
   end
 
-  local dir = H.tmpdir()
+  local dir = vim.fn.tempname()
+  vim.fn.mkdir(dir, "p")
   local path = dir .. "/reveal me.txt"
-  H.write(path, "x\n")
+  vim.fn.writefile({ "x" }, path)
 
   local run = require("lib.nvim.cross.run")
   local real_detached = run.run_detached
@@ -25,6 +26,7 @@ return function(H)
   local ran, err = pcall(require("lib.nvim.cross.reveal_in_fm"), path)
   run.run_detached = real_detached
   if not ran then
+    vim.fn.delete(dir, "rf")
     error(err, 0)
   end
 
@@ -32,6 +34,7 @@ return function(H)
   eq(argv and argv[2], "-R", "with -R, which selects the file")
 
   local res = vim.system(argv, { text = true }):wait(20000)
+  vim.fn.delete(dir, "rf")
   local stderr = vim.trim(res.stderr or "")
   print(("reveal_in_fm open -R: exit %d, stderr: %q"):format(res.code, stderr))
   if res.code ~= 0 then
