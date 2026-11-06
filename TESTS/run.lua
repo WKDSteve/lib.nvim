@@ -283,6 +283,7 @@ local specs = {
   "config_new_spec.lua",
   "cross_executable_spec.lua",
   "cross_open_default_spec.lua",
+  "cross_reveal_macos_spec.lua",
   "cross_open_default_container_spec.lua",
   "cross_is_wsl_spec.lua",
   "which_key_spec.lua",
