@@ -179,6 +179,47 @@ return function(H)
       "make_scratch: non-empty but zero-display-width lines still fall back to 60, not just literally empty ones"
     )
 
+    -- a title (or footer) wider than the content is drawn cut by Neovim (`╭<port all to╮` for
+    -- "Export all to" over the items "Clipboard", "New buffer", "File"): a derived width makes room for it
+    local items = { "Clipboard", "New buffer", "File" }
+    local wtitle = make_scratch({ lines = items, border = "rounded", title = "Export all to" })
+    local wtitle_width = wtitle and vim.api.nvim_win_get_width(wtitle) or nil
+    pcall(vim.api.nvim_win_close, wtitle, true)
+    H.eq(
+      wtitle_width,
+      #"Export all to" + 2,
+      "make_scratch: a derived width fits a title wider than the lines"
+    )
+    local wchunks = make_scratch({
+      lines = items,
+      border = "rounded",
+      title = { { "Export ", "Title" }, { "all to", "Title" } },
+    })
+    local wchunks_width = wchunks and vim.api.nvim_win_get_width(wchunks) or nil
+    pcall(vim.api.nvim_win_close, wchunks, true)
+    H.eq(
+      wchunks_width,
+      #"Export all to" + 2,
+      "make_scratch: a title of chunks is measured as its text"
+    )
+    local wfoot = make_scratch({ lines = items, border = "rounded", footer = "q close, <CR> pick" })
+    local wfoot_width = wfoot and vim.api.nvim_win_get_width(wfoot) or nil
+    pcall(vim.api.nvim_win_close, wfoot, true)
+    H.eq(wfoot_width, #"q close, <CR> pick" + 2, "make_scratch: the same for a footer")
+    local wshort = make_scratch({ lines = items, border = "rounded", title = "To" })
+    local wshort_width = wshort and vim.api.nvim_win_get_width(wshort) or nil
+    pcall(vim.api.nvim_win_close, wshort, true)
+    H.eq(
+      wshort_width,
+      #"New buffer" + 2,
+      "make_scratch: a short title leaves the width to the lines"
+    )
+    local wgiven =
+      make_scratch({ lines = items, border = "rounded", title = "Export all to", width = 8 })
+    local wgiven_width = wgiven and vim.api.nvim_win_get_width(wgiven) or nil
+    pcall(vim.api.nvim_win_close, wgiven, true)
+    H.eq(wgiven_width, 8, "make_scratch: an explicit width is kept, whatever the title")
+
     local wfrac = make_scratch({ lines = {}, width = 0.001, border = "none" })
     local wfrac_width = wfrac and vim.api.nvim_win_get_width(wfrac) or nil
     pcall(vim.api.nvim_win_close, wfrac, true)

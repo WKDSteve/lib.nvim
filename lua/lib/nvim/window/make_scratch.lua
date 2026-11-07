@@ -54,6 +54,27 @@ local function content_width(lines)
 end
 
 ---@internal
+---Display width of a title or footer as it is drawn: a string (after `printable_title`, which spells out
+---control characters) or a list of `{ text, hl }` chunks; anything else is 0.
+---@param label any
+---@return integer
+local function label_width(label)
+  if type(label) == "string" then
+    return vim.fn.strdisplaywidth(nul_safe(printable_title(label)))
+  end
+  if type(label) ~= "table" then
+    return 0
+  end
+  local w = 0
+  for _, chunk in ipairs(label) do
+    if type(chunk) == "table" and type(chunk[1]) == "string" then
+      w = w + vim.fn.strdisplaywidth(nul_safe(chunk[1]))
+    end
+  end
+  return w
+end
+
+---@internal
 ---Clamp `value` into the inclusive `[lo, hi]` range.
 ---@param value integer
 ---@param lo integer
@@ -118,6 +139,15 @@ local function resolve_dimensions(lines, opts)
   local want_w = given_w or (content_width(lines) + 2)
   if not given_w and want_w <= 2 then
     want_w = math.min(60, max_w)
+  end
+  -- A title or footer wider than the content is drawn cut (`<port all to` for "Export all to"): a derived
+  -- width makes room for it, with the same 2 cells as the content. Only with a border, the one place they
+  -- are drawn; an explicit width stays what the caller asked for.
+  if not given_w and opts.border ~= nil and opts.border ~= "none" and opts.border ~= "" then
+    local edge = math.max(label_width(opts.title), label_width(opts.footer))
+    if edge > 0 then
+      want_w = math.max(want_w, edge + 2)
+    end
   end
 
   -- Same "a fraction rounding to zero cells counts as not given" rule as
