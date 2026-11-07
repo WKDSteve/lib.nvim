@@ -32,14 +32,16 @@ require("lib.nvim.selection.@types")
 
 local M = {}
 
---- Feed a key sequence without remapping, queued to run once the current
---- mapping function returns (`nvim_feedkeys` "n" flag = non-interactive
---- typeahead, not executed synchronously).
+--- Feed a key sequence without remapping, to run once the current mapping
+--- function returns ("n" = no remap, not executed synchronously), in front of
+--- whatever is already queued ("i"): the keys after the mapping in a macro,
+--- `:normal` or a paste must see the reselected range, as they would if the
+--- mapping had been typed by hand.
 ---@internal
 ---@param keys string
 ---@return nil
 local function feed(keys)
-  vim.api.nvim_feedkeys(vim.keycode(keys), "n", false)
+  vim.api.nvim_feedkeys(vim.keycode(keys), "ni", false)
 end
 
 --- 0-based inclusive row range of the current (still-active) Visual

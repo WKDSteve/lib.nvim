@@ -28,6 +28,12 @@ selection, not the current one. Reselection instead uses an explicit
 entering Visual mode auto-prefixes a typed `:` with `'<,'>`, which would
 corrupt any `:call ...` sequence queued mid-selection.
 
+The reselect keys are fed with `nvim_feedkeys(..., "ni")`: no remapping, and
+in front of whatever is already queued. In a macro, a `:normal` or a paste the
+keys after the mapping are already in the typeahead; they run after the
+reselect and act on the reselected range, as they would if the mapping had
+been typed by hand.
+
 ## Usage
 
 ```lua
@@ -52,7 +58,7 @@ vim.keymap.set("x", "<leader><Right>", function()
     my_swap_right(row, scol, ecol)
   end)
   if not applicable then
-    vim.api.nvim_feedkeys(vim.keycode("gv"), "n", false)
+    vim.api.nvim_feedkeys(vim.keycode("gv"), "ni", false)
   end
 end)
 ```

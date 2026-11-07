@@ -7,8 +7,8 @@
 -- the simulated keys left it in) rather than the usual "set marks, then Esc"
 -- trick other specs use for `'<`/`'>`-based assertions.
 --
--- `reselect_*` queue their keys via `nvim_feedkeys(..., "n", false)`
--- (non-interactive, deferred), so an empty flush --
+-- `reselect_*` queue their keys via `nvim_feedkeys(..., "ni", false)`
+-- (no remap, deferred, in front of the typeahead), so an empty flush --
 -- `nvim_feedkeys("", "x", false)` -- is needed to run them synchronously
 -- before the next assertion, same idiom cascade.nvim's specs use for its
 -- operatorfunc dot-repeat trampoline.
@@ -289,6 +289,29 @@ return function(H)
     eq(napplicable, false, "keep_chars_multiline: not applicable for a same-line selection")
     eq(called, false, "keep_chars_multiline: fn not called when not applicable")
     eq(nret, nil, "keep_chars_multiline: nil ret when not applicable")
+    esc()
+  end
+
+  -- ---------- ordering: the reselect runs before the keys queued after it ----------
+  -- In a macro, a `:normal` or a paste the keys after the mapping are already
+  -- in the typeahead; the reselect must run in front of them (regression: it
+  -- was appended behind them, so `d` below hit the old selection and the
+  -- reselect then left Visual mode active on the wrong rows).
+
+  do
+    vim.keymap.set("x", "<Plug>(lib-selection-keep)", function()
+      selection.keep_lines(function() end)
+    end, { buffer = buf })
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "one", "two", "three", "four" })
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+    vim.api.nvim_feedkeys(vim.keycode("Vj<Plug>(lib-selection-keep)d"), "mtx", false)
+    eq(vim.fn.mode(), "n", "ordering: the queued d ran last and left Normal mode")
+    eq(
+      table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "|"),
+      "three|four",
+      "ordering: d deleted the reselected rows"
+    )
+    vim.keymap.del("x", "<Plug>(lib-selection-keep)", { buffer = buf })
     esc()
   end
 
