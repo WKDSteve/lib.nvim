@@ -238,6 +238,9 @@ return function(H)
     c = ui_kit.confirm_calls[#ui_kit.confirm_calls]
     eq(c.kind, "warn", "choose: an opts without kind keeps the kind of msg_type")
     eq(c.title, nil, "choose: ...and has no title")
+    dialog.choose("Save?", { "a", "b" }, 1, function() end, nil, { keep_on_focus_lost = true })
+    c = ui_kit.confirm_calls[#ui_kit.confirm_calls]
+    eq(c.keep_on_focus_lost, true, "choose: opts.keep_on_focus_lost is passed on")
 
     -- ------------------------------------------------------------ backend 2: the copy in lib.nvim
     without_ui_kit()

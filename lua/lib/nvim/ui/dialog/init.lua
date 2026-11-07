@@ -366,13 +366,14 @@ local KIND_OF_TYPE = { Error = "danger", Warning = "warn", Info = "info" }
 --- (nil or empty: a single "OK" button, as `vim.fn.confirm` shows); `default` the button that starts
 --- focused (0 or nil: the first); `msg_type` is `Error`, `Warning`, `Info`, `Question` or `Generic`
 --- and only colours the border. `opts.title` is the window title; `opts.kind` overrides the kind
---- `msg_type` implies.
+--- `msg_type` implies; `opts.keep_on_focus_lost` keeps the dialog open when focus moves away (else
+--- that dismisses it, i.e. `cb(0)`).
 ---@param msg string
 ---@param choices string|string[]|nil
 ---@param default? integer
 ---@param cb fun(index: integer)
 ---@param msg_type? string
----@param opts? { title?: string, kind?: "danger"|"warn"|"info" }
+---@param opts? { title?: string, kind?: "danger"|"warn"|"info", keep_on_focus_lost?: boolean }
 ---@return Lib.UI.Dialog.Backend backend
 function M.choose(msg, choices, default, cb, msg_type, opts)
   opts = opts or {}
@@ -386,6 +387,7 @@ function M.choose(msg, choices, default, cb, msg_type, opts)
     default = (default and default > 0) and default or 1,
     kind = opts.kind or KIND_OF_TYPE[msg_type or ""],
     title = opts.title,
+    keep_on_focus_lost = opts.keep_on_focus_lost,
     on_answer = function(label, index)
       -- the kit says which button; searching the labels is for a backend that only says its text
       -- (and cannot tell two buttons of the same text apart)
