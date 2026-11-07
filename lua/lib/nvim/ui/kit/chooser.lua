@@ -865,6 +865,14 @@ function M.open(opts)
   for _, key in ipairs(HORIZONTAL) do
     map("n", key, "<Nop>", mo)
   end
+  -- By item, not by buffer line: an item may span several rows, and a separator is no stop.
+  for lhs, delta in pairs({ j = 1, k = -1, ["<Down>"] = 1, ["<Up>"] = -1 }) do
+    map("n", lhs, function()
+      for _ = 1, vim.v.count1 do
+        M.move(delta)
+      end
+    end, mo)
+  end
   map("n", "<CR>", M.submit, mo)
   map("n", "<2-LeftMouse>", M.submit, mo)
   map("n", "<Esc>", M.close, mo)

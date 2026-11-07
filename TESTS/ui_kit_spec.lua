@@ -616,6 +616,34 @@ return function(H)
   eq(picked_idx, 2, "single-select returned its index")
   ok(not chooser.is_open(), "chooser closed after submit")
 
+  -- the keys move by item: a rich item spans rows, a count repeats, a separator is no stop
+  do
+    local press = function(keys)
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "x", false)
+    end
+    kit.select({
+      selection = {
+        { value = "a", lines = { "a1", "a2", "a3" } },
+        { value = "b", lines = { "b1", "b2", "b3" } },
+        { value = "c", lines = { "c1" } },
+      },
+      on_select = function() end,
+    })
+    press("j")
+    eq(chooser.current_index(), 2, "j moves one item, not one buffer line")
+    press("<Down>")
+    eq(chooser.current_index(), 3, "<Down> too")
+    press("k")
+    eq(chooser.current_index(), 2, "k moves back one item")
+    press("<Up>")
+    eq(chooser.current_index(), 1, "<Up> too")
+    press("2j")
+    eq(chooser.current_index(), 3, "a count repeats the move")
+    press("j")
+    eq(chooser.current_index(), 1, "j wraps around, as the module says")
+    chooser.close()
+  end
+
   -- move wraps around
   kit.select({ selection = { "a", "b" }, on_select = function() end })
   chooser.move(-1) -- from line 1 wraps to line 2
