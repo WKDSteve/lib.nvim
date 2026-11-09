@@ -24,6 +24,11 @@ name is silently overwritten (Neovim's native default) rather than raising
 commands on every save). Pass `opts.force = false` to restore the raising
 behavior.
 
+`opts.complete = "dir"` completes through `getcompletion(lead, "dir")` (the composer's `DIR` type) instead of
+Neovim's own `-complete=dir`, which lists files as well on Windows (measured with nvim 0.12.2). The candidates are
+directories only on every system, a lead with a backtick (a command substitution to the wildcard expansion) completes
+to nothing, and `$NAME/` of a named root completes like in the composer. The record still says `dir`.
+
 A function `callback` is wrapped in `pcall`; a failure is reported via
 `require("lib.nvim.notify")` (tagged `[lib.nvim.bindings.usercmd]`) naming the command,
 instead of propagating the raw error. A string `callback` (a Vim Ex command

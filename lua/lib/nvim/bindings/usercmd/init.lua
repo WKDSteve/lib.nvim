@@ -69,6 +69,19 @@ function M.create(name, callback, opts)
   local complete_kind = type(complete) == "string" and complete
     or (complete ~= nil and "<function>" or nil)
 
+  -- Neovim's own `complete = "dir"` lists files as well on Windows (measured, nvim 0.12.2), while
+  -- getcompletion(lead, "dir") answers directories only. The composer's DIR type completes through the
+  -- latter on every system, completes a lead with a backtick (a command substitution to the wildcard
+  -- expansion) to nothing and knows the named roots, so a "dir" command gets that one. The record keeps
+  -- "dir": it describes what the command completes, not how.
+  if complete == "dir" then
+    ---@type Lib.UserCmd.Composer.ArgSpec
+    local spec = { name = "dir", type = "DIR" }
+    opts.complete = function(arg_lead)
+      return require("lib.nvim.bindings.usercmd.composer.argtypes").complete(arg_lead, spec)
+    end
+  end
+
   if type(callback) == "function" then
     local user_cb = callback
     callback = function(args)

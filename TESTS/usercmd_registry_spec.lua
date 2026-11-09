@@ -51,6 +51,34 @@ return function(H)
     eq(record("SpecUsercmdC").complete, "file", "a builtin completion keeps its name")
   end
 
+  -- `complete = "dir"`: Neovim's own completion lists files as well on Windows (nvim 0.12.2), so create()
+  -- completes such a command through getcompletion(lead, "dir") -- on every system, directories only.
+  do
+    local dir = vim.fn.tempname()
+    vim.fn.mkdir(dir .. "/subdir", "p")
+    vim.fn.writefile({ "x" }, dir .. "/afile.txt")
+    local cwd = vim.fn.getcwd()
+    vim.cmd("cd " .. vim.fn.fnameescape(dir))
+    local ok_cmp, list = pcall(function()
+      usercmd.create(
+        "SpecUsercmdDir",
+        function() end,
+        { desc = "D", nargs = "?", complete = "dir" }
+      )
+      return vim.fn.getcompletion("SpecUsercmdDir ", "cmdline")
+    end)
+    local ok_tick, ticked = pcall(vim.fn.getcompletion, "SpecUsercmdDir `echo x`", "cmdline")
+    vim.cmd("cd " .. vim.fn.fnameescape(cwd))
+    ok(ok_cmp, "completing a dir command does not raise: " .. tostring(list))
+    eq(#list, 1, "only the directory is offered, not the file: " .. vim.inspect(list))
+    eq((vim.fs.normalize(list[1]):gsub("/$", "")), "subdir", "the one candidate is the directory")
+    ok(ok_tick, "a lead with a backtick does not raise")
+    eq(#ticked, 0, "a lead with a backtick completes to nothing")
+    eq(record("SpecUsercmdDir").complete, "dir", "the record still says dir")
+    usercmd.delete("SpecUsercmdDir")
+    vim.fn.delete(dir, "rf")
+  end
+
   -- `force = true` is the default, so re-creating is normal -- and must
   -- replace the record rather than add a second one, or a re-setup() would
   -- describe every command as many times as setup has run.
