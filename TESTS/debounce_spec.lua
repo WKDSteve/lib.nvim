@@ -53,8 +53,16 @@ return function(H)
   do
     local real_schedule = vim.schedule
     local queued = {}
+    -- only the debounce module's own runs are held back: anything else scheduled during vim.wait (a timer left by
+    -- another spec, the harness) goes to the real loop. Holding it too made queued[1] a foreign function and
+    -- queued[2] the stale run on a busy macOS runner ("only the newest call's run is delivered", queued=2).
     vim.schedule = function(f)
-      queued[#queued + 1] = f
+      local src = ((debug.getinfo(2, "S") or {}).source or ""):gsub("\\", "/")
+      if src:find("lib/nvim/debounce", 1, true) then
+        queued[#queued + 1] = f
+      else
+        real_schedule(f)
+      end
     end
     -- restore vim.schedule even when an assertion below throws: the specs after this one run
     -- in the same editor
@@ -63,6 +71,17 @@ return function(H)
       local d = debounce.new(function()
         n = n + 1
       end, 10)
+
+      -- a foreign schedule (this spec file) goes to the real loop, it is not mistaken for a debounce run
+      local foreign_ran = false
+      vim.schedule(function()
+        foreign_ran = true
+      end)
+      eq(#queued, 0, "a foreign vim.schedule is not held back")
+      vim.wait(500, function()
+        return foreign_ran
+      end, 5)
+      ok(foreign_ran, "...it runs on the real loop")
 
       d.call()
       vim.wait(500, function()
