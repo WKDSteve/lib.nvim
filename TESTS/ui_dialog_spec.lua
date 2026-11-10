@@ -278,6 +278,51 @@ return function(H)
     confirm.cancel()
     same(got, { 0 }, "choose dismissed -> 0")
 
+    -- replaced by another dialog: the kit is single-instance, the replaced question is answered as
+    -- dismissed on the next turn (a caller such as data.nvim's diff preview cleans up there), also
+    -- when focus changes are no dismissal (keep_on_focus_lost)
+    got = {}
+    dialog.choose("Apply?", { "Discard", "Apply" }, 1, function(i)
+      got[#got + 1] = "choose:" .. i
+    end, nil, { keep_on_focus_lost = true })
+    dialog.confirm({
+      question = "Other?",
+      on_answer = function(v)
+        got[#got + 1] = "confirm:" .. tostring(v)
+      end,
+    })
+    same(got, {}, "a replaced choose is not answered inside the call that replaces it")
+    wait_for(function()
+      return #got > 0
+    end, "a replaced choose is answered")
+    same(got, { "choose:0" }, "replaced choose -> 0, once")
+    lib_kit.confirm({
+      question = "Third?",
+      on_answer = function(v)
+        got[#got + 1] = "third:" .. tostring(v)
+      end,
+    })
+    wait_for(function()
+      return #got > 1
+    end, "a replaced confirm is answered")
+    idle(20)
+    same(got, { "choose:0", "confirm:false" }, "replaced yes/no confirm -> false, once")
+    got = {}
+    dialog.confirm({
+      question = "Pick",
+      choices = { "a", "b" },
+      on_answer = function(v, i)
+        got[#got + 1] = { v, i }
+      end,
+    })
+    wait_for(function()
+      return #got > 0
+    end, "the replacement is answered in turn")
+    confirm.close()
+    idle(20)
+    eq(#got, 2, "the third dialog and the choice dialog answer once each")
+    eq(got[2][1], nil, "replaced choice confirm -> nil")
+
     -- the lib copy's input
     got = {}
     local s_input = lib_kit.input
