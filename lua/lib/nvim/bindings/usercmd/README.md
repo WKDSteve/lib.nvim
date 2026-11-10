@@ -27,7 +27,9 @@ behavior.
 `opts.complete = "dir"` completes through `getcompletion(lead, "dir")` (the composer's `DIR` type) instead of
 Neovim's own `-complete=dir`, which lists files as well on Windows (measured with nvim 0.12.2). The candidates are
 directories only on every system, a lead with a backtick (a command substitution to the wildcard expansion) completes
-to nothing, and `$NAME/` of a named root completes like in the composer. The record still says `dir`.
+to nothing, and `$NAME/` of a named root completes like in the composer. With `nargs = "*"` or `"+"` a space in a
+candidate is escaped (`a\ b`), as Neovim's own completion does, so it does not split the arguments. The record still
+says `dir`.
 
 A function `callback` is wrapped in `pcall`; a failure is reported via
 `require("lib.nvim.notify")` (tagged `[lib.nvim.bindings.usercmd]`) naming the command,

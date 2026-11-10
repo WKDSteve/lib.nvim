@@ -77,8 +77,17 @@ function M.create(name, callback, opts)
   if complete == "dir" then
     ---@type Lib.UserCmd.Composer.ArgSpec
     local spec = { name = "dir", type = "DIR" }
+    -- With several arguments (`nargs` "*" or "+") a space separates them, so a candidate's spaces are escaped as
+    -- Neovim's own completion does; with one argument the whole rest of the line is it, and they stay as they are.
+    local many = opts.nargs == "*" or opts.nargs == "+"
     opts.complete = function(arg_lead)
-      return require("lib.nvim.bindings.usercmd.composer.argtypes").complete(arg_lead, spec)
+      local list = require("lib.nvim.bindings.usercmd.composer.argtypes").complete(arg_lead, spec)
+      if many then
+        for i, cand in ipairs(list) do
+          list[i] = (cand:gsub(" ", "\\ "))
+        end
+      end
+      return list
     end
   end
 
