@@ -299,6 +299,7 @@ local specs = {
   "contract_api_spec.lua",
   "contract_ops_spec.lua",
   "contract_host_spec.lua",
+  "cli_script_template_spec.lua",
   "min_version_spec.lua",
   "terminal_host_osc_spec.lua",
   "shell_quote_spec.lua",

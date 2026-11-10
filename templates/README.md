@@ -132,6 +132,21 @@ Both require the same three things per tool: `bin`, a non-empty `why`
 section for why that's enforced, not just documented), and at least one
 `pkg` entry.
 
+## `cli_script.lua` — the command line of a plugin without the editor
+
+The script behind `nvim --headless -u NONE -l scripts/<plugin>.lua <command> [options]`, for a scheduler, CI or a
+hook: it puts the plugin and `lib.nvim` on the runtimepath (the same six places, in the same order, as
+`contract_host.lua` below), hands the arguments to `MODULE.run(argv)` and exits with the number it returns. Copy it to
+`scripts/<plugin>.lua` and replace the two names at its top (`MODULE`, `PLUGIN`); every rule stays in the plugin's
+`lua/` (the CLI module parses the arguments and does the work), the script holds none.
+
+The exit codes of the fleet's command lines: `0` done, `1` the work found or hit a failure (a red check, a failed
+fetch), `2` usage or configuration, `3` the environment. The module returns `0`–`2` (or `3` for what it detects itself,
+a missing program, a timeout); the script adds `3` for `lib.nvim` not found and for an error the module raised (printed
+to stderr). Results go to stdout, messages to stderr, so `--format=json` stays parseable. The pattern is the one of
+`tasks.nvim`'s `scripts/tasks.lua` and `testing.nvim`'s `scripts/testing.lua`; the first copy is `github_stats.nvim`'s
+`scripts/github_stats.lua`. `TESTS/cli_script_template_spec.lua` runs this very file in a child Neovim.
+
 ## `contract_host.lua` — the persistent engine script of a machine contract
 
 The script behind `nvim --headless -u NONE -i NONE -n -l scripts/<plugin>-host.lua`:

@@ -78,7 +78,7 @@ question.
 - [Workflow](docs/WORKFLOW.md) — building a plugin on top: which module for which job.
 - [Health check](docs/health.md) — what `:checkhealth lib` reports.
 - [Contributing](docs/CONTRIBUTING.md) — ground rules, repository layout, and how to add a module.
-- [Test-runner templates](templates/README.md) — resolving `lib.nvim` in a dependent plugin's own headless test suite.
+- [Templates](templates/README.md) — resolving `lib.nvim` in a dependent plugin's own headless test suite, and the scripts of a plugin's command line (`cli_script.lua`) and machine contract (`contract_host.lua`).
 - [Feedback](https://github.com/WKDSteve/lib.nvim/issues) — bugs, feature requests and usage questions; broader discussion in [Discussions](https://github.com/WKDSteve/lib.nvim/discussions).
 
 `:help lib.nvim` is the same reference inside the editor — see
