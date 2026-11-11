@@ -30,6 +30,21 @@ local ok, err = trash.trash_blocking("/tmp/some_dir")
 | `M.trash(path, cb)`           | —, calls `cb(ok, err)`    | Async send-to-trash                        |
 | `M.trash_blocking(path)`      | `boolean, string\|nil`    | Synchronous send-to-trash                  |
 
+## Restore
+
+`restore_blocking(path)` / `restore(path, cb)` put the newest trashed copy of
+`path` (its original, absolute path) back. They never overwrite: an existing
+`path` is an error, as is a vanished parent directory.
+
+- **Windows:** reads the recycle bin through `Shell.Application` and the
+  canonical property names (`System.Recycle.DeletedFrom`,
+  `System.Recycle.DateDeleted`), so it does not depend on the system language
+  (the localized "Restore"/"Wiederherstellen" verb and column headers are never
+  used). The `$R` payload is moved back and the `$I` metadata twin removed.
+- **Linux:** the XDG trash (`info/*.trashinfo` `Path=` + `files/`). Entries the
+  fallback below wrote have no `.trashinfo` and cannot be restored.
+- **macOS:** `unsupported platform` (no scriptable restore).
+
 ## Limitation of the Linux fallback
 
 When neither `gio` nor `trash-put` is available, `path` is moved into

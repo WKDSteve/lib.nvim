@@ -209,5 +209,139 @@ function M.trash_blocking(path)
   return false, "unsupported platform"
 end
 
+---@internal
+---PowerShell that puts the newest recycle-bin entry deleted from `path` back.
+---
+---Locale independent on purpose: the bin is read through `Shell.Application`
+---(`NameSpace(10)`) and each entry through the canonical property names
+---`System.Recycle.DeletedFrom` / `System.Recycle.DateDeleted`, never through
+---the localized column headers or the localized "Restore" verb. The entry is
+---restored by moving its `$R...` payload to the original path and deleting
+---the `$I...` metadata twin, which is what Explorer does. Refuses to
+---overwrite.
+---@param path string
+---@return string
+local function windows_restore_cmd(path)
+  local script = [[
+$ErrorActionPreference = 'Stop'
+try {
+  $orig = '__PATH__'
+  $dir = [IO.Path]::GetDirectoryName($orig)
+  $leaf = [IO.Path]::GetFileName($orig)
+  if (Test-Path -LiteralPath $orig) { throw "destination exists: $orig" }
+  if (-not (Test-Path -LiteralPath $dir -PathType Container)) { throw "parent directory is gone: $dir" }
+  $bin = (New-Object -ComObject Shell.Application).NameSpace(10)
+  $best = $null; $bestDate = [datetime]::MinValue
+  foreach ($it in $bin.Items()) {
+    $from = $it.ExtendedProperty('System.Recycle.DeletedFrom')
+    if (-not $from -or $from.TrimEnd('\') -ine $dir.TrimEnd('\')) { continue }
+    $ext = [IO.Path]::GetExtension($it.Path)
+    $name = $it.Name
+    if ($ext -and -not $name.EndsWith($ext, [StringComparison]::OrdinalIgnoreCase)) { $name += $ext }
+    if ($name -ine $leaf) { continue }
+    $when = $it.ExtendedProperty('System.Recycle.DateDeleted')
+    if ($null -eq $best -or $when -gt $bestDate) { $best = $it; $bestDate = $when }
+  }
+  if ($null -eq $best) { throw "not in the recycle bin: $orig" }
+  $payload = $best.Path
+  $meta = Join-Path (Split-Path $payload) ('$I' + (Split-Path $payload -Leaf).Substring(2))
+  Move-Item -LiteralPath $payload -Destination $orig
+  Remove-Item -LiteralPath $meta -Force -ErrorAction SilentlyContinue
+} catch {
+  [Console]::Error.WriteLine($_.Exception.Message)
+  exit 1
+}
+]]
+  return (script:gsub("__PATH__", function()
+    return ps_escape(path)
+  end))
+end
+
+---@internal
+---Restore from the XDG trash (`files/` + `info/*.trashinfo`): the newest entry
+---whose `Path=` is `path`. Entries the fallback above wrote have no
+---`.trashinfo` and cannot be found.
+---@param path string
+---@return boolean ok
+---@return string|nil err
+local function xdg_restore_blocking(path)
+  local xdg = vim.env.XDG_DATA_HOME
+  local base = (xdg ~= nil and xdg ~= "") and xdg or (vim.env.HOME .. "/.local/share")
+  local info_dir, files_dir = base .. "/Trash/info", base .. "/Trash/files"
+  local wanted = vim.fs.normalize(path)
+
+  local best, best_date
+  for name, kind in vim.fs.dir(info_dir) do
+    if kind == "file" and name:match("%.trashinfo$") then
+      local lines = vim.fn.readfile(info_dir .. "/" .. name)
+      local orig, date
+      for _, line in ipairs(lines) do
+        local p = line:match("^Path=(.*)$")
+        if p then
+          -- the spec percent-encodes the path
+          orig = vim.fs.normalize((p:gsub("%%(%x%x)", function(h)
+            return string.char(tonumber(h, 16))
+          end)))
+        end
+        date = line:match("^DeletionDate=(.*)$") or date
+      end
+      if orig == wanted and (best == nil or (date or "") > (best_date or "")) then
+        best, best_date = name:gsub("%.trashinfo$", ""), date
+      end
+    end
+  end
+  if not best then
+    return false, "not in the trash: " .. path
+  end
+  if uv.fs_stat(path) then
+    return false, "destination exists: " .. path
+  end
+  local ok, err = uv.fs_rename(files_dir .. "/" .. best, path)
+  if not ok then
+    return false, "fs_rename failed: " .. tostring(err)
+  end
+  vim.fn.delete(info_dir .. "/" .. best .. ".trashinfo")
+  return true, nil
+end
+
+---Put the newest trashed copy of `path` back at `path`, synchronously: the
+---counterpart of `trash_blocking`. Windows (recycle bin, any system language)
+---and Linux (XDG trash with `.trashinfo`). Never overwrites: an existing
+---`path` is an error. macOS has no scriptable restore and answers
+---"unsupported platform".
+---@param path string absolute original path
+---@return boolean ok
+---@return string|nil err
+function M.restore_blocking(path)
+  if is_windows() and not is_wsl() then
+    local res = run.run_blocking(windows_restore_cmd(path))
+    if res.code == 0 then
+      return true, nil
+    end
+    return false, vim.trim(res.stderr or "") ~= "" and vim.trim(res.stderr) or "restore failed"
+  end
+  if is_linux() or is_wsl() then
+    return xdg_restore_blocking(path)
+  end
+  return false, "unsupported platform"
+end
+
+---Asynchronous `restore_blocking`; `cb` runs on the main loop.
+---@param path string
+---@param cb fun(ok: boolean, err: string|nil)
+function M.restore(path, cb)
+  if is_windows() and not is_wsl() then
+    run.run(windows_restore_cmd(path), function(ok, res)
+      local err = vim.trim(res.stderr or "")
+      cb(ok, ok and nil or (err ~= "" and err or "restore failed"))
+    end)
+    return
+  end
+  local ok, err = M.restore_blocking(path)
+  vim.schedule(function()
+    cb(ok, err)
+  end)
+end
+
 ---@type Lib.Fs.Trash
 return M
