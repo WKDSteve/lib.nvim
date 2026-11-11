@@ -65,14 +65,14 @@ function M.plan(tools, opts)
             packages[#packages + 1] = pkg
           end
         else
-          lang_pkgs[via.id] = lang_pkgs[via.id] or {}
-          lang_seen[via.id] = lang_seen[via.id] or {}
+          if not lang_pkgs[via.id] then
+            lang_pkgs[via.id] = {}
+            lang_seen[via.id] = {}
+            lang_order[#lang_order + 1] = via
+          end
           if not lang_seen[via.id][pkg] then
             lang_seen[via.id][pkg] = true
             table.insert(lang_pkgs[via.id], pkg)
-          end
-          if #lang_pkgs[via.id] == 1 then
-            lang_order[#lang_order + 1] = via
           end
         end
       else

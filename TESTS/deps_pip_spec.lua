@@ -25,17 +25,15 @@ return function(H)
   ok(pm.detect() == nil or pm.detect().id ~= "pipx", "pm.detect never answers a language manager")
 
   -- a spec that only declares pipx validates
-  local parsed = spec.parse_json(
-    vim.json.encode({
-      tools = {
-        {
-          bin = "whisper-ctranslate2",
-          why = "Transcribes audio locally.",
-          pkg = { pipx = "whisper-ctranslate2" },
-        },
+  local parsed = spec.parse_json(vim.json.encode({
+    tools = {
+      {
+        bin = "whisper-ctranslate2",
+        why = "Transcribes audio locally.",
+        pkg = { pipx = "whisper-ctranslate2" },
       },
-    })
-  )
+    },
+  }))
   eq(#parsed.errors, 0, "spec: a pipx-only pkg map is valid")
 
   local function with_on_path(names, fn)
@@ -79,6 +77,14 @@ return function(H)
     eq(#plan.commands, 1, "plan: one command")
     eq(pm.render(plan.commands[1]), "pipx install pip-only-tool", "plan: the pipx command")
     eq(#plan.packages, 0, "plan: packages stays the OS manager's list")
+  end)
+  -- two tools in one pipx package: one command, the package once
+  with_on_path({ "pipx" }, function()
+    local twin =
+      vim.tbl_extend("force", tool, { bin = "another-pip-only-tool-that-does-not-exist" })
+    local plan = install.plan({ tool, twin }, { manager = brew })
+    eq(#plan.commands, 1, "plan: two tools of one pipx package give one command")
+    eq(pm.render(plan.commands[1]), "pipx install pip-only-tool", "plan: the package is named once")
   end)
   with_on_path({}, function()
     local plan = install.plan({ tool }, { manager = brew })
