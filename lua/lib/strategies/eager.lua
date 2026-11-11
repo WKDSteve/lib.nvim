@@ -19,6 +19,7 @@ LIB.is_wsl = require("lib.nvim.cross.platform.is_wsl")
 LIB.is_macos = require("lib.nvim.cross.platform.is_macos")
 LIB.is_linux = require("lib.nvim.cross.platform.is_linux")
 LIB.is = require("lib.nvim.cross.platform.is")
+LIB.case_blind = require("lib.nvim.cross.platform.case_blind")
 -- Run
 local cross_run = require("lib.nvim.cross.run")
 LIB.shell = cross_run.shell
@@ -44,6 +45,7 @@ LIB.joinpath = fs_path.joinpath
 LIB.ensure_dir = fs_path.ensure_dir
 
 LIB.is_subpath = require("lib.nvim.fs.is_subpath")
+LIB.same_path = require("lib.nvim.fs.same_path")
 LIB.is_dir = require("lib.nvim.fs.is_dir")
 LIB.relpath = require("lib.nvim.fs.relpath")
 LIB.find_upward_dir = require("lib.nvim.fs.find_upward_dir")

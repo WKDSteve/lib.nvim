@@ -54,6 +54,7 @@ LIB.is_windows = lazy_module("lib.nvim.cross.platform.is_windows")
 LIB.is_wsl = lazy_module("lib.nvim.cross.platform.is_wsl")
 LIB.is_macos = lazy_module("lib.nvim.cross.platform.is_macos")
 LIB.is_linux = lazy_module("lib.nvim.cross.platform.is_linux")
+LIB.case_blind = lazy_module("lib.nvim.cross.platform.case_blind")
 LIB.is = lazy_module("lib.nvim.cross.platform.is")
 
 -- Run
@@ -101,6 +102,7 @@ do
 end
 
 LIB.is_subpath = lazy_module("lib.nvim.fs.is_subpath")
+LIB.same_path = lazy_module("lib.nvim.fs.same_path")
 LIB.is_dir = lazy_module("lib.nvim.fs.is_dir")
 LIB.relpath = lazy_module("lib.nvim.fs.relpath")
 LIB.find_upward_dir = lazy_module("lib.nvim.fs.find_upward_dir")

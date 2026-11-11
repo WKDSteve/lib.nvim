@@ -257,6 +257,7 @@ local specs = {
   "deps_project_spec.lua",
   "contextmenu_spec.lua",
   "is_subpath_spec.lua",
+  "same_path_spec.lua",
   "to_absolute_spec.lua",
   "normkey_spec.lua",
   "stdpath_config_root_spec.lua",

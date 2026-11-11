@@ -10,6 +10,7 @@ M.is_wsl = require("lib.nvim.cross.platform.is_wsl")
 M.is_macos = require("lib.nvim.cross.platform.is_macos")
 M.is_linux = require("lib.nvim.cross.platform.is_linux")
 M.is = require("lib.nvim.cross.platform.is")
+M.case_blind = require("lib.nvim.cross.platform.case_blind")
 
 M.executable = require("lib.nvim.cross.executable")
 

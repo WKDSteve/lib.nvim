@@ -18,12 +18,14 @@ local MODULE_MAP = {
   is_macos = "lib.nvim.cross.platform.is_macos",
   is_linux = "lib.nvim.cross.platform.is_linux",
   is = "lib.nvim.cross.platform.is",
+  case_blind = "lib.nvim.cross.platform.case_blind",
   copy_to_clipboard = "lib.nvim.cross.copy_to_clipboard",
   run_argv = "lib.nvim.cross.run_argv",
   spawn_env = "lib.nvim.cross.run.env",
 
   -- FILESYSTEM
   is_subpath = "lib.nvim.fs.is_subpath",
+  same_path = "lib.nvim.fs.same_path",
   is_dir = "lib.nvim.fs.is_dir",
   relpath = "lib.nvim.fs.relpath",
   find_upward_dir = "lib.nvim.fs.find_upward_dir",

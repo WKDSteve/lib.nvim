@@ -60,11 +60,13 @@
 ---@field indent fun(s: string, n: integer): string
 ---@field insert_lines fun(lines: string[], pos?: Lib.Buf.InsertLinesPos): nil # Insert lines into buffer
 ---@field is fun(platform?: Lib.Cross.Platform.PlatformName): boolean|Lib.Cross.Platform.PlatformName # Dual behavior: returns platform name or boolean check
+---@field case_blind fun(): boolean # true when the platform default file system ignores letter case (native Windows, macOS)
 ---@field is_dir fun(p: string): boolean # Check if path is a directory
 ---@field is_empty_or_space fun(s: any): boolean
 ---@field is_linux fun(): boolean # returns true if current os is linux
 ---@field is_macos fun(): boolean # returns true if current os is macos
 ---@field is_markdown_buf fun(bufnr_arg: integer|nil): integer|nil # Returns buffer number if valid markdown buffer
+---@field same_path fun(a: string, b: string, opts?: Lib.Fs.SamePathOpts): boolean # Do two paths name one location (normkey both sides, case-folded where the file system ignores case)
 ---@field is_subpath fun(path: string, base: string, opts?: Lib.Fs.IsSubpathOpts): boolean # Check if path is subpath of base; pass opts to canonicalize both sides via normkey
 ---@field is_terminal_buf fun(bufnr: integer): boolean|nil # Checks if buffer is terminal
 ---@field is_web_url fun(s: string): boolean

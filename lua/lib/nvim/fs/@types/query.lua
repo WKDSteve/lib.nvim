@@ -12,6 +12,11 @@
 ---@field realpath? boolean Resolve symlinks and Windows 8.3 short names via `uv.fs_realpath`. Default true.
 ---@field ignore_case? boolean Compare case-insensitively (a file system that ignores case: Windows, default macOS), non-ASCII letters included (`vim.fn.tolower`, not NTFS's own table: `i`/`İ` and `ß`/`ẞ` compare equal). Default false. Like any opts table it switches to `normkey`; add `realpath = false` to stay off the disk.
 
+---Options for `lib.nvim.fs.same_path`.
+---@class Lib.Fs.SamePathOpts
+---@field ignore_case? boolean Fold letter case before comparing. Default: `lib.nvim.cross.platform.case_blind()`.
+---@field realpath? boolean Resolve symlinks and 8.3 names via `uv.fs_realpath`. Default false (no syscalls).
+
 --- CDX: fictional grouping — there is no `lib.nvim.fs.query` module. Only the
 --- CDX: stale `Lib.Fs` aggregate references it. `Lib.Fs.IsSubpathOpts` above
 --- CDX: is real and stays.

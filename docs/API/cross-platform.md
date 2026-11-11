@@ -33,6 +33,9 @@ lib.nvim.cross.platform.is_macos : return function(): boolean
 lib.nvim.cross.platform.is_linux : return function(): boolean
   -- Linux excluding WSL
 
+lib.nvim.cross.platform.case_blind : return function(): boolean
+  -- platform default: file system ignores letter case (native Windows, macOS); false on Linux/WSL
+
 lib.nvim.cross.platform.is : return function(platform?: string): boolean|string
   -- no argument -> detected platform name; with a name -> whether it matches
   -- detection order: wsl -> windows -> macos -> linux (unknown falls back to "linux")
