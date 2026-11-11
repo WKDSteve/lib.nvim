@@ -260,6 +260,7 @@ local specs = {
   "contextmenu_spec.lua",
   "is_subpath_spec.lua",
   "same_path_spec.lua",
+  "tree_spec.lua",
   "image_preview_cells_spec.lua",
   "root_policy_spec.lua",
   "net_paginate_spec.lua",
