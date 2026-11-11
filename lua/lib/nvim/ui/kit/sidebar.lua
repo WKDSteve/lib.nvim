@@ -15,6 +15,10 @@
 ---   later (a window created on `WinEnter` can still report the previous window's buffer for
 ---   a moment). A sidebar shown again by hand drops its record. `exclusive = false` lets a
 ---   sidebar share its slot instead.
+--- * Foreign panels (Neo-tree, filetree.nvim, a plugin's own split): `register_foreign` makes such a panel take
+---   part in the same slot exclusivity. The kit hides it through the panel's own `hide` callback when a kit
+---   sidebar takes its slot and brings it back through `show`; the panel tells the kit when it appeared or went
+---   away on its own with `handle:shown()` / `handle:hidden()` (it then displaces, or restores, kit sidebars).
 --- * Per tabpage: `toggle` hides only a sidebar visible in the current tabpage; `show` (and
 ---   `open` by name, `focus`) moves one visible in another tabpage here.
 --- * Handles live in `lib.nvim.ui.kit.sidebar_state` (UI-51); `close_all()` is the one cleanup
@@ -198,7 +202,7 @@ local function unwatch(self)
   end
 end
 
-local finish, open_window
+local finish, open_window, record_displaced
 
 --- Is the sidebar on screen in the current tabpage? (Exclusivity, `toggle` and `show` work
 --- per tabpage; `is_visible` is true for a window in any tabpage.)
@@ -307,6 +311,22 @@ local function watch(self)
   })
 end
 
+--- Record that `self` displaced `taken` (the newest first): what it had displaced before waits behind them.
+---@param self Lib.UI.Kit.Sidebar
+---@param taken Lib.UI.Kit.Sidebar[]
+function record_displaced(self, taken)
+  if taken[1] then
+    local before = state.take_displaced(self)
+    state.set_displaced(self, taken[1])
+    for i = 2, #taken do
+      state.append_displaced(taken[1], taken[i])
+    end
+    if before then
+      state.append_displaced(taken[1], before)
+    end
+  end
+end
+
 --- Close the sidebar's window and keep the rest (buffer, handle, size) for `show`. Refused
 --- for the tabpage's last window, which cannot close without taking the tabpage along.
 ---@param self Lib.UI.Kit.Sidebar
@@ -314,6 +334,15 @@ end
 local function take_off_screen(self)
   if not self:is_visible() then
     return false
+  end
+  if self._foreign then
+    -- A panel that is not ours goes away through its own callback; `_by_kit` tells `hidden()` that this
+    -- hide was the kit's doing, so it does not restore what the panel had displaced.
+    self._tab = api.nvim_win_get_tabpage(self.winid)
+    self._by_kit = true
+    pcall(self._spec.hide)
+    self._by_kit = false
+    return not self:is_visible()
   end
   local win = self.winid --[[@as integer]]
   if is_last_window(win) then
@@ -377,6 +406,14 @@ end
 ---@param displace boolean
 ---@return boolean shown
 function open_window(self, enter, displace)
+  if self._foreign then
+    -- Only reached to bring a displaced foreign panel back: it shows itself, in the current tabpage.
+    self._tab = api.nvim_get_current_tabpage()
+    self._by_kit = true
+    pcall(self._spec.show, enter ~= false)
+    self._by_kit = false
+    return self:is_visible()
+  end
   local tab = api.nvim_get_current_tabpage()
   local taken = {}
   if displace and self.exclusive then
@@ -405,17 +442,7 @@ function open_window(self, enter, displace)
   watch(self)
   -- On screen again: no older record may bring it back after a later hide (UI-54, once).
   state.release(self)
-  if taken[1] then
-    -- What this one had displaced before waits behind what it displaces now.
-    local before = state.take_displaced(self)
-    state.set_displaced(self, taken[1])
-    for i = 2, #taken do
-      state.append_displaced(taken[1], taken[i])
-    end
-    if before then
-      state.append_displaced(taken[1], before)
-    end
-  end
+  record_displaced(self, taken)
   return true
 end
 
@@ -572,6 +599,113 @@ function M.toggle(opts)
     return existing
   end
   return M.open(opts)
+end
+
+---@class Lib.UI.Kit.Foreign
+local Foreign = {}
+Foreign.__index = Foreign
+
+--- On screen? Asks the panel (`spec.win`) and keeps the window for the slot bookkeeping.
+---@return boolean
+function Foreign:is_visible()
+  if self._closed then
+    return false
+  end
+  local ok, win = pcall(self._spec.win)
+  win = ok and win or nil
+  if type(win) == "number" and api.nvim_win_is_valid(win) then
+    self.winid = win
+    return true
+  end
+  self.winid = nil
+  return false
+end
+
+Foreign.is_valid = Foreign.is_visible
+
+function Foreign:is_closed()
+  return self._closed == true
+end
+
+--- The panel appeared on its own (the user opened it): an exclusive one takes the kit sidebars at its position
+--- in this tabpage off the screen and remembers them.
+function Foreign:shown()
+  if self._closed or not self:is_visible() then
+    return
+  end
+  local tab = api.nvim_win_get_tabpage(self.winid)
+  self._tab = tab
+  local taken = {}
+  if self.exclusive then
+    for _, occupant in ipairs(state.all_visible_at(tab, self.position, self)) do
+      if take_off_screen(occupant) then
+        taken[#taken + 1] = occupant
+      end
+    end
+  end
+  state.release(self)
+  record_displaced(self, taken)
+end
+
+--- The panel went away on its own: what it displaced comes back. Ignored while the kit itself is hiding it.
+function Foreign:hidden()
+  if self._closed or self._by_kit then
+    return
+  end
+  local target = state.take_displaced(self)
+  if target and not closing_all then
+    restore(target)
+  end
+end
+
+--- Forget the panel (what it displaced is forgotten too, not restored).
+function Foreign:unregister()
+  if self._closed then
+    return
+  end
+  self._closed = true
+  state.take_displaced(self)
+  state.remove(self)
+end
+
+Foreign.close = Foreign.unregister
+
+--- Let a panel that is not a kit sidebar take part in slot exclusivity. `spec`: `name`, `position`
+--- (`left`/`right`/`bottom`), `win()` (its window when visible, else nil), `hide()` (take it off the screen), `show()`
+--- (bring it back) and optionally `exclusive` (default true). The panel calls `handle:shown()` / `handle:hidden()`
+--- when it appears or goes away by its own doing.
+---@param spec Lib.UI.Kit.ForeignSpec
+---@return Lib.UI.Kit.Foreign
+function M.register_foreign(spec)
+  if
+    type(spec) ~= "table"
+    or type(spec.win) ~= "function"
+    or type(spec.hide) ~= "function"
+    or type(spec.show) ~= "function"
+  then
+    error("kit.sidebar.register_foreign: spec needs win, hide and show functions", 2)
+  end
+  if not SPLIT[spec.position] then
+    error("kit.sidebar.register_foreign: position must be left, right or bottom", 2)
+  end
+  local existing = spec.name and state.get(spec.name)
+  if existing and existing._foreign and not existing._closed then
+    existing._spec, existing.position, existing.exclusive =
+      spec, spec.position, spec.exclusive ~= false
+    return existing
+  end
+  unnamed = unnamed + 1
+  local self = setmetatable({
+    name = spec.name or ("foreign_" .. unnamed),
+    position = spec.position,
+    exclusive = spec.exclusive ~= false,
+    _foreign = true,
+    _closed = false,
+    _spec = spec,
+    _on_close = {},
+  }, Foreign)
+  state.add(self)
+  return self
 end
 
 --- The handle of the sidebar `name` (open or hidden), or nil.

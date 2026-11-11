@@ -171,6 +171,7 @@ local specs = {
   "ui_kit_path_completion_spec.lua",
   "ui_kit_marks_order_spec.lua",
   "ui_kit_sidebar_spec.lua",
+  "ui_kit_sidebar_foreign_spec.lua",
   "icons_spec.lua",
   "ui_hl_persist_spec.lua",
   "ui_winhighlight_spec.lua",

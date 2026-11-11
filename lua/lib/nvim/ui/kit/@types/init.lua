@@ -554,11 +554,32 @@
 ---@field is_visible fun(self: Lib.UI.Kit.Sidebar): boolean
 ---@field is_closed fun(self: Lib.UI.Kit.Sidebar): boolean
 
+--- A panel that is not a kit sidebar (Neo-tree, filetree.nvim, a plugin's own split), taking part in slot exclusivity.
+---@class Lib.UI.Kit.ForeignSpec
+---@field name? string
+---@field position "left"|"right"|"bottom"
+---@field win fun(): integer|nil  # the panel's window when it is on screen, else nil
+---@field hide fun()              # take it off the screen (the kit calls this when a kit sidebar takes its slot)
+---@field show fun(enter?: boolean)  # bring it back (the kit calls this when the displacing sidebar goes away)
+---@field exclusive? boolean      # default true: shown() displaces the kit sidebars at its position
+
+--- Handle of `kit.sidebar.register_foreign`.
+---@class Lib.UI.Kit.Foreign
+---@field name string
+---@field position "left"|"right"|"bottom"
+---@field exclusive boolean
+---@field winid integer|nil
+---@field is_visible fun(self: Lib.UI.Kit.Foreign): boolean
+---@field shown fun(self: Lib.UI.Kit.Foreign)    # the panel appeared on its own: displaces the kit sidebars at its position
+---@field hidden fun(self: Lib.UI.Kit.Foreign)   # the panel went away on its own: what it displaced comes back
+---@field unregister fun(self: Lib.UI.Kit.Foreign)
+
 --- `kit.sidebar` (`lib.nvim.ui.kit.sidebar`): the module.
 ---@class Lib.UI.Kit.SidebarModule
 ---@field BUF_VAR string      # buffer variable naming the sidebar a buffer belongs to ("ui_kit_sidebar")
 ---@field open fun(opts?: Lib.UI.Kit.SidebarOpts): Lib.UI.Kit.Sidebar|nil
 ---@field toggle fun(opts: Lib.UI.Kit.SidebarOpts): Lib.UI.Kit.Sidebar|nil  # hide when visible in this tabpage, else show/open; opts.name is required (raises without)
+---@field register_foreign fun(spec: Lib.UI.Kit.ForeignSpec): Lib.UI.Kit.Foreign  # a panel that is not a kit sidebar joins slot exclusivity
 ---@field get fun(name: string): Lib.UI.Kit.Sidebar|nil
 ---@field find fun(name: string): integer|nil  # its window, by buffer variable; nil when hidden or closed
 ---@field list fun(): Lib.UI.Kit.Sidebar[]

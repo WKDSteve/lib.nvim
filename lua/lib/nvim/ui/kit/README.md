@@ -167,6 +167,13 @@ sidebar.close_all()      -- the one cleanup: every sidebar, visible or hidden
   is no longer brought back by an old record, so a later `hide()` sticks.
   `exclusive = false` shares the slot instead; different positions never displace each
   other.
+- **Foreign panels** (Neo-tree, filetree.nvim, any split that is not a kit sidebar) join the same
+  exclusivity through `sidebar.register_foreign({ name, position, win, hide, show, exclusive? })`.
+  `win()` answers the panel's window while it is on screen; the kit calls `hide()` when a kit sidebar takes its slot
+  and `show()` when the displacing sidebar goes away. When the panel appears or disappears by its own doing it says
+  so with `handle:shown()` (displaces the kit sidebars at its position, remembered and restored later) and
+  `handle:hidden()` (restores them). A hide the kit caused is not reported back as `hidden()`.
+  `handle:unregister()` forgets the panel.
 - **Per tabpage**: `toggle` hides a sidebar only when it is visible in the current
   tabpage; `show`, `focus` and `open` by name move a sidebar visible in another tabpage
   here (`show` returns false when it is that tabpage's last window).
