@@ -47,6 +47,7 @@
 ---@field type?       Lib.UserCmd.Composer.ArgType    # value type; default "STRING". Ignored when bool=true
 ---@field bool?       boolean                         # presence-only flag, no value consumed, e.g. --dry
 ---@field optional_value? boolean                    # value may be omitted: --name binds true, --name=value binds the value. Never consumes the next token (unlike a plain value flag), so a positional may follow the bare form. Ignored when bool=true
+---@field bare_value? any                            # with optional_value: what the bare `--name` binds instead of `true` (e.g. "%" for "the current buffer"); bound as declared, not validated against `type`. Ignored without optional_value
 ---@field enum?       string[]                        # closed set for the value (ignored when bool=true)
 ---@field values?     string[]                        # completion-only hints for the value (not enforced, unlike enum); listed in the help float like an enum (ignored when bool=true)
 ---@field repeatable? boolean                         # collect every occurrence into an array (ctx.flags.name = {...})

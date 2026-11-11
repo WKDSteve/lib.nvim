@@ -208,6 +208,12 @@ field.
 
 ## Flags (`--flag` / `--flag=value`)
 
+> **Optional value:** `optional_value = true` lets `--name` stand alone (binds
+> `true`, never takes the next token) while `--name=value` binds the value.
+> `bare_value = "%"` makes the bare form bind that value instead of `true`,
+> e.g. `--file` = current buffer, `--file=a,b` = a list. Completion offers the
+> bare `--name` and, once `=` is typed, the value candidates.
+
 A route may declare `flags`, parsed out of its token tail before positional
 binding — modeled on `replacer.nvim`'s `BOOL_FLAGS`/`VALUE_FLAGS` split.
 **Strictly opt-in**: a route with no `flags` behaves exactly as before, so a

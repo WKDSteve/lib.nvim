@@ -90,11 +90,18 @@ local function consume_flag(route, spec, label, inline_val, tokens, i, stopped, 
     -- the token after it may be a legitimate positional (replacer's
     -- `:Replace a b --changed cwd`, where `cwd` is the scope). Only the
     -- inline `--name=value` form specifies a value.
+    -- `spec.bare_value` replaces `true` with a declared value (`--file` meaning
+    -- "the current buffer", `--file=a,b` a list); it is bound as given, not
+    -- run through the type validator.
+    local bare = true
+    if spec.bare_value ~= nil then
+      bare = spec.bare_value
+    end
     if spec.repeatable then
       flags[spec.name] = flags[spec.name] or {}
-      table.insert(flags[spec.name], true)
+      table.insert(flags[spec.name], bare)
     else
-      flags[spec.name] = true
+      flags[spec.name] = bare
     end
     return i, nil
   end

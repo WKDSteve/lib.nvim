@@ -696,6 +696,29 @@ return function(H)
     eq(f3.changed, "cwd", "control: ... by consuming the next token")
     eq(table.concat(p3, ","), "foo", "control: ... which is why the positional is gone")
 
+    -- bare_value: the bare form binds a declared value instead of `true`; the inline form still wins.
+    local bv_route = {
+      path = {},
+      args = {},
+      flags = {
+        { name = "file", type = "STRING", optional_value = true, bare_value = "%" },
+        { name = "many", type = "STRING", optional_value = true, bare_value = "cur", repeatable = true },
+      },
+    }
+    local _, bf, berr = flags.split(bv_route, { "--file" })
+    eq(berr, nil, "bare_value: a bare flag is not an error")
+    assert(bf)
+    eq(bf.file, "%", "bare_value: the bare form binds the declared value")
+    local _, bf2 = flags.split(bv_route, { "--file=a,b" })
+    assert(bf2)
+    eq(bf2.file, "a,b", "bare_value: the inline form binds the typed value")
+    local _, bf3 = flags.split(bv_route, { "--many", "--many=x" })
+    assert(bf3)
+    eq(table.concat(bf3.many, ","), "cur,x", "bare_value: repeatable mixes bare and inline forms")
+    local _, bf4 = flags.split(bv_route, {})
+    assert(bf4)
+    eq(bf4.file, nil, "bare_value: a flag never passed stays unset")
+
     eq(
       format.flag_token({ name = "changed", type = "STRING", optional_value = true }),
       "[--changed[=<value>]]",
