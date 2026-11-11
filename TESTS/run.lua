@@ -255,6 +255,7 @@ local specs = {
   "net_github_spec.lua",
   "deps_spec.lua",
   "deps_project_spec.lua",
+  "deps_pip_spec.lua",
   "contextmenu_spec.lua",
   "is_subpath_spec.lua",
   "same_path_spec.lua",

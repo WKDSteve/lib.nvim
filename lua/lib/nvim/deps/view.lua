@@ -124,9 +124,9 @@ function M.render(plugin_name, result, opts, ui)
       add("    see: " .. tool.see, tool)
     end
     if not found then
-      local pkg = plan.manager and tool.pkg[plan.manager.id] or nil
-      if pkg then
-        add("    " .. pm.render(pm.commands(plan.manager, { pkg })[1]), tool)
+      local via, pkg = pm.resolve(tool, plan.manager or false)
+      if via and pkg then
+        add("    " .. pm.render(pm.commands(via, { pkg })[1]), tool)
       elseif plan.manager then
         add(("    no %s package declared for this tool"):format(plan.manager.id), tool)
       end

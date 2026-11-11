@@ -145,10 +145,10 @@ function M.message(plugin_name, tool, opts)
 
   local pm = require("lib.nvim.deps.pm")
   local manager = (opts or {}).manager or pm.detect()
-  local pkg = manager and tool.pkg and tool.pkg[manager.id] or nil
+  local via, pkg = pm.resolve(tool, manager or false)
 
-  if manager and pkg then
-    for _, argv in ipairs(pm.commands(manager, { pkg })) do
+  if via and pkg then
+    for _, argv in ipairs(pm.commands(via, { pkg })) do
       lines[#lines + 1] = "  install:  " .. pm.render(argv)
     end
     lines[#lines + 1] = ("  or run:   :Lib deps install %s"):format(plugin_name)

@@ -78,7 +78,7 @@
 ---@field installable Lib.Deps.Tool[] subset of `missing` this manager has a package name for
 ---@field unsupported Lib.Deps.Tool[] subset of `missing` with no package name for this manager
 ---@field packages string[] package names for `installable`, in the same order
----@field commands string[][] argv list(s) that would install `packages`; more than one only for managers with `multi = false`
+---@field commands string[][] argv list(s) (a pipx/pip command is appended for a tool only those can install) that would install `packages`; more than one only for managers with `multi = false`
 
 ---`lib.nvim.deps.pm` module surface: package-manager detection + command composition.
 ---@class Lib.Deps.Pm
@@ -87,6 +87,7 @@
 ---@field available fun(): Lib.Deps.Manager[]
 ---@field detect fun(): Lib.Deps.Manager|nil
 ---@field commands fun(manager: Lib.Deps.Manager, packages: string[]): string[][]
+---@field resolve fun(tool: Lib.Deps.Tool, os_manager?: Lib.Deps.Manager|false): Lib.Deps.Manager|nil, string|nil # OS manager first, then pipx, then pip (when declared and on PATH)
 ---@field render fun(argv: string[]): string
 ---@field is_root fun(): boolean
 ---@field needs_terminal fun(manager: Lib.Deps.Manager): boolean

@@ -59,6 +59,24 @@ local MANAGERS = {
   choco = { id = "choco", bin = "choco", install = { "install" }, needs_root = false, multi = true },
 }
 
+--- Language-level managers: not an OS package manager, so never what
+--- `detect()` answers, but a tool that exists only as a Python package
+--- (`whisper-ctranslate2`) declares `pkg = { pipx = "..." }` or `{ pip = "..." }`.
+--- `resolve` uses them only when the OS manager has no package for the tool.
+--- `pipx` is preferred: it isolates the tool; `pip --user` is the fallback.
+---@type table<string, Lib.Deps.Manager>
+local LANG_MANAGERS = {
+  pipx = { id = "pipx", bin = "pipx", install = { "install" }, needs_root = false, multi = true },
+  pip = {
+    id = "pip",
+    bin = "pip",
+    install = { "install", "--user" },
+    needs_root = false,
+    multi = true,
+  },
+}
+local LANG_ORDER = { "pipx", "pip" }
+
 --- Preference order per OS. First one found on PATH wins. WSL is deliberately
 --- treated as plain Linux: the package-manager question ("what installs
 --- software into this userspace") is orthogonal to the render-target question
@@ -87,13 +105,17 @@ end
 ---@param id string
 ---@return Lib.Deps.Manager|nil
 function M.get(id)
-  return MANAGERS[id]
+  return MANAGERS[id] or LANG_MANAGERS[id]
 end
 
 ---Every known package-manager id, unordered.
 ---@return string[]
 function M.ids()
-  return vim.tbl_keys(MANAGERS)
+  local ids = vim.tbl_keys(MANAGERS)
+  for _, id in ipairs(LANG_ORDER) do
+    ids[#ids + 1] = id
+  end
+  return ids
 end
 
 ---Every package manager present on this host, in this OS's preference order.
@@ -113,6 +135,32 @@ end
 ---@return Lib.Deps.Manager|nil
 function M.detect()
   return M.available()[1]
+end
+
+---Which manager installs `tool`, and under which package name.
+---
+---The host's OS manager (`os_manager`, default `detect()`) wins when the tool
+---declares a package for it. Otherwise the first language-level manager
+---(`pipx`, then `pip`) that the tool declares AND that is on PATH answers.
+---Returns nil when neither does. Pure lookup; nothing is run.
+---@param tool Lib.Deps.Tool
+---@param os_manager? Lib.Deps.Manager|false # false: skip the OS manager (tests)
+---@return Lib.Deps.Manager|nil manager
+---@return string|nil pkg
+function M.resolve(tool, os_manager)
+  local pkgs = tool.pkg or {}
+  if os_manager == nil then
+    os_manager = M.detect()
+  end
+  if os_manager and pkgs[os_manager.id] then
+    return os_manager, pkgs[os_manager.id]
+  end
+  for _, id in ipairs(LANG_ORDER) do
+    if pkgs[id] and core.has_exec(LANG_MANAGERS[id].bin) then
+      return LANG_MANAGERS[id], pkgs[id]
+    end
+  end
+  return nil, nil
 end
 
 ---True when the current process is already root, so `sudo` would be noise.

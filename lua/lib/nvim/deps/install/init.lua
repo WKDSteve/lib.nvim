@@ -41,6 +41,9 @@ function M.plan(tools, opts)
   local manager = opts.manager or pm.detect()
 
   local present, missing, installable, unsupported, packages = {}, {}, {}, {}, {}
+  -- Packages of a language-level manager (pipx/pip), grouped per manager in
+  -- first-seen order; the OS manager's stay in `packages`.
+  local lang_order, lang_pkgs, lang_seen = {}, {}, {}
   -- Several tools routinely ship in ONE package — pdftotext and pdftoppm are
   -- both poppler-utils. Without this, a plan missing both would compose
   -- `apt install poppler-utils poppler-utils`. Each tool still appears in
@@ -53,16 +56,35 @@ function M.plan(tools, opts)
       present[#present + 1] = tool
     else
       missing[#missing + 1] = tool
-      local pkg = manager and tool.pkg[manager.id] or nil
-      if pkg then
+      local via, pkg = pm.resolve(tool, manager or false)
+      if via and pkg then
         installable[#installable + 1] = tool
-        if not seen_pkg[pkg] then
-          seen_pkg[pkg] = true
-          packages[#packages + 1] = pkg
+        if manager and via.id == manager.id then
+          if not seen_pkg[pkg] then
+            seen_pkg[pkg] = true
+            packages[#packages + 1] = pkg
+          end
+        else
+          lang_pkgs[via.id] = lang_pkgs[via.id] or {}
+          lang_seen[via.id] = lang_seen[via.id] or {}
+          if not lang_seen[via.id][pkg] then
+            lang_seen[via.id][pkg] = true
+            table.insert(lang_pkgs[via.id], pkg)
+          end
+          if #lang_pkgs[via.id] == 1 then
+            lang_order[#lang_order + 1] = via
+          end
         end
       else
         unsupported[#unsupported + 1] = tool
       end
+    end
+  end
+
+  local commands = manager and pm.commands(manager, packages) or {}
+  for _, via in ipairs(lang_order) do
+    for _, argv in ipairs(pm.commands(via, lang_pkgs[via.id])) do
+      commands[#commands + 1] = argv
     end
   end
 
@@ -73,7 +95,7 @@ function M.plan(tools, opts)
     installable = installable,
     unsupported = unsupported,
     packages = packages,
-    commands = manager and pm.commands(manager, packages) or {},
+    commands = commands,
   }
 end
 
@@ -152,7 +174,7 @@ function M.run(plan, opts)
     return started
   end
 
-  if not plan.manager then
+  if not plan.manager and #plan.commands == 0 then
     notify.warn("No supported package manager found on this host — install the tools manually.")
     return done(false)
   end

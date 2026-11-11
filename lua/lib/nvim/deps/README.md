@@ -516,7 +516,18 @@ pm.render({ "brew", "install", "poppler" })   --> "brew install poppler"
 ```
 
 Known ids (the same keys a tool's `pkg` map uses): `apt`, `dnf`, `pacman`,
-`zypper`, `apk`, `brew`, `winget`, `scoop`, `choco`. Preference order is
+`zypper`, `apk`, `brew`, `winget`, `scoop`, `choco`, plus the language-level
+`pipx` and `pip` (`pip install --user`). Those two are never what `detect()`
+answers; `pm.resolve(tool)` falls back to them when the host's OS manager has
+no package for the tool and the tool declares one:
+
+```json
+{ "bin": "whisper-ctranslate2", "why": "...", "pkg": { "pipx": "whisper-ctranslate2" } }
+```
+
+`:Lib deps show` and the install plan then list the `pipx install ...` line
+(only if `pipx`/`pip` is on PATH). A `pkg` map of only `pipx`/`pip` passes
+validation like any other. Preference order is
 per-OS; WSL is treated as plain Linux, since inside WSL the distro's own
 manager is the right answer.
 
