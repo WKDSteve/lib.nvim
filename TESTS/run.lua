@@ -262,6 +262,7 @@ local specs = {
   "same_path_spec.lua",
   "tree_spec.lua",
   "mcp_spec.lua",
+  "net_server_spec.lua",
   "image_preview_cells_spec.lua",
   "root_policy_spec.lua",
   "net_paginate_spec.lua",
