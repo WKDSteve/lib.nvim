@@ -249,6 +249,31 @@ which a plain "found" would not. Same validation posture as
 `bin_alternatives`: a `paths` value that isn't a per-platform list of
 strings is rejected rather than silently iterating as empty.
 
+### A tool that is a set of files, or a command that has to work — `files`, `probe`
+
+Two stricter checks for what one name on PATH cannot say:
+
+- `files` — a list of paths (`$ENVVAR`-expandable) that must **all** exist. It
+  replaces the PATH question: the tool is there when every file is. For a
+  toolchain that is a tree (MinGW-w64 under `$MSYS2_ROOT`) rather than one
+  binary. The first file is what the health report names.
+- `probe` — an argv that must exit 0 (5 s timeout, run once until the tool's
+  memo is forgotten). It is checked **on top of** the PATH / `files` check:
+  `cargo` on PATH does not mean `cargo tauri` exists.
+
+```json
+{
+  "bin": "cargo-tauri",
+  "probe": ["cargo", "tauri", "--version"],
+  "why": "Builds the desktop app.",
+  "pkg": { "winget": "Rustlang.Rustup" }
+}
+```
+
+`:Lib deps show` lists both under the tool. Each is validated as a non-empty
+list of non-empty strings; a malformed value is rejected rather than silently
+never matching.
+
 ## `lib.nvim.deps.health.report_for` — the `:checkhealth` hook
 
 The one-line addition a plugin's own `health.lua` makes instead of

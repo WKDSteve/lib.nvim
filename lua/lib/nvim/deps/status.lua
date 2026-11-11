@@ -70,6 +70,8 @@ local function merge(acc, order, sources, tool, plugin_name)
       bin = tool.bin,
       bin_alternatives = vim.deepcopy(tool.bin_alternatives),
       paths = vim.deepcopy(tool.paths),
+      files = vim.deepcopy(tool.files),
+      probe = vim.deepcopy(tool.probe),
       required = tool.required,
       why = tool.why,
       see = tool.see,

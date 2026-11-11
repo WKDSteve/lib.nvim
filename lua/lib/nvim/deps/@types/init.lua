@@ -15,6 +15,8 @@
 ---@field bin string canonical executable name: the tool's identity, its display label, the key its install state is stored under, and what `pkg` maps from
 ---@field bin_alternatives string[]|nil other names the SAME tool is installed as on some platform (`gs` -> `gswin64c`, `gswin32c`). Detection only -- see `lib.nvim.deps.detect`. Not a list of substitutes: a different program that would also do the job is a different tool.
 ---@field paths Lib.Deps.PathMap|nil literal install locations to try after every name in `bin`/`bin_alternatives` has missed on PATH -- for installers (Chrome, LibreOffice, …) that never extend PATH. See `lib.nvim.deps.detect.candidate_paths`.
+---@field files string[]|nil paths that must ALL exist for the tool to count as present (`$ENVVAR`-expandable); replaces the PATH check, for a toolchain that is a tree of files. See `lib.nvim.deps.detect.found_as`.
+---@field probe string[]|nil argv that must exit 0 for the tool to count as present, on top of the PATH/`files` check (e.g. `{"cargo","tauri","--version"}`)
 ---@field required boolean true when the plugin cannot function at all without it
 ---@field why string one-sentence reason this tool matters (validation requires non-empty)
 ---@field see string|nil optional anchor/link into the plugin's own docs for more detail
@@ -42,6 +44,8 @@
 ---@field bin? string executable name, probed via `has_exec` (mutually exclusive with `python_module`)
 ---@field bin_alternatives? string[] other names the same executable goes by on some platform; only meaningful alongside `bin`
 ---@field paths? Lib.Deps.PathMap fallback install locations, tried after `bin`/`bin_alternatives` miss on PATH; only meaningful alongside `bin`
+---@field files? string[] paths that must ALL exist; replaces the PATH check
+---@field probe? string[] argv that must exit 0, on top of the PATH/`files` check
 ---@field python_module? string Python module name, probed via `python -c "import <module>"` (mutually exclusive with `bin`)
 ---@field required? boolean reported as an error (not a warning) when missing; defaults to false
 ---@field label? string display label; defaults to `bin`/`python_module`

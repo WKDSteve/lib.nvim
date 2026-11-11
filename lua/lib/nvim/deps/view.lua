@@ -123,6 +123,12 @@ function M.render(plugin_name, result, opts, ui)
     if tool.see then
       add("    see: " .. tool.see, tool)
     end
+    if tool.files then
+      add("    needs files: " .. table.concat(detect.required_files(tool), ", "), tool)
+    end
+    if tool.probe then
+      add("    probe: " .. table.concat(tool.probe, " ") .. "  (must exit 0)", tool)
+    end
     if not found then
       local via, pkg = pm.resolve(tool, plan.manager or false)
       if via and pkg then

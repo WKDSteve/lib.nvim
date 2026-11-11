@@ -164,12 +164,38 @@ local function validate_entry(data, index)
     end
   end
 
+  -- `files`: every one must exist; `probe`: an argv that must exit 0. Both
+  -- are lists of non-empty strings; anything else would silently never match.
+  for _, field in ipairs({ "files", "probe" }) do
+    local v = data[field]
+    if v ~= nil then
+      local good = vim.islist(v) and #v > 0
+      if good then
+        for _, item in ipairs(v) do
+          if type(item) ~= "string" or item == "" then
+            good = false
+            break
+          end
+        end
+      end
+      if not good then
+        errors[#errors + 1] = {
+          index = index,
+          field = field,
+          message = ("'%s' must be a non-empty list of non-empty strings"):format(field),
+        }
+      end
+    end
+  end
+
   if #errors > 0 then
     return nil, errors
   end
 
   return {
     bin = data.bin,
+    files = data.files,
+    probe = data.probe,
     bin_alternatives = data.bin_alternatives,
     paths = data.paths,
     required = data.required == true,
