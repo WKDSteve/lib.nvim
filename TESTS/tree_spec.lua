@@ -168,6 +168,19 @@ return function(H)
   ok(not t:row_of("a") or not t:row(t:row_of("a")).expandable, "a is a leaf row again")
   eq(#t:remove("root"), 0, "the root cannot be removed")
 
+  -- the hidden root: replacing its children is a whole-tree splice
+  do
+    local h = tree.new({ root = sample(), hide_root = true })
+    local hm = ids(h)
+    local hch = h:set_children("root", { { id = "z1", label = "z1" }, { id = "z2", label = "z2" } })
+    apply(hm, h, hch)
+    eq(table.concat(ids(h), ","), "z1,z2", "hide_root: set_children on the root replaces every row")
+    same(hm, h, "hide_root set_children")
+    hch = h:push({ id = "root", children = { { id = "y", label = "y" } } })
+    apply(hm, h, hch)
+    eq(table.concat(ids(h), ","), "y", "hide_root: push with children on the root")
+  end
+
   -- custom aggregation
   local sum = tree.new({
     root = {

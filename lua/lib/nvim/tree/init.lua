@@ -260,6 +260,16 @@ end
 ---@param e Lib.Tree.Entry
 ---@param changes Lib.Tree.Splice[]
 local function refresh_subtree(self, e, changes)
+  if self._hide_root and e.id == self._root then
+    -- The root is not a row: its subtree is every row there is.
+    local old_n = #self._rows
+    local fresh = {}
+    flatten_into(self, e, fresh, true)
+    self._rows, self._row_of = fresh, {}
+    reindex(self, 1)
+    changes[#changes + 1] = { from = 1, old_count = old_n, new_count = #fresh }
+    return
+  end
   local r = self._row_of[e.id]
   if not r then
     return
