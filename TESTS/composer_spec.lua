@@ -702,7 +702,13 @@ return function(H)
       args = {},
       flags = {
         { name = "file", type = "STRING", optional_value = true, bare_value = "%" },
-        { name = "many", type = "STRING", optional_value = true, bare_value = "cur", repeatable = true },
+        {
+          name = "many",
+          type = "STRING",
+          optional_value = true,
+          bare_value = "cur",
+          repeatable = true,
+        },
       },
     }
     local _, bf, berr = flags.split(bv_route, { "--file" })

@@ -35,6 +35,10 @@ return function(H)
   local dir = vim.fn.tempname()
   vim.fn.mkdir(dir, "p")
   eq(same_path(dir, dir .. "/", { realpath = true }), true, "realpath: trailing slash")
-  eq(same_path(dir, vim.fs.normalize(dir), { realpath = true }), true, "realpath: normalized spelling")
+  eq(
+    same_path(dir, vim.fs.normalize(dir), { realpath = true }),
+    true,
+    "realpath: normalized spelling"
+  )
   vim.fn.delete(dir, "d")
 end
