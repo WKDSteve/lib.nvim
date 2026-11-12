@@ -41,3 +41,6 @@ end)
 **Limits.** A pid can be reused by the system after a process ended. Entries older than `MAX_AGE_DAYS` (14) are
 dropped instead of listed, and a process is reported while its pid answers a signal 0, but a reused pid that is alive
 again cannot be told apart here. That is why `kill_orphans` asks per entry and `kill` only takes registered pids.
+
+The register is one JSON file written atomically; two Neovims registering in the same instant can lose one entry (a read-modify-write
+without a lock), which only means that process is not listed later.
