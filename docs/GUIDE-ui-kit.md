@@ -42,6 +42,11 @@ require("lib.nvim.ui.kit").setup({
 })
 ```
 
+Changing the active default (`setup({ default = "hacker" })`, `:UI kit-preset hacker`) fires
+`User LibKitPresetChanged` with `data = { name = "hacker", ascii = true }` (`ascii` is whether the preset is boxed
+in ASCII), so the rest of the editor can follow the look (`'fillchars'`, `'winborder'`, ...). It fires only when the
+default really changes.
+
 ## 2. Quick start
 
 ```lua

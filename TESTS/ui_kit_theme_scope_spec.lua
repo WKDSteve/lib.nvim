@@ -200,4 +200,29 @@ return function(H)
   healed:close()
 
   source_plugin()
+  -- ── User LibKitPresetChanged ─────────────────────────────────────────────
+  do
+    local before = theme.default()
+    local seen = {}
+    local id = api.nvim_create_autocmd("User", {
+      pattern = "LibKitPresetChanged",
+      callback = function(args)
+        seen[#seen + 1] = args.data
+      end,
+    })
+    local other = before == "hacker" and "rounded" or "hacker"
+    theme.setup({ default = other })
+    eq(#seen, 1, "preset event: switching the default fires one event")
+    eq(seen[1].name, other, "preset event: it names the new preset")
+    eq(
+      seen[1].ascii,
+      other == "hacker",
+      "preset event: ascii says whether the preset is boxed in ASCII"
+    )
+    theme.setup({ default = other })
+    eq(#seen, 1, "preset event: setting the same default again fires nothing")
+    theme.setup({ default = before })
+    eq(#seen, 2, "preset event: switching back fires again")
+    api.nvim_del_autocmd(id)
+  end
 end

@@ -416,7 +416,17 @@ function M.setup(opts)
 
   if opts.default ~= nil then
     if type(opts.default) == "string" and presets[opts.default] then
+      local changed = default_name ~= opts.default
       default_name = opts.default
+      if changed then
+        -- Let the rest of the editor follow the look (fillchars, 'winborder', ...): a User autocmd, so nothing here
+        -- has to know who listens. `data.ascii` says whether the new preset is boxed in ASCII.
+        pcall(vim.api.nvim_exec_autocmds, "User", {
+          pattern = "LibKitPresetChanged",
+          modeline = false,
+          data = { name = default_name, ascii = M.resolve(default_name).ascii_border == true },
+        })
+      end
     else
       notify.warn(
         ("kit.setup: unknown default preset %q — keeping %q"):format(
