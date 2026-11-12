@@ -428,6 +428,11 @@ function M.start(opts)
     if not server:is_closing() then
       server:close()
     end
+    -- the last server is gone: take the hook with it, so a session that stopped them all leaves no autocmd behind
+    if next(running) == nil and hook_installed then
+      hook_installed = false
+      pcall(vim.api.nvim_del_augroup_by_name, "lib.nvim.net.server")
+    end
   end
 
   function handle.is_running()

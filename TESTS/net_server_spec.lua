@@ -251,6 +251,32 @@ return function(H)
   server.stop_all()
   ok(not a1.is_running() and not a2.is_running(), "stop_all stops every server")
 
+  -- the VimLeavePre hook lives only while a server does: none left, no autocmd left; the next start brings it back
+  local function hook_count()
+    local found = vim.api.nvim_get_autocmds({ event = "VimLeavePre" })
+    local n = 0
+    for _, a in ipairs(found) do
+      if a.group_name == "lib.nvim.net.server" then
+        n = n + 1
+      end
+    end
+    return n
+  end
+  eq(hook_count(), 0, "with every server stopped no VimLeavePre hook is left behind")
+  local again = assert(server.start({
+    routes = {
+      {
+        path = "/x",
+        handler = function()
+          return 200
+        end,
+      },
+    },
+  }))
+  eq(hook_count(), 1, "the next start installs the hook again")
+  again.stop()
+  eq(hook_count(), 0, "and stopping it removes it again")
+
   -- the loopback-only rule is in the code, not an option
   local f = assert(io.open(debug.getinfo(server.start, "S").source:sub(2), "rb"))
   local source = f:read("*a")
