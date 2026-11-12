@@ -2,7 +2,10 @@
 ---@module 'lib.nvim.mcp.@types'
 
 ---@class Lib.Mcp.Opts
----@field cmd string[] the server command as an argv list (e.g. `{ "npx", "-y", "mcp-remote@latest", url }`)
+---@field cmd? string[] the server command as an argv list (e.g. `{ "npx", "-y", "mcp-remote@latest", url }`); exactly one of `cmd` and `url`
+---@field url? string the endpoint of a Streamable HTTP server (instead of `cmd`)
+---@field headers? table<string, string> extra request headers (HTTP only); a credential belongs in `secret_headers`
+---@field secret_headers? table<string, string> request headers sent through curl's config path, never argv (HTTP only)
 ---@field id? string one client per id: a second `mcp.client` with the same id returns the first
 ---@field env? table<string, string> extra environment
 ---@field cwd? string
@@ -12,7 +15,7 @@
 ---@field on_log? fun(kind: "out"|"err"|"in"|"info", text: string) every line of traffic and stderr, as it arrives. Never turn stderr into a user-visible message: a bridge may print a login link there.
 
 ---@class Lib.Mcp.Error
----@field code string|integer a JSON-RPC number, or "spawn" | "exited" | "timeout" | "port_in_use" | "closed" | "cancelled" | "protocol"
+---@field code string|integer a JSON-RPC number, or "spawn" | "exited" | "timeout" | "port_in_use" | "closed" | "cancelled" | "protocol" | "unauthorized" | "http"
 ---@field message string
 ---@field data? any
 

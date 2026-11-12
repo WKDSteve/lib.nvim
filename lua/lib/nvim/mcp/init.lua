@@ -1,6 +1,8 @@
 ---@module 'lib.nvim.mcp'
---- A generic MCP (Model Context Protocol) client over stdio: start a process, speak JSON-RPC 2.0 with one JSON
---- message per line, `initialize`, `tools/list`, `tools/call`. It knows nothing about a particular server.
+--- A generic MCP (Model Context Protocol) client over stdio or Streamable HTTP: JSON-RPC 2.0, `initialize`,
+--- `tools/list`, `tools/call`. It knows nothing about a particular server. `opts.cmd` starts a process and speaks one
+--- JSON message per line; `opts.url` talks to an HTTP endpoint instead (see "HTTP" below). Everything after
+--- `mcp.client` (request, list_tools, call_tool, cancel, log, stop) is the same for both.
 ---
 --- Decision (stdin): `lib.nvim.system.job.start` does not expose an open stdin pipe, so this module uses
 --- `vim.system(cmd, { stdin = true, ... })` directly, with `lib.nvim.system.lines` for the stdout/stderr line
@@ -29,6 +31,20 @@
 ---   ring buffer (`client:log()`) and to `opts.on_log`; nothing else.
 --- * Errors are values: `{ code, message, data? }`, where `code` is a JSON-RPC number or one of `"spawn"`,
 ---   `"exited"`, `"timeout"`, `"port_in_use"`, `"closed"`, `"protocol"`.
+---
+--- HTTP (`opts.url`, optionally `headers` and `secret_headers`):
+---
+--- * Every client message is one `POST`. The answer is `application/json` (an object, or an array of messages) or an
+---   `text/event-stream` whose `data:` events are the messages; `202` (notifications, answers to the server) carries
+---   nothing. The whole answer is read before it is handled: a notification the server streams before its answer
+---   reaches `on_notification` together with the answer, not earlier.
+--- * The `Mcp-Session-Id` the server returns on `initialize` is sent back on every later request, and
+---   `MCP-Protocol-Version` (the version the server agreed to) too. `stop` ends the session with a `DELETE`.
+--- * `secret_headers` go through curl's config path, never argv (see `lib.nvim.net.curl`): put a token there, not in
+---   `headers`.
+--- * HTTP errors are values as well: `401`/`403` is `{ code = "unauthorized" }`, `404` on a live session is
+---   `{ code = "closed" }` (the session ended; the next request starts a new one), any other non-2xx is
+---   `{ code = "http", data = { status, body } }`, a curl failure is `{ code = "http" }` too.
 ---
 --- See @types/init.lua for Lib.Mcp.*.
 
@@ -71,10 +87,15 @@ local function log(self, kind, text)
   end
 end
 
+local http_post
+
 ---@param self Lib.Mcp.Client
 ---@param message table
 ---@return boolean
 local function send(self, message)
+  if self._opts.url then
+    return http_post(self, message)
+  end
   if not self._proc then
     return false
   end
@@ -125,17 +146,10 @@ local function fail_all(self, e)
   end
 end
 
+---One decoded JSON-RPC message from the server, whichever transport carried it.
 ---@param self Lib.Mcp.Client
----@param line string
-local function on_stdout_line(self, line)
-  if line == "" then
-    return
-  end
-  log(self, "out", line)
-  local ok, msg = pcall(vim.json.decode, line, { luanil = { object = true, array = true } })
-  if not ok or type(msg) ~= "table" then
-    return -- a bridge may print a banner on stdout; not JSON-RPC, kept in the log only
-  end
+---@param msg table
+local function on_message(self, msg)
   if msg.id ~= nil and (msg.result ~= nil or msg.error ~= nil) then
     local id = msg.id
     if msg.error then
@@ -163,6 +177,183 @@ local function on_stdout_line(self, line)
       pcall(self._opts.on_notification, msg.method, msg.params)
     end
   end
+end
+
+---@param self Lib.Mcp.Client
+---@param line string
+local function on_stdout_line(self, line)
+  if line == "" then
+    return
+  end
+  log(self, "out", line)
+  local ok, msg = pcall(vim.json.decode, line, { luanil = { object = true, array = true } })
+  if not ok or type(msg) ~= "table" then
+    return -- a bridge may print a banner on stdout; not JSON-RPC, kept in the log only
+  end
+  on_message(self, msg)
+end
+
+-- ── HTTP transport ──────────────────────────────────────────────────────────
+
+---The `data:` payloads of a `text/event-stream` body, one string per event.
+---@param body string
+---@return string[]
+local function sse_events(body)
+  local events, data = {}, {}
+  for line in (body .. "\n"):gmatch("([^\n]*)\n") do
+    line = line:gsub("\r$", "")
+    if line == "" then
+      if #data > 0 then
+        events[#events + 1] = table.concat(data, "\n")
+        data = {}
+      end
+    else
+      local value = line:match("^data:%s?(.*)$")
+      if value then
+        data[#data + 1] = value
+      end
+    end
+  end
+  return events
+end
+
+---@param self Lib.Mcp.Client
+---@param extra table<string, string>|nil
+---@return table<string, string>
+local function http_headers(self, extra)
+  local headers = vim.tbl_extend("force", {}, self._opts.headers or {}, {
+    ["Content-Type"] = "application/json",
+    Accept = "application/json, text/event-stream",
+  }, extra or {})
+  if self._session_id then
+    headers["Mcp-Session-Id"] = self._session_id
+  end
+  if self._protocol then
+    headers["MCP-Protocol-Version"] = self._protocol
+  end
+  return headers
+end
+
+---The error a non-2xx answer stands for.
+---@param self Lib.Mcp.Client
+---@param resp Lib.Net.Curl.RawResponse
+---@return Lib.Mcp.Error
+local function http_error(self, resp)
+  if resp.status == 401 or resp.status == 403 then
+    return err(
+      "unauthorized",
+      ("the server refused the credentials (HTTP %d)"):format(resp.status),
+      {
+        status = resp.status,
+      }
+    )
+  end
+  if resp.status == 404 and self._session_id then
+    self._session_id = nil
+    self._state = "closed"
+    return err("closed", "the session ended (HTTP 404); the next request starts a new one", {
+      status = 404,
+    })
+  end
+  return err("http", ("HTTP %d %s"):format(resp.status, resp.status_text or ""), {
+    status = resp.status,
+    body = (resp.body or ""):sub(1, 500),
+  })
+end
+
+---POST one message. A request's answer settles by id; a failure settles that request with the error.
+---@param self Lib.Mcp.Client
+---@param message table
+---@return boolean
+function http_post(self, message)
+  local ok, body = pcall(vim.json.encode, message)
+  if not ok then
+    return false
+  end
+  log(self, "in", body)
+  local req_id = message.id ~= nil and message.method ~= nil and message.id or nil
+  local timeout = (self._opts.timeout_ms or M.DEFAULT_TIMEOUT_MS) + 2000
+  require("lib.nvim.net.curl").fetch_raw(self._opts.url, {
+    method = "POST",
+    headers = http_headers(self),
+    secret_headers = self._opts.secret_headers,
+    body = body,
+    timeout_ms = timeout,
+  }, function(done, resp)
+    if not done then
+      local e = err("http", "the request failed: " .. tostring(resp):gsub("%s+$", ""))
+      if req_id then
+        settle(self, req_id, nil, e)
+      else
+        log(self, "info", e.message)
+      end
+      return
+    end
+    local sid = resp.headers["mcp-session-id"]
+    if sid and sid ~= "" and not self._session_id then
+      self._session_id = sid
+    end
+    if resp.status < 200 or resp.status >= 300 then
+      local e = http_error(self, resp)
+      if req_id then
+        settle(self, req_id, nil, e)
+      else
+        log(self, "info", e.message)
+      end
+      return
+    end
+    local text = resp.body or ""
+    if text:match("^%s*$") then
+      return -- 202 Accepted and the like: nothing to read
+    end
+    local kind = resp.headers["content-type"] or ""
+    local payloads = kind:find("text/event-stream", 1, true) and sse_events(text) or { text }
+    for _, payload in ipairs(payloads) do
+      log(self, "out", payload)
+      local decoded, msg =
+        pcall(vim.json.decode, payload, { luanil = { object = true, array = true } })
+      if decoded and type(msg) == "table" then
+        if vim.islist(msg) then
+          for _, item in ipairs(msg) do
+            if type(item) == "table" then
+              on_message(self, item)
+            end
+          end
+        else
+          on_message(self, msg)
+        end
+      end
+    end
+  end)
+  return true
+end
+
+---End the session: a `DELETE` with the session id. A server that does not allow it (405) is fine.
+---@param self Lib.Mcp.Client
+---@param blocking boolean
+local function http_end_session(self, blocking)
+  local sid = self._session_id
+  if not sid then
+    return
+  end
+  self._session_id = nil
+  local opts = {
+    method = "DELETE",
+    headers = vim.tbl_extend("force", {}, self._opts.headers or {}, {
+      ["Mcp-Session-Id"] = sid,
+      ["MCP-Protocol-Version"] = self._protocol,
+    }),
+    secret_headers = self._opts.secret_headers,
+    timeout_ms = 1500,
+  }
+  local curl = require("lib.nvim.net.curl")
+  pcall(function()
+    if blocking then
+      curl.fetch_raw_blocking(self._opts.url, opts)
+    else
+      curl.fetch_raw(self._opts.url, opts, function() end)
+    end
+  end)
 end
 
 ---@param self Lib.Mcp.Client
@@ -224,40 +415,45 @@ local function ensure_started(self)
   self._port_in_use = false
   self._last_error = nil
 
-  local stdout = lines.buffered(function(_, line)
-    vim.schedule(function()
-      on_stdout_line(self, line)
+  if self._opts.url then
+    -- HTTP: nothing to spawn; the session starts with `initialize`
+    self._session_id, self._protocol = nil, nil
+  else
+    local stdout = lines.buffered(function(_, line)
+      vim.schedule(function()
+        on_stdout_line(self, line)
+      end)
     end)
-  end)
-  local stderr = lines.buffered(function(_, line)
-    vim.schedule(function()
-      on_stderr_line(self, line)
+    local stderr = lines.buffered(function(_, line)
+      vim.schedule(function()
+        on_stderr_line(self, line)
+      end)
     end)
-  end)
 
-  local ok, proc = pcall(vim.system, self._opts.cmd, {
-    stdin = true,
-    stdout = stdout,
-    stderr = stderr,
-    env = self._opts.env,
-    cwd = self._opts.cwd,
-    text = true,
-  }, function(obj)
-    -- a beat later: the stderr it printed on the way out is still in the pipe
-    vim.defer_fn(function()
-      on_exit(self, obj)
-    end, 50)
-  end)
+    local ok, proc = pcall(vim.system, self._opts.cmd, {
+      stdin = true,
+      stdout = stdout,
+      stderr = stderr,
+      env = self._opts.env,
+      cwd = self._opts.cwd,
+      text = true,
+    }, function(obj)
+      -- a beat later: the stderr it printed on the way out is still in the pipe
+      vim.defer_fn(function()
+        on_exit(self, obj)
+      end, 50)
+    end)
 
-  if not ok then
-    self._state = "closed"
-    local e =
-      err("spawn", ("cannot start %s: %s"):format(tostring(self._opts.cmd[1]), tostring(proc)))
-    self._last_error = e
-    fail_all(self, e)
-    return
+    if not ok then
+      self._state = "closed"
+      local e =
+        err("spawn", ("cannot start %s: %s"):format(tostring(self._opts.cmd[1]), tostring(proc)))
+      self._last_error = e
+      fail_all(self, e)
+      return
+    end
+    self._proc = proc
   end
-  self._proc = proc
   self._state = "initializing"
 
   Client.request(self, "initialize", {
@@ -271,11 +467,14 @@ local function ensure_started(self)
         pcall(function()
           self._proc:kill("sigterm")
         end)
+      elseif self._opts.url then
+        self._state = "closed"
       end
       fail_all(self, e)
       return
     end
     self._server = result
+    self._protocol = (type(result) == "table" and result.protocolVersion) or M.PROTOCOL_VERSION
     self._state = "ready"
     send(self, { jsonrpc = "2.0", method = "notifications/initialized" })
     flush_queue(self)
@@ -333,8 +532,10 @@ function Client.request(self, method, params, cb, opts)
     end)
   end)
   local sent = send(self, { jsonrpc = "2.0", id = id, method = method, params = params })
-  if not sent and not self._proc then
+  if not sent and not self._proc and not self._opts.url then
     settle(self, id, nil, self._last_error or err("closed", "the server is not running"))
+  elseif not sent then
+    settle(self, id, nil, err("protocol", "the request cannot be encoded as JSON"))
   end
   -- A failed write with the process still registered means it is going away: its exit settles the request, with
   -- the stderr it printed on the way out taken into account (port in use).
@@ -420,6 +621,12 @@ end
 ---Stop the process; pending requests fail with `{ code = "closed" }`.
 ---@param self Lib.Mcp.Client
 function Client.stop(self)
+  if self._opts.url then
+    self._state = "closed"
+    http_end_session(self, false)
+    fail_all(self, err("closed", "the client was stopped"))
+    return
+  end
   if self._proc then
     self._state = "stopping"
     pcall(function()
@@ -452,10 +659,12 @@ end
 ---@param opts Lib.Mcp.Opts
 ---@return Lib.Mcp.Client
 function M.client(opts)
+  assert(type(opts) == "table", "mcp.client: opts must be a table")
   assert(
-    type(opts) == "table" and type(opts.cmd) == "table" and #opts.cmd > 0,
-    "mcp.client: opts.cmd must be an argv list"
+    (type(opts.cmd) == "table" and #opts.cmd > 0) or (type(opts.url) == "string" and opts.url ~= ""),
+    "mcp.client: opts.cmd must be an argv list, or opts.url the endpoint of an HTTP server"
   )
+  assert(not (opts.cmd and opts.url), "mcp.client: give opts.cmd or opts.url, not both")
   if opts.id and registry[opts.id] then
     return registry[opts.id]
   end
@@ -495,6 +704,9 @@ function M.stop_all()
       pcall(function()
         c._proc:kill("sigterm")
       end)
+    elseif c._opts.url then
+      c._state = "closed"
+      http_end_session(c, true)
     end
   end
 end

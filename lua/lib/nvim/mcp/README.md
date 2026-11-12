@@ -1,7 +1,8 @@
 # `lib.nvim.mcp`
 
-A generic MCP (Model Context Protocol) client over **stdio**: start a process, JSON-RPC 2.0 with one JSON
-message per line, `initialize`, `tools/list`, `tools/call`. It knows nothing about a particular server.
+A generic MCP (Model Context Protocol) client over **stdio** or **Streamable HTTP**: JSON-RPC 2.0, `initialize`,
+`tools/list`, `tools/call`. `cmd` starts a process (one JSON message per line); `url` talks to an HTTP endpoint. It
+knows nothing about a particular server.
 
 ```lua
 local mcp = require("lib.nvim.mcp")
@@ -29,7 +30,30 @@ c:state(); c:server(); c:log(); c:stop()
   (process ended; `data.code` is the exit code), `"port_in_use"` (recognised from stderr), `"timeout"`,
   `"closed"`, `"cancelled"`. A failed start stays failed until `c:restart()`.
 
+### HTTP (`url`)
+
+```lua
+local c = mcp.client({
+  id = "commander",
+  url = "http://127.0.0.1:8080/mcp",
+  headers = { ["X-Client"] = "casedesk" },
+  secret_headers = { Authorization = "Bearer " .. token },  -- curl's config path, never argv
+})
+```
+
+Same API as stdio (`request`, `list_tools`, `call_tool`, `cancel`, `log`, `stop`, ...); give `cmd` **or** `url`.
+
+- One `POST` per message. The answer is `application/json` (an object or an array of messages) or a
+  `text/event-stream` whose `data:` events are the messages; `202` carries nothing. The whole answer is read first, so a
+  notification the server streams in front of its answer reaches `on_notification` together with the answer.
+- The `Mcp-Session-Id` from `initialize` and the agreed `MCP-Protocol-Version` go on every later request.
+  `stop` (and `VimLeavePre`) ends the session with a `DELETE`; a server that answers 405 is fine.
+- Errors: `401`/`403` is `"unauthorized"`; `404` on a live session is `"closed"` (the next request initialises a new
+  session); any other non-2xx is `"http"` with `data = { status, body }`, as is a curl failure (connection refused).
+  Timeouts and `cancel` work as for stdio.
+- Spec: `TESTS/mcp_http_spec.lua`, against a fake server on loopback.
+
 **Why `vim.system` and not `system.job`:** `lib.nvim.system.job.start` does not expose an open stdin pipe. This
 module calls `vim.system(cmd, { stdin = true })` itself and uses `lib.nvim.system.lines` for the line splitting.
 
-Not here: the HTTP (Streamable HTTP) transport, `resources/read`, server-initiated sampling.
+Not here: `resources/read`, server-initiated sampling, a server-pushed stream outside a request (`GET` SSE), resumption.
