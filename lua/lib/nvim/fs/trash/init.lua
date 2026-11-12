@@ -227,6 +227,7 @@ $ErrorActionPreference = 'Stop'
 try {
   $orig = '__PATH__'
   $dir = [IO.Path]::GetDirectoryName($orig)
+  $longDir = '__LONGDIR__'
   $leaf = [IO.Path]::GetFileName($orig)
   if (Test-Path -LiteralPath $orig) { throw "destination exists: $orig" }
   if (-not (Test-Path -LiteralPath $dir -PathType Container)) { throw "parent directory is gone: $dir" }
@@ -234,7 +235,9 @@ try {
   $best = $null; $bestDate = [datetime]::MinValue
   foreach ($it in $bin.Items()) {
     $from = $it.ExtendedProperty('System.Recycle.DeletedFrom')
-    if (-not $from -or $from.TrimEnd('\') -ine $dir.TrimEnd('\')) { continue }
+    if (-not $from) { continue }
+    $from = $from.TrimEnd('\')
+    if ($from -ine $dir.TrimEnd('\') -and $from -ine $longDir.TrimEnd('\')) { continue }
     $ext = [IO.Path]::GetExtension($it.Path)
     $name = $it.Name
     if ($ext -and -not $name.EndsWith($ext, [StringComparison]::OrdinalIgnoreCase)) { $name += $ext }
@@ -252,9 +255,21 @@ try {
   exit 1
 }
 ]]
-  return (script:gsub("__PATH__", function()
-    return ps_escape(path)
-  end))
+  -- The bin records the long form of the folder (`C:\Users\runneradmin\...`);
+  -- `path` may carry an 8.3 short name (`C:\Users\RUNNER~1\...`, what
+  -- `tempname()` gives on some machines). fs_realpath resolves the folder to
+  -- its long form; both forms are accepted.
+  local parent = vim.fs.dirname(path)
+  local long_dir = (parent and uv.fs_realpath(parent)) or parent or ""
+  return (
+    script
+      :gsub("__PATH__", function()
+        return ps_escape(path)
+      end)
+      :gsub("__LONGDIR__", function()
+        return ps_escape(long_dir)
+      end)
+  )
 end
 
 ---@internal

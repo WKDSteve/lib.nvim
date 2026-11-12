@@ -53,6 +53,38 @@ return function(H)
     end, 50)
     ok(done and res_ok, "restore (async) calls back with ok")
     eq(vim.fn.readfile(g)[1], "async", "restore (async): content back")
+
+    -- an 8.3 short folder name (what tempname() gives under C:\Users\RUNNER~1):
+    -- the bin records the long form, restore must still find the entry
+    local long = dir .. "/a_folder_name_longer_than_eight"
+    vim.fn.mkdir(long, "p")
+    -- Neovim has no `:8` modifier; the short name comes from the file system object.
+    -- A volume without 8.3 names (8dot3name disabled, ReFS) has nothing to check.
+    local res = vim
+      .system({
+        "powershell",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "(New-Object -ComObject Scripting.FileSystemObject).GetFolder('"
+          .. long:gsub("'", "''")
+          .. "').ShortPath",
+      }, { text = true })
+      :wait()
+    local short = vim.trim(res and res.stdout or "")
+    if res and res.code == 0 and short:find("~", 1, true) then
+      local s = short
+        .. "/lib_trash_restore_short_"
+        .. vim.fn.getpid()
+        .. "_"
+        .. os.time()
+        .. ".txt"
+      vim.fn.writefile({ "short" }, s)
+      ok(trash.trash_blocking(s), "trash through a short folder name")
+      local s_ok, s_err = trash.restore_blocking(s)
+      ok(s_ok, "restore_blocking through a short folder name: " .. tostring(s_err))
+      eq(vim.fn.readfile(s)[1], "short", "restored through a short folder name")
+    end
   elseif is_macos then
     local r, err = trash.restore_blocking(dir .. "/x")
     eq(r, false, "macOS: restore is unsupported")
