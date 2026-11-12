@@ -43,6 +43,10 @@ switch, only when something it shows changed. `repin(dir)` is the entry for a
 manual re-root (the tree's `+`/`-`): it moves a lock's guard instead of being
 reverted.
 
+`set_scope("tab"|"win"|"global")` moves the scope every change goes through and re-applies a held pin there
+(a lock's guard is dropped and held again; a `:tcd`/`:lcd` set in some other tab or window stays, Vim has no "clear
+everywhere"). `enforced()` says whether a lock's guard is up.
+
 Built on [`dir_guard`](../dir_guard/README.md), [`chdir`](../chdir/README.md),
 [`normkey`](../normkey/README.md) and [`is_subpath`](../is_subpath/README.md).
 It never reads buffers by itself; `decide` is called by the owner. Persistence,

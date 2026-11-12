@@ -33,6 +33,9 @@
 ---@field unlock fun(): boolean, string? # leave lock mode for the mode before it
 ---@field cycle fun(list: Lib.Fs.RootPolicy.Mode[]): boolean, string? # next mode of `list`
 ---@field repin fun(dir: string): boolean, string? # move the pin without changing mode (a manual re-root)
+---@field scope fun(): Lib.Fs.Chdir.Scope # the directory scope every change goes through
+---@field set_scope fun(scope: Lib.Fs.Chdir.Scope): boolean, string? # re-anchor a held pin in another scope (a stale `:tcd`/`:lcd` elsewhere stays)
+---@field enforced fun(): boolean # a lock's guard is up (it reverts a foreign `:cd`)
 ---@field bypass fun(fn: fun()): boolean, any # run `fn` with the lock guard paused
 ---@field release fun() # drop the guard; the state stays readable
 

@@ -321,6 +321,33 @@ function M.new(opts)
     return true, nil
   end
 
+  function handle.scope()
+    return scope
+  end
+
+  function handle.set_scope(new_scope)
+    if new_scope ~= "global" and new_scope ~= "tab" and new_scope ~= "win" then
+      return false, "unknown scope: " .. tostring(new_scope)
+    end
+    if new_scope == scope then
+      return true, nil
+    end
+    scope = new_scope
+    -- A guard watches the scope it was created in, so it cannot be told about the new one: drop it and hold again,
+    -- which also re-applies the pin. A pin held without a guard is re-applied by a plain chdir in the new scope.
+    if mode == "lock" and pinned then
+      drop_guard()
+      return install_guard(pinned)
+    elseif pinned then
+      return move_cwd(pinned)
+    end
+    return true, nil
+  end
+
+  function handle.enforced()
+    return guard ~= nil and guard.is_held()
+  end
+
   function handle.bypass(fn)
     if guard and guard.is_held() then
       return guard.bypass(fn)

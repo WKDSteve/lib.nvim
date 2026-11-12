@@ -162,8 +162,24 @@ return function(H)
     return normkey(vim.fn.getcwd()) == b
   end, 10)
   eq(normkey(vim.fn.getcwd()), b, "lock: a foreign :cd is undone")
+  ok(real.enforced(), "enforced: a lock's guard is up")
+  eq(real.scope(), "global", "scope: global by default")
+
+  -- the scope can change under a held lock: the pin is re-applied there, the guard is held again
+  ok(real.set_scope("tab"), "set_scope: a lock moves to the tab scope")
+  eq(real.scope(), "tab", "set_scope: the scope is now tab")
+  eq(real.pinned(), b, "set_scope: the pin is unchanged")
+  ok(real.enforced(), "set_scope: the guard is held again")
+  eq(normkey(vim.fn.getcwd(-1, 0)), b, "set_scope: the tab's cwd is the pin")
+  local sok, serr = real.set_scope("nonsense")
+  eq(sok, false, "set_scope: an unknown scope is refused")
+  ok(tostring(serr):find("unknown scope"), "set_scope: the reason")
+  eq(real.scope(), "tab", "set_scope: ...and the scope stays")
+  ok(real.set_scope("tab"), "set_scope: the same scope is a no-op")
   real.release()
+  ok(not real.enforced(), "enforced: no guard after release")
   vim.cmd.cd(vim.fn.fnameescape(original_cwd))
+  vim.cmd.tcd(vim.fn.fnameescape(original_cwd))
 
   vim.fn.delete(base, "rf")
 end
