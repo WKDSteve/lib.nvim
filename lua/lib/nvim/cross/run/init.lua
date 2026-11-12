@@ -169,7 +169,10 @@ function M.run_detached(argv, opts)
   local function track(pid)
     if opts and opts.track and pid then
       pcall(function()
-        require("lib.nvim.cross.detached").track(pid, { name = opts.track, cmd = table.concat(argv, " ") })
+        require("lib.nvim.cross.detached").track(
+          pid,
+          { name = opts.track, cmd = table.concat(argv, " ") }
+        )
       end)
     end
   end

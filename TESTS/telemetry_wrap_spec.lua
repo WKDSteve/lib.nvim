@@ -26,6 +26,15 @@ return function(H)
     error("boom", 0)
   end)
 
+  -- the wrapper is runtime-analysis.nvim's telemetry (an optional dependency, checked out by the CI): without it
+  -- setup() returns nil on purpose, and there is nothing to check here
+  if not pcall(require, "runtime-analysis.telemetry") then
+    rawset(lib.dict, "spec_boom", nil)
+    print(
+      "n/a  runtime-analysis.nvim is not on the runtimepath: the telemetry wrapper is not checked here"
+    )
+    return
+  end
   local inst = telemetry_wrap.setup({ namespace = "spec.telemetry_wrap", persist = false })
   H.ok(inst ~= nil, "setup() returns the instance it created")
 

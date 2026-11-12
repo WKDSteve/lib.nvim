@@ -27,4 +27,7 @@ exclude_files = {
   -- Pure `---@meta` LuaCATS annotation scaffolding: `local x ---@type T` /
   -- `return {}` patterns luacheck has no way to know are intentional.
   "**/@types/**",
+  -- Snippets for the docs, read as text: an argument a reader sees named (`ctx`, `idx`) is the point there. The CI
+  -- checks `lua TESTS` only; a pipeline that checks the whole tree (`testing ci`) must agree with it.
+  "docs/**",
 }

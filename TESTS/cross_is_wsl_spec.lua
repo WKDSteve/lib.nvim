@@ -56,6 +56,25 @@ return function(H)
       false,
       "a plain Linux kernel is not WSL even if wslpath exists"
     )
+    -- the release file is only a fallback for a missing uname: run inside WSL, it names the real (WSL) kernel and
+    -- must not overrule the release uname gave
+    local real_open = io.open
+    -- luacheck: push ignore 122 (a stand-in for the one file the module reads)
+    io.open = function(path, ...)
+      if path == "/proc/sys/kernel/osrelease" then
+        return {
+          read = function()
+            return "5.15.153.1-microsoft-standard-WSL2"
+          end,
+          close = function() end,
+        }
+      end
+      return real_open(path, ...)
+    end
+    local ok_fb, plain = pcall(detect, "6.8.0-generic", true)
+    io.open = real_open
+    -- luacheck: pop
+    H.eq(ok_fb and plain, false, "uname answered: the release file is not read")
   end)
 
   uv.os_uname, uv.fs_stat = real_uname, real_stat

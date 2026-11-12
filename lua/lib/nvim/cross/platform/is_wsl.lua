@@ -40,11 +40,13 @@ return function()
   local uv = (vim and (vim.uv or vim.loop)) or nil
 
   local is = false
+  local uname_answered = false
 
   -- 1) uname-based detection
   if uv and uv.os_uname then
     local ok, u = pcall(uv.os_uname)
     if ok and type(u) == "table" and type(u.release) == "string" then
+      uname_answered = true
       local rel = u.release:lower()
       -- Typical markers: "microsoft-standard-WSL2", "...-microsoft-..." etc.
       if (rel:find("microsoft", 1, true) or rel:find("wsl", 1, true)) and has_wslpath() then
@@ -63,8 +65,8 @@ return function()
     end
   end
 
-  -- 3) Fallback: kernel release file (works when uv/os_uname didn't)
-  if not is then
+  -- 3) Fallback: kernel release file, only when uv/os_uname gave no release (it reads the same kernel)
+  if not is and not uname_answered then
     local f = io.open("/proc/sys/kernel/osrelease", "r")
     if f then
       local line = f:read("*l") or ""
