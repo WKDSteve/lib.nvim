@@ -255,8 +255,8 @@ return function(H)
   local function hook_count()
     local found = vim.api.nvim_get_autocmds({ event = "VimLeavePre" })
     local n = 0
-    for _, a in ipairs(found) do
-      if a.group_name == "lib.nvim.net.server" then
+    for _, au in ipairs(found) do
+      if au.group_name == "lib.nvim.net.server" then
         n = n + 1
       end
     end
