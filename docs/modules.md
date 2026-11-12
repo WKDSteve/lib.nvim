@@ -111,7 +111,8 @@ aggregator exists for convenience, not as the entry point.
 | [`lib.nvim.net.server`](../lua/lib/nvim/net/server/README.md) | local HTTP server: `127.0.0.1` only, OS-assigned port, whitelist routes with validators, `Host` check against DNS rebinding, bounded input, `VimLeavePre` teardown |
 | [`lib.nvim.net.paginate`](../lua/lib/nvim/net/paginate/README.md) | page-by-page fetch of a paginated list that keeps the partial result (`partial`, `truncated`, `err`) when a later page fails |
 | [`lib.nvim.diffmode`](../lua/lib/nvim/diffmode/README.md) | `open_n_way(bufs, view, opts)`: N buffers in native diffmode (vsplit/split/tab), window-local `'diff'`, verified splits, `close` |
-| [`lib.nvim.fs.root_policy`](../lua/lib/nvim/fs/root_policy/README.md) | root-policy state machine (follow/project/nearest/lock/manual/tree_leads) on `fs.dir_guard`, with a diff-based change callback |
+| [`lib.nvim.cross.detached`](../lua/lib/nvim/cross/detached/README.md) | register of detached processes (opt-in via `run_detached(argv, { track })`): list the ones a previous Neovim left behind, end them after a question |
+| [`lib.nvim.fs.root_policy`](../lua/lib/nvim/fs/root_policy/README.md) | root-policy state machine (follow/project/nearest/lock/manual/tree_leads) on `fs.dir_guard`, with a diff-based change callback, `set_scope`, `enforced` |
 | [`lib.nvim.fs.same_path`](../lua/lib/nvim/fs/same_path/README.md) · `lib.nvim.cross.platform.case_blind` | do two paths name one location (case-folded where the file system ignores case); the platform default for case-blindness |
 | `lib.nvim.fs.trash.restore` | put the newest trashed copy of a path back (Windows recycle bin, locale independent; XDG trash), never overwriting |
 | [`lib.nvim.image_preview.cells`](../lua/lib/nvim/image_preview/cells.lua) | cell selection to pixel box: `rect(a, b)` and `to_pixels(rect, cell, { origin, padding, bounds })` |

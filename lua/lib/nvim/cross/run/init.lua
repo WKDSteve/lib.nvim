@@ -153,12 +153,25 @@ end
 --- care, which is why `explorer.exe` works here and PowerShell does not. For a
 --- console helper, spawn it normally (`vim.system(argv, {})`) and simply don't
 --- wait on it — see `lib.nvim.cross.reveal_in_fm`, which needs both.
+---
+--- `opts.track` (a name) records the process in `lib.nvim.cross.detached`, so a later session can list and end it if
+--- this Neovim dies first. Off by default: nothing is registered unless the caller asks.
 ---@param argv string[]
+---@param opts? { track?: string }
 ---@return boolean ok
 ---@return string|nil err
-function M.run_detached(argv)
+function M.run_detached(argv, opts)
   if type(argv) ~= "table" or not argv[1] then
     return false, "argv must be a non-empty string list"
+  end
+
+  ---@param pid integer|nil
+  local function track(pid)
+    if opts and opts.track and pid then
+      pcall(function()
+        require("lib.nvim.cross.detached").track(pid, { name = opts.track, cmd = table.concat(argv, " ") })
+      end)
+    end
   end
 
   local is_windows = require("lib.nvim.cross.platform.is_windows")()
@@ -169,14 +182,16 @@ function M.run_detached(argv)
     if jid <= 0 then
       return false, "jobstart failed"
     end
+    track(vim.fn.jobpid(jid))
     return true, nil
   end
 
   if vim.system then
-    local ok, err = pcall(vim.system, argv, { detach = true })
+    local ok, res = pcall(vim.system, argv, { detach = true })
     if not ok then
-      return false, tostring(err)
+      return false, tostring(res)
     end
+    track(res and res.pid)
     return true, nil
   end
 
@@ -184,6 +199,7 @@ function M.run_detached(argv)
   if jid <= 0 then
     return false, "jobstart failed"
   end
+  track(vim.fn.jobpid(jid))
   return true, nil
 end
 
