@@ -39,7 +39,7 @@
 ---@field key? "path"|"id" what `get` is asked with (default "path")
 ---@field slot? "name"|"sign"|"badge"|"column"|"line" where it is drawn (default "badge")
 ---@field priority? integer higher survives when the window is narrow (default 0)
----@field get fun(key: string): Lib.Tree.Registry.Badge|nil a cache lookup; it runs while drawing and must do no I/O
+---@field get fun(key: string, node?: Lib.Tree.Node): Lib.Tree.Registry.Badge|nil a cache lookup; it runs while drawing and must do no I/O. A reader may hand the node of the row it draws
 ---@field subscribe fun(emit: fun(keys?: string[])): fun() tell which keys changed (nil: everything); returns unsubscribe
 ---@field all? fun(): table<string, Lib.Tree.Registry.Badge> every key that has a badge right now; what lets a reader add up a folder that was never opened, and what it re-reads after `emit()` without keys
 ---@field roll_up? "worst"|"count"|"any"|false how it shows on a folder (default false)
