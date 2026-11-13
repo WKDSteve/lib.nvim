@@ -45,6 +45,26 @@ return function(H)
     end, 50)
   end
 
+  ---Force the jobstart path of run_detached and answer every jobstart with `id`; undone by unstub_jobstart.
+  local WIN = "lib.nvim.cross.platform.is_windows"
+  local real_is_windows, real_jobstart
+  local function stub_jobstart(id)
+    real_is_windows, real_jobstart = package.loaded[WIN], vim.fn.jobstart
+    package.loaded[WIN] = function()
+      return true
+    end
+    ---@diagnostic disable-next-line: duplicate-set-field
+    vim.fn.jobstart = function()
+      return id
+    end
+  end
+  local function unstub_jobstart()
+    if real_jobstart then
+      package.loaded[WIN], vim.fn.jobstart = real_is_windows, real_jobstart
+      real_is_windows, real_jobstart = nil, nil
+    end
+  end
+
   local function body()
     -- is_alive
     ok(detached.is_alive(uv.os_getpid()), "is_alive: this process")
@@ -163,9 +183,42 @@ return function(H)
     ok(entry.cmd:find("sleep 60", 1, true) ~= nil, "run_detached: with its command line")
     ok(detached.kill(entry.pid), "kill: a registered process ends")
     ok(gone(entry.pid), "kill: ...and is gone")
+
+    -- run_detached on a process that exits at once: launching it never raises, tracked or not
+    local quick = { vim.v.progpath, "--headless", "-u", "NONE", "-c", "qa!" }
+    eq(run.run_detached(quick), true, "run_detached: a process that exits at once")
+    eq(
+      run.run_detached(quick, { track = "spec-quick" }),
+      true,
+      "run_detached: ...also when tracked"
+    )
+
+    -- the jobstart path (Windows/WSL) with a jobstart that answers a fake id, as callers' specs stub it
+    -- (filetree.nvim TESTS/gaps.lua): no live channel stands behind the id, so jobpid() raises E900. That
+    -- must neither abort an untracked launch (which never needs the pid) nor a tracked one.
+    local FAKE_JOB = 4242
+    local before_fake = #detached.list()
+    stub_jobstart(FAKE_JOB)
+    local untracked_ok, untracked = pcall(run.run_detached, { "fake-gui.exe" })
+    eq(untracked_ok, true, "run_detached: a fake job id does not raise: " .. tostring(untracked))
+    eq(untracked, true, "run_detached: ...and the launch counts as done")
+    local tracked_ok, tracked_res = pcall(
+      run.run_detached,
+      { "fake-gui.exe" },
+      { track = "spec-fake" }
+    )
+    eq(
+      tracked_ok,
+      true,
+      "run_detached: tracked, a fake job id does not raise: " .. tostring(tracked_res)
+    )
+    eq(tracked_res, true, "run_detached: ...and the launch counts as done")
+    unstub_jobstart()
+    eq(#detached.list(), before_fake, "run_detached: no pid, nothing registered")
   end
 
   local finished, err = pcall(body)
+  unstub_jobstart()
   vim.fn.stdpath = real_stdpath
   for _, c in ipairs(children) do
     pcall(function()

@@ -177,6 +177,18 @@ function M.run_detached(argv, opts)
     end
   end
 
+  ---The pid behind a job id, only when it will be tracked. `jobpid` raises E900 for an id whose channel already
+  ---closed (a process that exited at once) or never existed (a stubbed `jobstart`), so it is guarded.
+  ---@param jid integer
+  ---@return integer|nil
+  local function pid_of(jid)
+    if not (opts and opts.track) then
+      return nil
+    end
+    local ok, pid = pcall(vim.fn.jobpid, jid)
+    return ok and pid or nil
+  end
+
   local is_windows = require("lib.nvim.cross.platform.is_windows")()
   local is_wsl = require("lib.nvim.cross.platform.is_wsl")()
 
@@ -185,7 +197,7 @@ function M.run_detached(argv, opts)
     if jid <= 0 then
       return false, "jobstart failed"
     end
-    track(vim.fn.jobpid(jid))
+    track(pid_of(jid))
     return true, nil
   end
 
@@ -202,7 +214,7 @@ function M.run_detached(argv, opts)
   if jid <= 0 then
     return false, "jobstart failed"
   end
-  track(vim.fn.jobpid(jid))
+  track(pid_of(jid))
   return true, nil
 end
 
