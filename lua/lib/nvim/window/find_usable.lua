@@ -8,6 +8,7 @@ local M = {}
 
 local SIDEBAR_FILETYPES = {
   ["neo-tree"] = true,
+  ["filetree"] = true,
   ["NvimTree"] = true,
   ["aerial"] = true,
   ["Outline"] = true,

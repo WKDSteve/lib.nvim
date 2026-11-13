@@ -10,6 +10,7 @@ local M = {}
 ---@type string[]
 M.DEFAULT_EXCLUDE_FILETYPES = {
   "neo-tree", -- neo-tree.nvim / Neotree
+  "filetree", -- filetree.nvim's own tree
   "NvimTree", -- older nvim-tree identifiers
   "qf", -- quickfix
   "TelescopePrompt", -- telescope prompt
