@@ -44,6 +44,7 @@ exceptions are `collapse_all`, `set_depth` and `refresh`, which say so by return
 | `collapse_all()` / `set_depth(n)` | bulk fold |
 | `push({ id, status?, label?, ..., children? })` | merge an update; a `children` list replaces the subtree |
 | `set_children(id, list)` / `remove(id)` | structure changes |
+| `merge_children(id, list)` | the children were read again: what is in `list` again keeps its subtree and fold state, the rest goes, new ones come |
 | `invalidate(id, deep?)` | a node was edited behind the tree's back |
 | `row(i)` / `rows()` / `row_of(id)` / `count()` | the visible lines and the id <-> row map |
 | `node(id)` / `agg(id)` / `parent(id)` / `size()` | the model |

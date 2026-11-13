@@ -12,7 +12,7 @@
 ---@field title? string shown where views are listed
 ---@field icon? string
 ---@field root fun(ctx: Lib.Tree.Registry.Ctx): Lib.Tree.Node
----@field children? fun(node: Lib.Tree.Node, ctx: Lib.Tree.Registry.Ctx, cb: fun(err?: string, list?: Lib.Tree.Node[])) lazy children for nodes that carry none of their own
+---@field children? fun(node: Lib.Tree.Node, ctx: Lib.Tree.Registry.Ctx, cb: fun(list?: Lib.Tree.Node[], err?: string)) lazy children for nodes that carry none of their own; answers like a node's own `children`
 ---@field subscribe? fun(ctx: Lib.Tree.Registry.Ctx, emit: Lib.Tree.Registry.Emit): fun() live updates while a view shows the source; returns unsubscribe
 ---@field actions? Lib.Tree.Registry.Action[] actions that only make sense in this source
 ---@field severity? string[] statuses, worst first (see `Lib.Tree.Opts.severity`)

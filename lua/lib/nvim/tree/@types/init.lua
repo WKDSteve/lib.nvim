@@ -90,6 +90,7 @@
 ---@field collapse_all fun(self: Lib.Tree): Lib.Tree.Splice[]
 ---@field set_depth fun(self: Lib.Tree, n: integer): Lib.Tree.Splice[]
 ---@field set_children fun(self: Lib.Tree, id: any, list: Lib.Tree.Node[]): Lib.Tree.Splice[]
+---@field merge_children fun(self: Lib.Tree, id: any, list: Lib.Tree.Node[]): Lib.Tree.Splice[]
 ---@field remove fun(self: Lib.Tree, id: any): Lib.Tree.Splice[]
 ---@field push fun(self: Lib.Tree, update: Lib.Tree.Update): Lib.Tree.Splice[]
 ---@field invalidate fun(self: Lib.Tree, id: any, deep?: boolean): Lib.Tree.Splice[]

@@ -332,6 +332,99 @@ return function(H)
     "no editor call in the core"
   )
 
+  -- merge_children: the directory was read again; what stays keeps its subtree and its fold state
+  local function dir(id, kids)
+    return { id = id, label = id, children = kids }
+  end
+  local m = tree.new({
+    root = dir("r", {
+      dir(
+        "a",
+        {
+          { id = "a1", label = "a1", status = "passed" },
+          dir("a/sub", { { id = "a/sub/x", label = "x" } }),
+        }
+      ),
+      { id = "b", label = "b", status = "failed" },
+      { id = "c", label = "c" },
+    }),
+    hide_root = true,
+  })
+  m:expand("a")
+  m:expand("a/sub")
+  local screen = ids(m)
+  eq(table.concat(screen, ","), "a,a1,a/sub,a/sub/x,b,c", "merge: before")
+  local a_node = m:node("a")
+
+  -- b gone, d new in front, c renamed in place, a untouched (a new table with the same id)
+  apply(
+    screen,
+    m,
+    m:merge_children("r", {
+      { id = "d", label = "d" },
+      dir("a", {}),
+      { id = "c", label = "c2", extra = true },
+    })
+  )
+  same(screen, m, "merge")
+  eq(
+    table.concat(ids(m), ","),
+    "d,a,a1,a/sub,a/sub/x,c",
+    "merge: a keeps its open subtree, order follows the list"
+  )
+  ok(m:node("a") == a_node, "merge: a kept child keeps its node table")
+  eq(m:node("b"), nil, "merge: a child missing from the list is gone")
+  eq(m:node("c").label, "c2", "merge: a kept child takes the new fields")
+  eq(m:node("c").extra, true, "merge: ... new ones too")
+  eq(m:is_expanded("a/sub"), true, "merge: fold state below a kept child survives")
+  eq(m:agg("r").counts.failed, nil, "merge: the aggregate lost the removed leaf")
+  eq(m:agg("r").counts.passed, 1, "merge: ... and kept the one below a")
+
+  -- a field the new node lacks is dropped; a status change of a kept leaf reaches the aggregate
+  m:merge_children("r", { dir("a", {}), { id = "c", label = "c2", status = "failed" } })
+  eq(m:node("c").extra, nil, "merge: a field the new node lacks is dropped")
+  eq(m:agg("r").counts.failed, 1, "merge: a new status of a kept leaf is aggregated")
+  eq(m:node("d"), nil, "merge: d is gone again")
+
+  -- leaf <-> branch: replaced like a new node
+  m:merge_children("r", { dir("a", {}), dir("c", { { id = "c/1", label = "1" } }) })
+  eq(m:row(m:row_of("c")).expandable, true, "merge: a leaf that became a branch is one")
+  m:merge_children("r", { { id = "a", label = "a" }, dir("c", {}) })
+  eq(m:node("a1"), nil, "merge: a branch that became a leaf lost its subtree")
+  eq(m:row(m:row_of("a")).expandable, false, "merge: ... and is a leaf")
+  eq(m:node("c/1").label, "1", "merge: the kept branch still has its child")
+
+  -- a lazy child that was loaded stays loaded (its `children` function is not asked again)
+  local asked = 0
+  local lz = tree.new({
+    root = dir("r", {
+      {
+        id = "lazy",
+        label = "lazy",
+        children = function(_, cb)
+          asked = asked + 1
+          cb({ { id = "lazy/1", label = "1" } })
+        end,
+      },
+    }),
+    hide_root = true,
+  })
+  lz:expand("lazy")
+  lz:merge_children(
+    "r",
+    {
+      {
+        id = "lazy",
+        label = "lazy",
+        children = function() end,
+      },
+      { id = "new", label = "new" },
+    }
+  )
+  eq(asked, 1, "merge: a loaded lazy child is not loaded again")
+  eq(table.concat(ids(lz), ","), "lazy,lazy/1,new", "merge: ... and stays open")
+  eq(#m:merge_children("nope", {}), 0, "merge: an unknown id changes nothing")
+
   -- performance: 10k nodes flatten, a leaf update in 1.5k nodes
   local function wide(n_dirs, per_dir)
     local dirs = {}

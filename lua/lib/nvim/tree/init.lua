@@ -559,6 +559,66 @@ function Tree:set_children(id, list)
   return changes
 end
 
+---Bring the children of `id` in line with `list` and keep what stays: a child whose id is in `list` again
+---keeps its entry, so its subtree and the fold state below it survive, and its node table takes the fields
+---of the new one (fields the new node lacks are dropped; `children` is left alone). Children missing from
+---`list` are removed, new ones are registered, the order is the one of `list`.
+---
+---This is the call for "the directory was read again": `set_children` would forget every open folder below.
+---A child that changed between leaf and branch is replaced like a new one.
+---@param id any
+---@param list Lib.Tree.Node[]
+---@return Lib.Tree.Splice[]
+function Tree:merge_children(id, list)
+  local changes = {}
+  local e = self._by_id[id]
+  if not e then
+    return changes
+  end
+  local old = {}
+  for _, kid in ipairs(e.kids or {}) do
+    old[kid] = true
+  end
+  local kids = {}
+  for _, child in ipairs(list) do
+    assert(type(child) == "table" and child.id ~= nil, "tree: a node needs an id")
+    local cid = child.id
+    local ce = old[cid] and self._by_id[cid] or nil
+    if ce and (ce.state == "leaf") == (child.children == nil) then
+      local node = ce.node
+      if node ~= child then
+        for k in pairs(node) do
+          if k ~= "children" and child[k] == nil then
+            node[k] = nil
+          end
+        end
+        for k, v in pairs(child) do
+          if k ~= "children" then
+            node[k] = v
+          end
+        end
+      end
+      if ce.state == "leaf" then
+        compute_agg(self, ce)
+      end
+    else
+      if ce then
+        unregister(self, cid)
+      end
+      register(self, child, id, e.depth + 1)
+    end
+    old[cid] = nil
+    kids[#kids + 1] = cid
+  end
+  for gone in pairs(old) do
+    unregister(self, gone)
+  end
+  e.kids, e.state, e.err = kids, "loaded", nil
+  propagate(self, e, changes)
+  refresh_subtree(self, e, changes)
+  return changes
+end
+
 ---Remove a node (and its subtree) from the model.
 ---@param id any
 ---@return Lib.Tree.Splice[]
