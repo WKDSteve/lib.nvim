@@ -262,6 +262,7 @@ local specs = {
   "is_subpath_spec.lua",
   "same_path_spec.lua",
   "tree_spec.lua",
+  "tree_registry_spec.lua",
   "mcp_spec.lua",
   "mcp_http_spec.lua",
   "net_server_spec.lua",

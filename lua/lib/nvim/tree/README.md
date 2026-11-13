@@ -65,3 +65,8 @@ through `opts.on_change(changes)`. A failed load shows `row.error` and is tried 
 Flatten is O(visible rows); a single change is O(touched subtree) plus an O(rows) renumbering of the id -> row
 map after a splice that changes the row count. Measured by the spec: 10 000 nodes flatten in well under a second,
 a one-node status update in a 1 500 node tree under 5 ms.
+
+## Registry
+
+[`lib.nvim.tree.registry`](registry/README.md) is where plugins announce sources, decorators and actions for a
+tree view, without loading the plugin that draws it.
