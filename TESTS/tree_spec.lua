@@ -338,13 +338,10 @@ return function(H)
   end
   local m = tree.new({
     root = dir("r", {
-      dir(
-        "a",
-        {
-          { id = "a1", label = "a1", status = "passed" },
-          dir("a/sub", { { id = "a/sub/x", label = "x" } }),
-        }
-      ),
+      dir("a", {
+        { id = "a1", label = "a1", status = "passed" },
+        dir("a/sub", { { id = "a/sub/x", label = "x" } }),
+      }),
       { id = "b", label = "b", status = "failed" },
       { id = "c", label = "c" },
     }),
@@ -410,17 +407,14 @@ return function(H)
     hide_root = true,
   })
   lz:expand("lazy")
-  lz:merge_children(
-    "r",
+  lz:merge_children("r", {
     {
-      {
-        id = "lazy",
-        label = "lazy",
-        children = function() end,
-      },
-      { id = "new", label = "new" },
-    }
-  )
+      id = "lazy",
+      label = "lazy",
+      children = function() end,
+    },
+    { id = "new", label = "new" },
+  })
   eq(asked, 1, "merge: a loaded lazy child is not loaded again")
   eq(table.concat(ids(lz), ","), "lazy,lazy/1,new", "merge: ... and stays open")
   eq(#m:merge_children("nope", {}), 0, "merge: an unknown id changes nothing")
