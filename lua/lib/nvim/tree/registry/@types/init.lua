@@ -41,6 +41,7 @@
 ---@field priority? integer higher survives when the window is narrow (default 0)
 ---@field get fun(key: string): Lib.Tree.Registry.Badge|nil a cache lookup; it runs while drawing and must do no I/O
 ---@field subscribe fun(emit: fun(keys?: string[])): fun() tell which keys changed (nil: everything); returns unsubscribe
+---@field all? fun(): table<string, Lib.Tree.Registry.Badge> every key that has a badge right now; what lets a reader add up a folder that was never opened, and what it re-reads after `emit()` without keys
 ---@field roll_up? "worst"|"count"|"any"|false how it shows on a folder (default false)
 ---@field severity? string[] statuses, worst first, for `roll_up = "worst"`
 

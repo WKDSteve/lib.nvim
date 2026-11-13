@@ -18,6 +18,7 @@ local remove = registry.decorator({
   roll_up = "worst",
   get = function(path) return cache[path] end,                 -- a lookup, no I/O
   subscribe = function(emit) return store.subscribe(emit) end, -- returns unsubscribe
+  all = function() return cache end,                           -- optional: every key with a badge
 })
 
 registry.list("decorator")           -- entries in registration order
