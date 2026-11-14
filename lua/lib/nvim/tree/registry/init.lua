@@ -1,6 +1,7 @@
 ---@module 'lib.nvim.tree.registry'
 --- Where plugins announce what they add to a tree view: sources (they supply nodes), decorators (badges on
---- nodes) and actions (something to do with nodes). Three ordered lists and a change feed, nothing else.
+--- nodes), actions (something to do with nodes) and previewers (what to show for a node in place of its
+--- file). Four ordered lists and a change feed, nothing else.
 ---
 --- Registering loads nothing and knows no reader: a plugin calls `source{}` when it is loaded, and a tree
 --- view (filetree.nvim's own tree) reads the lists when it opens and follows `subscribe` for late arrivals.
@@ -30,7 +31,7 @@ local registry = require("lib.nvim.registry")
 local M = {}
 
 ---@type Lib.Tree.Registry.Kind[]
-local KINDS = { "source", "decorator", "action" }
+local KINDS = { "source", "decorator", "action", "previewer" }
 
 --- The functions an entry of a kind must carry, besides `name`.
 ---@type table<Lib.Tree.Registry.Kind, string[]>
@@ -38,6 +39,7 @@ local REQUIRED = {
   source = { "root" },
   decorator = { "get", "subscribe" },
   action = { "run" },
+  previewer = { "match", "preview" },
 }
 
 ---@param kind Lib.Tree.Registry.Kind
@@ -78,7 +80,9 @@ local function list_of(kind)
   local list = lists[kind]
   if not list then
     error(
-      ("lib.nvim.tree.registry: unknown kind %s (source, decorator, action)"):format(tostring(kind)),
+      ("lib.nvim.tree.registry: unknown kind %s (source, decorator, action, previewer)"):format(
+        tostring(kind)
+      ),
       3
     )
   end
@@ -151,6 +155,14 @@ function M.action(entry)
   return add("action", entry)
 end
 
+---Register a previewer: what a preview shows for a node in place of its file (a frame of a video, the
+---output of a test case). Needs `name`, `match()` and `preview()`.
+---@param entry Lib.Tree.Registry.Previewer
+---@return fun(): boolean unregister
+function M.previewer(entry)
+  return add("previewer", entry)
+end
+
 ---The entries of one kind, in registration order (a copy of the list, the entries themselves are shared).
 ---@param kind Lib.Tree.Registry.Kind
 ---@return table[]
@@ -181,7 +193,7 @@ function M.subscribe(fn)
   end
 end
 
----Empty all three lists and drop every subscriber. For tests.
+---Empty all four lists and drop every subscriber. For tests.
 ---@return nil
 function M.reset()
   for _, kind in ipairs(KINDS) do

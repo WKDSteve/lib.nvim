@@ -53,6 +53,24 @@ return function(H)
   eq(registry.get("source", "alpha").name, "alpha", "get")
   eq(registry.get("source", "git"), nil, "get: a decorator's name is no source")
 
+  -- previewers: the fourth list
+  local remove_previewer = registry.previewer({
+    name = "media",
+    match = function()
+      return true
+    end,
+    preview = noop,
+  })
+  eq(names("previewer"), "media", "previewers are their own list")
+  eq(registry.get("previewer", "media").name, "media", "get of a previewer")
+  eq(names("source"), "tests,alpha", "... and leave the others alone")
+  local half_refused = raises(function()
+    registry.previewer({ name = "half", match = noop })
+  end)
+  ok(half_refused, "a previewer needs match() and preview()")
+  eq(remove_previewer(), true, "a previewer unregisters")
+  eq(names("previewer"), "", "... and is gone")
+
   -- list() answers a copy of the list
   local copy = registry.list("source")
   table.remove(copy, 1)
@@ -164,7 +182,10 @@ return function(H)
   -- reset: empty lists, no subscribers
   registry.reset()
   eq(
-    #registry.list("source") + #registry.list("decorator") + #registry.list("action"),
+    #registry.list("source")
+      + #registry.list("decorator")
+      + #registry.list("action")
+      + #registry.list("previewer"),
     0,
     "reset empties the lists"
   )

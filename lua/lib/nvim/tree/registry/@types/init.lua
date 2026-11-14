@@ -1,7 +1,7 @@
 ---@meta
 ---@module 'lib.nvim.tree.registry.@types'
 
----@alias Lib.Tree.Registry.Kind "source"|"decorator"|"action"
+---@alias Lib.Tree.Registry.Kind "source"|"decorator"|"action"|"previewer"
 
 ---What a reader hands an entry when it calls it: which view, which root. The reader defines the fields.
 ---@alias Lib.Tree.Registry.Ctx table
@@ -17,7 +17,7 @@
 ---@field actions? Lib.Tree.Registry.Action[] actions that only make sense in this source
 ---@field severity? string[] statuses, worst first (see `Lib.Tree.Opts.severity`)
 ---@field aggregate? fun(node: Lib.Tree.Node, child_aggs: Lib.Tree.Agg[], default: Lib.Tree.Agg): Lib.Tree.Agg
----@field preview? fun(node: Lib.Tree.Node, ctx: Lib.Tree.Registry.Ctx): table|nil
+---@field preview? fun(node: Lib.Tree.Node, ctx: Lib.Tree.Registry.Ctx): table|nil what a preview shows for one of its nodes in place of a file (`{ lines, filetype?, title? }` for filetree.nvim); nil: the file of the node
 ---@field available? fun(): boolean, string? false plus a reason when the source cannot load right now
 
 ---How a source reports changes to the view that shows it.
@@ -63,6 +63,13 @@
 ---@field mutates? boolean it changes files: a reader asks before it runs one on somebody's behalf
 ---@field ai? boolean false keeps it out of a command catalog handed to a model (default true)
 ---@field run fun(nodes: Lib.Tree.Node[], ctx: Lib.Tree.Registry.Ctx, args?: table<string, string>)
+
+---What a preview shows for a node in place of its file. The reader defines the shape of the answer.
+---@class Lib.Tree.Registry.Previewer
+---@field name string unique among previewers
+---@field priority? integer the highest that matches is asked (default 0)
+---@field match fun(node: Lib.Tree.Node): boolean is this node mine? It runs often and must do no I/O
+---@field preview fun(node: Lib.Tree.Node, ctx: Lib.Tree.Registry.Ctx, done: fun(result?: table, note?: string)): fun()|nil returns at once and calls `done` once, now or later; may return a cancel function
 
 ---What `subscribe` reports.
 ---@class Lib.Tree.Registry.Event

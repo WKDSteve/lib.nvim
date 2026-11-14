@@ -8,6 +8,7 @@ change feed:
 | `source` | supplies the nodes of one view | `name`, `root()` |
 | `decorator` | badges on nodes, looked up by path or id | `name`, `get()`, `subscribe()` |
 | `action` | something to do with the node under the cursor or the selection | `name`, `run()` |
+| `previewer` | what a preview shows for a node in place of its file (a frame of a video) | `name`, `match()`, `preview()` |
 
 ```lua
 local registry = require("lib.nvim.tree.registry")
