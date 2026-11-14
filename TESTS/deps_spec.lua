@@ -825,6 +825,11 @@ pkg:
   end
 
   -- ----------------------------------------------------------------- first_run
+  -- The three blocks below test the popup itself, so they need the opt-out
+  -- unset. A runner may have set it for every editor it starts (testing.nvim
+  -- does, `disable_first_run`); put it back once they are done.
+  local ambient_first_run_optout = vim.g.lib_nvim_deps_disable_first_run
+  vim.g.lib_nvim_deps_disable_first_run = nil
   do
     local first_run = require("lib.nvim.deps.first_run")
     local cache_dir = vim.fn.tempname()
@@ -1047,6 +1052,7 @@ pkg:
 
     vim.opt.rtp:remove(plugin_dir)
   end
+  vim.g.lib_nvim_deps_disable_first_run = ambient_first_run_optout
 
   -- -------------------------------------------------------------------- detect
   do
