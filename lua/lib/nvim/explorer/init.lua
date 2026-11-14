@@ -1,5 +1,5 @@
 ---@module 'lib.nvim.explorer'
----@brief File-explorer adapters: which explorer owns a buffer, which path is under the cursor, how to reload.
+---@brief File-explorer adapters: which explorer owns a buffer, which path is under the cursor, how to reload, who can show a path.
 ---@description
 --- A registry of explorer adapters (neo-tree, NvimTree, netrw, oil built in) on `lib.nvim.registry`, so a plugin
 --- that reacts to "the file under the cursor in whatever explorer is open" or "the tree changed on disk" asks
@@ -9,11 +9,12 @@
 ---   explorer.current()          --> "oil" (name of the adapter that owns the current buffer) or nil
 ---   explorer.current_path()     --> "C:/proj/src/a.lua" or nil
 ---   explorer.reload_all()       --> { "nvim-tree" } (the adapters that reloaded)
+---   explorer.reveal(path)       --> true, "filetree" (the explorer that opened with its cursor on the path)
 ---   explorer.register({ name = "mine", filetypes = { "mine" }, current_path = function(buf) ... end })
 ---
 --- Every call is soft: a missing plugin means "not recognised" (`nil` / `false`), never an error, and an adapter
 --- that raises is skipped. Not a tree data structure (`lib.nvim.tree`) and not neo-tree internals
---- (`lib.nvim.neotree`); this module only answers detection, path and reload.
+--- (`lib.nvim.neotree`); this module only answers detection, path, reload and reveal.
 
 local registry = require("lib.nvim.registry")
 
@@ -26,6 +27,7 @@ local M = {}
 ---@field module? string                                    # Plugin module; `reload` only runs once it is loaded.
 ---@field current_path? fun(buf: integer): string|nil       # Path under the cursor of an explorer buffer.
 ---@field reload? fun()                                     # Re-read the tree from disk.
+---@field reveal? fun(path: string): boolean                # Show the explorer with its cursor on `path` (absolute); false when it cannot.
 
 ---@param path string
 ---@param name string
@@ -215,6 +217,45 @@ function M.current_path(buf)
     return path
   end
   return nil
+end
+
+---The adapters that can show a path right now: they carry `reveal`, and their plugin is loaded.
+---@return Lib.Explorer.Adapter[]
+local function revealers()
+  local out = {}
+  for _, adapter in ipairs(M.adapters()) do
+    local active = adapter.module == nil or package.loaded[adapter.module] ~= nil
+    if active and type(adapter.reveal) == "function" then
+      out[#out + 1] = adapter
+    end
+  end
+  return out
+end
+
+---Is there an explorer that can show a path? None of the built-ins can: a tree plugin says so by
+---registering `reveal`. For a caller that offers "show in tree" only where it would do something.
+---@return boolean
+function M.can_reveal()
+  return #revealers() > 0
+end
+
+---Show `path` in an explorer: it opens if it has to, and its cursor lands on the path. The adapters that
+---can are asked in registration order; the first that answers true wins. One that raises or answers
+---false is skipped.
+---@param path string  Absolute path of a file or directory.
+---@return boolean shown
+---@return string|nil name  The adapter that showed it.
+function M.reveal(path)
+  if type(path) ~= "string" or path == "" then
+    return false, nil
+  end
+  for _, adapter in ipairs(revealers()) do
+    local ok, shown = pcall(adapter.reveal, path)
+    if ok and shown == true then
+      return true, adapter.name
+    end
+  end
+  return false, nil
 end
 
 ---Reload every explorer whose plugin is loaded. A failing adapter does not stop the others.

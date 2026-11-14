@@ -4,7 +4,8 @@
 
 File-explorer adapters. One registry answers three questions for neo-tree, NvimTree, netrw and oil, and for
 any explorer a plugin registers from outside: **which explorer owns this buffer**, **which path is under the
-cursor**, **how do I make it re-read the disk**. Plugins that today each carry their own `filetype` ladder
+cursor**, **how do I make it re-read the disk**. A fourth one only for explorers that sign in for it:
+**show me this path**. Plugins that today each carry their own `filetype` ladder
 (`fileops.nvim` `ops/file.lua`, `pdfport.nvim` `integrations/init.lua`, `open.nvim` `context.lua`) ask here
 instead.
 
@@ -20,6 +21,8 @@ local explorer = require("lib.nvim.explorer")
 explorer.current()          --> "oil"  (adapter name of the current buffer, nil if it is no explorer)
 explorer.current_path()     --> "C:/proj/src/a.lua" | nil
 explorer.reload_all()       --> { "nvim-tree" }  (adapters that reloaded without error)
+explorer.can_reveal()       --> true  (an explorer that can show a path is registered and loaded)
+explorer.reveal("C:/proj/src/a.lua")  --> true, "filetree"  (it opened, cursor on the file)
 
 -- an explorer the library does not know
 explorer.register({
@@ -28,6 +31,7 @@ explorer.register({
   module = "mytree",                    -- reload only runs once this module is loaded
   current_path = function(buf) return require("mytree").cursor_path() end,
   reload = function() require("mytree").refresh() end,
+  reveal = function(path) return require("mytree").show(path) end,   -- optional
 })
 ```
 
@@ -42,10 +46,16 @@ explorer.register({
 | `current(buf?)` | its name, or `nil` |
 | `current_path(buf?)` | the path under the cursor of a window showing `buf` (read in that window), or `nil` |
 | `reload_all()` | reload every adapter whose `module` is loaded; returns the names that succeeded |
+| `can_reveal()` | `true` when an adapter with `reveal` is there and its `module` is loaded |
+| `reveal(path)` | ask those adapters in registration order to show `path`; returns `true, name` for the first that did, else `false` |
 | `reset()` | back to the four built-ins (tests) |
 
 Adapter fields: `name` (required), `filetypes` **or** `detect(buf)` (one is required), `module?`,
-`current_path?(buf)`, `reload?()`.
+`current_path?(buf)`, `reload?()`, `reveal?(path)`.
+
+None of the built-ins carries `reveal`: opening a tree and moving its cursor is more than this module knows
+about a tree plugin. A plugin that drives a tree (filetree.nvim) registers it; a caller such as a picker's
+"show in tree" asks `can_reveal()` before it offers the action, and gets `false` on a machine without one.
 
 Built in, in this order: `neo-tree`, `nvim-tree`, `netrw`, `oil`. netrw has no `reload`: it re-reads a
 directory whenever its buffer is entered. The `oil` reload is the `refresh` action and only runs from an oil buffer (it acts on the current buffer and may ask about unsaved edits; elsewhere oil watches the disk itself).

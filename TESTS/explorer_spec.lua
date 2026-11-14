@@ -199,6 +199,77 @@ return function(H)
   eq(gated, 1, "reload runs once the module is loaded")
   package.loaded["gated.plugin"] = nil
 
+  -- reveal: only explorers that sign in for it, in registration order.
+  ---@param path any
+  ---@return string
+  local function shown(path)
+    local did, name = explorer.reveal(path)
+    return tostring(did) .. (name and ("," .. name) or "")
+  end
+  eq(explorer.can_reveal(), false, "no built-in can reveal")
+  eq(shown("/proj/a.lua"), "false", "reveal without a revealer answers false")
+  local revealed = {}
+  explorer.register({
+    name = "refuses",
+    filetypes = { "refuses" },
+    reveal = function(path)
+      revealed[#revealed + 1] = "refuses:" .. path
+      return false
+    end,
+  })
+  explorer.register({
+    name = "raises",
+    filetypes = { "raises" },
+    reveal = function()
+      error("boom")
+    end,
+  })
+  explorer.register({
+    name = "shows",
+    filetypes = { "shows" },
+    reveal = function(path)
+      revealed[#revealed + 1] = "shows:" .. path
+      return true
+    end,
+  })
+  explorer.register({
+    name = "later",
+    filetypes = { "later" },
+    reveal = function(path)
+      revealed[#revealed + 1] = "later:" .. path
+      return true
+    end,
+  })
+  eq(explorer.can_reveal(), true, "a registered reveal makes can_reveal true")
+  eq(shown("/proj/a.lua"), "true,shows", "the first adapter that shows the path is named")
+  eq(
+    table.concat(revealed, ","),
+    "refuses:/proj/a.lua,shows:/proj/a.lua",
+    "asked in registration order; a refusal and an error are skipped, nobody after the winner is asked"
+  )
+  eq(shown(""), "false", "an empty path is not handed to anybody")
+  ---@diagnostic disable-next-line: param-type-mismatch
+  eq(shown(nil), "false", "nor is nil")
+  for _, name in ipairs({ "refuses", "raises", "shows", "later" }) do
+    explorer.unregister(name)
+  end
+  eq(explorer.can_reveal(), false, "unregistered: nothing can reveal again")
+  package.loaded["gated.reveal"] = nil
+  explorer.register({
+    name = "gatedreveal",
+    filetypes = { "gatedreveal" },
+    module = "gated.reveal",
+    reveal = function()
+      return true
+    end,
+  })
+  eq(explorer.can_reveal(), false, "reveal waits for the plugin module to be loaded")
+  eq(shown("/proj/a.lua"), "false", "... and is not called before")
+  package.loaded["gated.reveal"] = {}
+  eq(shown("/proj/a.lua"), "true,gatedreveal", "... and runs once it is")
+  package.loaded["gated.reveal"] = nil
+  explorer.unregister("gatedreveal")
+
   -- Validation, unregister, reset.
   ok(not pcall(explorer.register, { name = "bad" }), "an adapter needs filetypes or detect")
   ok(not pcall(explorer.register, { filetypes = { "x" } }), "an adapter needs a name")
