@@ -5,7 +5,8 @@
 ---
 --- A node is a table `{ id, label, kind?, status?, icon?, columns?, children? }`. `children` is a list of nodes,
 --- or a function `children(node, cb)` that answers `cb(list)` / `cb(nil, err)` (lazy: read when first expanded,
---- sync or async). A node without `children` is a leaf.
+--- sync or async). A node without `children` is a leaf. A node that says `expandable = true` can be opened
+--- whatever it holds: an empty folder is still a folder.
 ---
 --- Everything that changes the visible rows answers a list of **splices** `{ from, old_count, new_count }` (1-based
 --- row numbers, applied in order to the consumer's own line array): replace `old_count` rows from `from` by
@@ -161,6 +162,9 @@ local function expandable(self, e)
     or e.state == "loading"
     or e.state == "error"
     or (e.kids ~= nil and #e.kids > 0)
+    -- The node says so itself. The core does not guess from `kind`: what a kind means is the reader's
+    -- business, and an empty folder, an empty group and an empty test file want the same thing.
+    or e.node.expandable == true
 end
 
 ---@param self Lib.Tree
@@ -305,6 +309,9 @@ local function propagate(self, e, changes)
   end
 end
 
+---@type fun(self: Lib.Tree, e: Lib.Tree.Entry, changes: Lib.Tree.Splice[])
+local start_load
+
 ---@param opts Lib.Tree.Opts
 ---@return Lib.Tree
 function M.new(opts)
@@ -329,6 +336,11 @@ function M.new(opts)
   local root = register(self, opts.root, nil, 0)
   self._root = root.id
   self._expanded[root.id] = true
+  -- The root counts as open from the start, so nothing ever expands it: a lazy root is asked here.
+  -- An answer that comes at once is in the rows below; a later one arrives through `on_change`.
+  if root.state == "lazy" then
+    start_load(self, root, {})
+  end
   for id in pairs(opts.expanded or {}) do
     if self._by_id[id] then
       self._expanded[id] = true
@@ -430,7 +442,7 @@ end
 ---@param self Lib.Tree
 ---@param e Lib.Tree.Entry
 ---@param changes Lib.Tree.Splice[]
-local function start_load(self, e, changes)
+start_load = function(self, e, changes)
   e.state = "loading"
   local sync = true
   local called = false
@@ -559,27 +571,21 @@ function Tree:set_children(id, list)
   return changes
 end
 
----Bring the children of `id` in line with `list` and keep what stays: a child whose id is in `list` again
----keeps its entry, so its subtree and the fold state below it survive, and its node table takes the fields
----of the new one (fields the new node lacks are dropped; `children` is left alone). Children missing from
----`list` are removed, new ones are registered, the order is the one of `list`.
----
----This is the call for "the directory was read again": `set_children` would forget every open folder below.
----A child that changed between leaf and branch is replaced like a new one.
----@param id any
+---Bring the kids of `e` in line with `list` in the model, without touching a row. Answers the ids that
+---were kids before (in their order) and, per id, whether a kept kid looks different now.
+---@param self Lib.Tree
+---@param e Lib.Tree.Entry
 ---@param list Lib.Tree.Node[]
----@return Lib.Tree.Splice[]
-function Tree:merge_children(id, list)
-  local changes = {}
-  local e = self._by_id[id]
-  if not e then
-    return changes
-  end
+---@param deep boolean
+---@return any[] before
+---@return table<any, true> touched  Kept kids whose node changed (a field, or with `deep` anything below).
+local function merge_kids(self, e, list, deep)
+  local before = e.kids or {}
   local old = {}
-  for _, kid in ipairs(e.kids or {}) do
+  for _, kid in ipairs(before) do
     old[kid] = true
   end
-  local kids = {}
+  local kids, touched = {}, {}
   for _, child in ipairs(list) do
     assert(type(child) == "table" and child.id ~= nil, "tree: a node needs an id")
     local cid = child.id
@@ -590,22 +596,43 @@ function Tree:merge_children(id, list)
         for k in pairs(node) do
           if k ~= "children" and child[k] == nil then
             node[k] = nil
+            touched[cid] = true
           end
         end
         for k, v in pairs(child) do
-          if k ~= "children" then
+          if k ~= "children" and node[k] ~= v then
             node[k] = v
+            touched[cid] = true
           end
         end
       end
-      if ce.state == "leaf" then
+      if deep and child.children ~= nil then
+        -- the subtree comes with the node: mix it in level by level, so what is open below stays open
+        node.children = child.children
+        if type(child.children) == "table" then
+          if ce.state == "loaded" or ce.state == "leaf" then
+            merge_kids(self, ce, child.children, true)
+          else
+            -- never read (lazy), still being read, or failed: the list is the answer
+            ce.kids = {}
+            for _, grand in ipairs(child.children) do
+              ce.kids[#ce.kids + 1] = register(self, grand, cid, ce.depth + 1).id
+            end
+          end
+          ce.state, ce.err = "loaded", nil
+          touched[cid] = true
+        end
+      end
+      if ce.state == "leaf" or (deep and ce.kids ~= nil) then
         compute_agg(self, ce)
       end
     else
       if ce then
+        -- the same id, another kind of node (a leaf became a branch): its rows are not the old ones
         unregister(self, cid)
+        touched[cid] = true
       end
-      register(self, child, id, e.depth + 1)
+      register(self, child, e.id, e.depth + 1)
     end
     old[cid] = nil
     kids[#kids + 1] = cid
@@ -614,8 +641,148 @@ function Tree:merge_children(id, list)
     unregister(self, gone)
   end
   e.kids, e.state, e.err = kids, "loaded", nil
+  return before, touched
+end
+
+---Bring the children of `id` in line with `list` and keep what stays: a child whose id is in `list` again
+---keeps its entry, so its subtree and the fold state below it survive, and its node table takes the fields
+---of the new one (fields the new node lacks are dropped; `children` is left alone). Children missing from
+---`list` are removed, new ones are registered, the order is the one of `list`.
+---
+---This is the call for "the directory was read again": `set_children` would forget every open folder below.
+---A child that changed between leaf and branch is replaced like a new one.
+---
+---Only the rows that changed are reported: the children from the first that is new, gone, moved or looks
+---different to the last such one. One new file among ten thousand is one splice of one row, not the folder.
+---
+---With `opts.deep` the lists below come with it: a kept child that carries a `children` list has that list
+---mixed in the same way, level by level (a whole tree that was built again: a git status, diagnostics), and a
+---kept child that carries a loader keeps its children and takes the new loader. The rows of the node are then
+---reported as one block.
+---@param id any
+---@param list Lib.Tree.Node[]
+---@param opts? { deep?: boolean }
+---@return Lib.Tree.Splice[]
+function Tree:merge_children(id, list, opts)
+  local changes = {}
+  local e = self._by_id[id]
+  if not e then
+    return changes
+  end
+  local deep = opts ~= nil and opts.deep == true
+  local was_expandable = expandable(self, e)
+  local before, touched = merge_kids(self, e, list, deep)
   propagate(self, e, changes)
-  refresh_subtree(self, e, changes)
+
+  local own_row = self._row_of[id]
+  local shown = self._expanded[id] == true
+    and (own_row ~= nil or (self._hide_root and id == self._root))
+  if deep or not shown then
+    refresh_subtree(self, e, changes)
+    return changes
+  end
+
+  -- the node's own row: it may have gained or lost its expander
+  if own_row and was_expandable ~= expandable(self, e) then
+    self._rows[own_row] = make_row(self, e)
+    changes[#changes + 1] = { from = own_row, old_count = 1, new_count = 1 }
+  end
+
+  local after = e.kids
+  local n_old, n_new = #before, #after
+  local head, limit = 0, math.min(n_old, n_new)
+  while head < limit and before[head + 1] == after[head + 1] and not touched[after[head + 1]] do
+    head = head + 1
+  end
+  local tail = 0
+  limit = limit - head
+  while
+    tail < limit
+    and before[n_old - tail] == after[n_new - tail]
+    and not touched[after[n_new - tail]]
+  do
+    tail = tail + 1
+  end
+  if head == n_old and head == n_new then
+    return changes
+  end
+
+  -- the rows of the kids that were there: read before any of them is replaced (the rows still say what
+  -- was on screen; a kid that is gone from the model has its rows until the splice below)
+  local row_of = self._row_of
+  local from, old_n
+  if head < n_old - tail then
+    from = row_of[before[head + 1]]
+    local last_row = row_of[before[n_old - tail]]
+    old_n = last_row + span(self, last_row) - from
+  else
+    -- nothing of the old kids is replaced: the new ones go in before the first kid of the tail, or
+    -- behind the last kid there is, or right below the node when it had none
+    old_n = 0
+    local next_kid = before[head + 1]
+    if next_kid ~= nil then
+      from = row_of[next_kid]
+    elseif n_old > 0 then
+      local last_row = row_of[before[n_old]]
+      from = last_row + span(self, last_row)
+    else
+      from = (own_row or 0) + 1
+    end
+  end
+  local fresh = {}
+  for i = head + 1, n_new - tail do
+    flatten_into(self, self._by_id[after[i]], fresh)
+  end
+  if old_n > 0 or #fresh > 0 then
+    splice(self, from, old_n, fresh)
+    changes[#changes + 1] = { from = from, old_count = old_n, new_count = #fresh }
+  end
+  return changes
+end
+
+---Ask the loader of a node again and mix the answer into what is there (`merge_children`): open folders
+---below stay open. For a node whose `children` is a function and that was read before; a node that was never
+---read has nothing to bring up to date (it is read when it is opened). An answer that comes at once is in the
+---splices returned, a later one arrives through `opts.on_change`. When the loader fails, what is shown stays.
+---@param id any
+---@param opts? { deep?: boolean }  Handed to `merge_children`.
+---@return Lib.Tree.Splice[]
+function Tree:reload(id, opts)
+  local changes = {}
+  local e = self._by_id[id]
+  if not e or type(e.node.children) ~= "function" then
+    return changes
+  end
+  if e.state == "lazy" or e.state == "loading" then
+    return changes
+  end
+  if e.state == "error" then
+    -- the last answer was a failure: ask as an open does
+    start_load(self, e, changes)
+    return changes
+  end
+  -- only the newest answer counts: a second reload overtakes the first
+  e.asked = (e.asked or 0) + 1
+  local asked = e.asked
+  local sync, called = true, false
+  pcall(e.node.children, e.node, function(list)
+    if called then
+      return
+    end
+    called = true
+    if self._by_id[id] ~= e or e.asked ~= asked or type(list) ~= "table" then
+      return
+    end
+    local own = self:merge_children(id, list, opts)
+    if sync then
+      for _, c in ipairs(own) do
+        changes[#changes + 1] = c
+      end
+    elseif self._on_change and #own > 0 then
+      pcall(self._on_change, own)
+    end
+  end)
+  sync = false
   return changes
 end
 
@@ -657,8 +824,9 @@ function Tree:remove(id)
 end
 
 ---Merge an update into a node: `{ id = ..., label?, status?, icon?, columns?, kind?, children? }`. Only fields
----present are changed. A `children` list replaces the subtree; a status change rebuilds the aggregates up the
----path to the root and reports only the rows that really changed.
+---present are changed; `clear = { "columns", ... }` names fields to take away (a field that is `nil` in the
+---update cannot say that). A `children` list replaces the subtree; a status change rebuilds the aggregates up
+---the path to the root and reports only the rows that really changed.
 ---@param update Lib.Tree.Update
 ---@return Lib.Tree.Splice[]
 function Tree:push(update)
@@ -668,8 +836,15 @@ function Tree:push(update)
     return changes
   end
   for k, v in pairs(update) do
-    if k ~= "id" and k ~= "children" then
+    if k ~= "id" and k ~= "children" and k ~= "clear" then
       e.node[k] = v
+    end
+  end
+  if type(update.clear) == "table" then
+    for _, k in ipairs(update.clear) do
+      if k ~= "id" and k ~= "children" then
+        e.node[k] = nil
+      end
     end
   end
   if update.children ~= nil then

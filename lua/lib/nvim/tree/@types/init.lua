@@ -10,6 +10,12 @@
 ---@field icon? string
 ---@field columns? table
 ---@field children? Lib.Tree.Node[]|fun(node: Lib.Tree.Node, cb: fun(children: Lib.Tree.Node[]|nil, err?: string)) a list, or a lazy loader called on the first expand (sync or async answer)
+---@field expandable? boolean true: the node can be opened whatever it holds (an empty folder is still a folder)
+---@field path? string the file or folder the node stands for; a reader treats a node that has one as a file (not read by the core)
+---@field data? table whatever the source needs to find its node again (not read by the core)
+---@field hl? string highlight group for the name of the node (not read by the core)
+---@field open? boolean the node starts open, once: closed by hand it stays closed (a reader's business, not read by the core)
+---@field lazy? boolean the node has children its source answers on demand (a reader's business, not read by the core)
 
 ---Aggregate of the leaves below a node.
 ---@class Lib.Tree.Agg
@@ -42,6 +48,7 @@
 ---@field icon? string
 ---@field columns? table
 ---@field children? Lib.Tree.Node[] replaces the subtree
+---@field clear? string[] fields to take away from the node (a field that is nil in the update stays as it is)
 
 ---@class Lib.Tree.Opts
 ---@field root Lib.Tree.Node
@@ -59,6 +66,7 @@
 ---@field state "leaf"|"loaded"|"lazy"|"loading"|"error"
 ---@field kids? any[]
 ---@field err? string
+---@field asked? integer counts the reloads of the node: only the answer to the newest one is taken
 ---@field agg Lib.Tree.Agg
 
 ---@class Lib.Tree

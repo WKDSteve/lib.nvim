@@ -19,12 +19,14 @@
 ---@field aggregate? fun(node: Lib.Tree.Node, child_aggs: Lib.Tree.Agg[], default: Lib.Tree.Agg): Lib.Tree.Agg
 ---@field preview? fun(node: Lib.Tree.Node, ctx: Lib.Tree.Registry.Ctx): table|nil what a preview shows for one of its nodes in place of a file (`{ lines, filetype?, title? }` for filetree.nvim); nil: the file of the node
 ---@field available? fun(): boolean, string? false plus a reason when the source cannot load right now
+---@field mutable? boolean false: the nodes of this source are not to be changed (a reader keeps actions that change files away from them)
 
 ---How a source reports changes to the view that shows it.
 ---@class Lib.Tree.Registry.Emit
 ---@field push fun(update: Lib.Tree.Update) one node changed (status, label, columns)
 ---@field invalidate fun(id: any, deep?: boolean) the children of a node must be asked again
 ---@field reset fun() the root changed
+---@field focus? fun(id: any) ask the reader to put its cursor on a node of this source (it may decline: the cursor is the user's while they are in the tree)
 
 ---A badge on a node.
 ---@class Lib.Tree.Registry.Badge

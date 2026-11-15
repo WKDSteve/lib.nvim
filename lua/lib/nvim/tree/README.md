@@ -30,6 +30,14 @@ A node is `{ id, label, kind?, status?, icon?, columns?, children? }`. `children
 `function(node, cb)` that answers `cb(list)` or `cb(nil, err)` (lazy: read on the first expand; sync or async). A
 node without `children` is a leaf. Ids are unique; the tree keeps your node tables and merges updates into them.
 
+A node with `expandable = true` can be opened whatever it holds: an empty folder is still a folder, and
+the core does not guess that from `kind`. A root whose `children` is a function is asked when the tree is
+made (the root counts as open from the start, so nothing would ever expand it); an answer that comes
+later arrives through `on_change`.
+
+Fields a reader may give a meaning to, and the core carries without reading them: `path`, `data`, `hl`,
+`open`, `lazy` (see `@types/init.lua`).
+
 ## Changes are splices
 
 Every operation that changes what is visible returns a list of `{ from, old_count, new_count }` (1-based rows):
@@ -42,9 +50,10 @@ exceptions are `collapse_all`, `set_depth` and `refresh`, which say so by return
 | `expand(id)` / `collapse(id)` / `toggle(id)` | fold state, per tree instance |
 | `reveal(id)` | open every ancestor (lazy ones load first) |
 | `collapse_all()` / `set_depth(n)` | bulk fold |
-| `push({ id, status?, label?, ..., children? })` | merge an update; a `children` list replaces the subtree |
+| `push({ id, status?, label?, ..., children?, clear? })` | merge an update; a `children` list replaces the subtree; `clear = { "columns" }` takes fields away |
 | `set_children(id, list)` / `remove(id)` | structure changes |
-| `merge_children(id, list)` | the children were read again: what is in `list` again keeps its subtree and fold state, the rest goes, new ones come |
+| `merge_children(id, list, opts?)` | the children were read again: what is in `list` again keeps its subtree and fold state, the rest goes, new ones come. Only the rows that changed are reported (one new entry among ten thousand is one splice of one row). `{ deep = true }` mixes the lists below as well, level by level |
+| `reload(id, opts?)` | ask the loader of a lazy node again and mix the answer in; what is open below stays open |
 | `invalidate(id, deep?)` | a node was edited behind the tree's back |
 | `row(i)` / `rows()` / `row_of(id)` / `count()` | the visible lines and the id <-> row map |
 | `node(id)` / `agg(id)` / `parent(id)` / `size()` | the model |

@@ -22,6 +22,10 @@ local remove = registry.decorator({
   all = function() return cache end,                           -- optional: every key with a badge
 })
 
+-- a source reports through `emit`: push(update), invalidate(id, deep?), reset(), and focus(id), which
+-- asks the reader to put its cursor on a node; `mutable = false` on a source keeps actions that
+-- change files away from its nodes
+
 registry.list("decorator")           -- entries in registration order
 registry.get("decorator", "tests")
 local stop = registry.subscribe(function(ev) end)  -- { kind, name, entry?, replaced? }
