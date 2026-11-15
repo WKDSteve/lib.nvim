@@ -228,6 +228,19 @@ return function(H)
     )
     ok(t:row(1).expandable, "... its row is the new one")
 
+    -- the same node table handed in again after its owner changed it in place
+    do
+      local kept = { leaf("p"), leaf("q"), leaf("s") }
+      local same_tables = tree.new({ root = folder("r", kept), hide_root = true })
+      kept[2].label = "Q!"
+      local redrawn = same_tables:merge_children("r", kept)
+      ok(
+        #redrawn >= 1,
+        "the same tables again: their rows are reported (they may have changed in place)"
+      )
+      eq(same_tables:row(2).node.label, "Q!", "... and show what the owner wrote")
+    end
+
     -- a folder with its own row that gains and loses its last child
     local own = tree.new({ root = folder("r", list(folder("d", list(leaf("d/1"))), leaf("z"))) })
     own:expand("d")

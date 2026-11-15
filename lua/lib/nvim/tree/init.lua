@@ -592,7 +592,11 @@ local function merge_kids(self, e, list, deep)
     local ce = old[cid] and self._by_id[cid] or nil
     if ce and (ce.state == "leaf") == (child.children == nil) then
       local node = ce.node
-      if node ~= child then
+      if node == child then
+        -- the very table the tree holds, handed in again: whoever did that may have changed it in
+        -- place, and there is nothing left to compare it with
+        touched[cid] = true
+      else
         for k in pairs(node) do
           if k ~= "children" and child[k] == nil then
             node[k] = nil
