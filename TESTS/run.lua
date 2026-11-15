@@ -264,6 +264,7 @@ local specs = {
   "contextmenu_spec.lua",
   "is_subpath_spec.lua",
   "same_path_spec.lua",
+  "fs_listing_spec.lua",
   "tree_spec.lua",
   "tree_gaps_spec.lua",
   "tree_registry_spec.lua",
