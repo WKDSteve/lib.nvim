@@ -97,7 +97,8 @@ The three documentation steps are the ones that get skipped;
 nvim --headless -u NONE -l TESTS/run.lua
 ```
 
-Exit 0 is a pass. [GitHub Actions](../.github/workflows/ci.yml) runs stylua,
+Exit 0 is a pass. While working on one module, name its spec after the runner
+(`... -l TESTS/run.lua tree_spec.lua`) and only that one runs. [GitHub Actions](../.github/workflows/ci.yml) runs stylua,
 luacheck and this suite on every push and pull request to `main`.
 
 **The `ci-verified` branch.** Around thirty repositories check this one out as

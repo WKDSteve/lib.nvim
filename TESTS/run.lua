@@ -7,6 +7,9 @@
 --
 -- Loads every *_spec.lua listed below, runs it against the shared harness,
 -- prints a per-spec result, runs EVERY spec even after a failure, and exits non-zero at the end if any failed.
+--
+-- One spec, or a few (only with `-l`, which hands the names over):
+--   nvim -n -i NONE --headless -u NONE -l TESTS/run.lua tree_spec.lua tree_gaps
 
 -- Make the repo importable whether invoked via -l (cwd) or luafile.
 vim.opt.rtp:append(vim.fn.getcwd())
@@ -324,6 +327,7 @@ local specs = {
   "companion_headless_spec.lua",
   "data_classes_spec.lua",
   "data_classes_cases_spec.lua",
+  "run_select_spec.lua",
 }
 
 --- Straight to stdout rather than through `print`.
@@ -336,6 +340,42 @@ local specs = {
 ---@param s string
 local function say(s)
   io.stdout:write(s, "\n")
+end
+
+-- Spec files named on the command line run alone (`nvim ... -l TESTS/run.lua tree_spec.lua`): the
+-- whole suite takes minutes, a change to one module is checked with its spec. A name is taken with or
+-- without the `TESTS/` in front and the `.lua` or `_spec.lua` at the end; the order is the one of the
+-- list above. A name that is no spec of the list ends the run with exit code 2 before anything ran.
+local total = #specs
+local asked = type(_G.arg) == "table" and _G.arg or {}
+if #asked > 0 then
+  local known, wanted, unknown = {}, {}, {}
+  for _, name in ipairs(specs) do
+    known[name] = true
+  end
+  for _, raw in ipairs(asked) do
+    local name = tostring(raw):gsub("\\", "/"):gsub("^.*/", "")
+    if not known[name] then
+      name = name:gsub("%.lua$", "")
+      name = known[name .. ".lua"] and (name .. ".lua") or (name .. "_spec.lua")
+    end
+    if known[name] then
+      wanted[name] = true
+    else
+      unknown[#unknown + 1] = tostring(raw)
+    end
+  end
+  if #unknown > 0 then
+    say(("no spec of TESTS/run.lua: %s"):format(table.concat(unknown, ", ")))
+    vim.cmd("cquit 2")
+  end
+  local chosen = {}
+  for _, name in ipairs(specs) do
+    if wanted[name] then
+      chosen[#chosen + 1] = name
+    end
+  end
+  specs = chosen
 end
 
 local failed = {}
@@ -359,4 +399,7 @@ if #failed > 0 then
   vim.cmd("cquit 1")
 end
 
+if #specs < total then
+  say(("\n%d of %d specs ran"):format(#specs, total))
+end
 say("\nLIB_TESTS_OK")

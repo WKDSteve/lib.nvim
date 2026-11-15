@@ -24,6 +24,15 @@ replaces a global (`uv.fs_open`, `vim.system`, `os.date`, ...) must put it back
 whatever happens inside — `H.with_patched` does — or its failure cascades into
 the specs after it.
 
+One spec, or a few, instead of the whole suite (which takes minutes): name the
+files after the runner. Folder and ending may be left out, the order is the one
+of the runner's list, the result line and the exit code are those of a whole
+run. A name that is no spec of the list ends the run with exit code 2.
+
+```sh
+nvim --headless -u NONE -l TESTS/run.lua tree_spec.lua tree_gaps
+```
+
 ## Why lib.nvim keeps its own runner
 
 lib.nvim does **not** run its suite on testing.nvim; `TESTS/run.lua` and
