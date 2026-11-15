@@ -495,8 +495,9 @@ return function(H)
         "r",
         (function()
           local out = { { id = "new" .. round, label = "n" } }
+          -- fresh tables, as a folder that was read again brings them
           for i = 1, 10000 do
-            out[#out + 1] = kids[i]
+            out[#out + 1] = { id = "k" .. i, label = "k" }
           end
           return out
         end)()
