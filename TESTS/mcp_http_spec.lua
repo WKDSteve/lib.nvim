@@ -211,8 +211,13 @@ return function(H)
       mcp.PROTOCOL_VERSION,
       "http: ...with the agreed protocol version"
     )
+    -- The notification is a request of its own, on a connection of its own: `tools/list`, sent right
+    -- after it, can reach the server (and be answered) first. So it is waited for, not looked up the
+    -- moment the listing answered; on a slow runner it was not there yet now and then.
     ok(
-      #posts("notifications/initialized") == 1,
+      wait_for(function()
+        return #posts("notifications/initialized") >= 1
+      end, 3000) and #posts("notifications/initialized") == 1,
       "http: notifications/initialized was posted (202 is fine)"
     )
 
