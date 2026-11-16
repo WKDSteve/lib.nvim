@@ -61,7 +61,7 @@ end
 ---@param rect Lib.ImagePreview.CellRect
 ---@param cell { w: number, h: number } pixel size of one cell
 ---@param opts? { origin?: Lib.ImagePreview.Pos, padding?: number, bounds?: { w: integer, h: integer } }
----@return Lib.ImagePreview.PixelBox|nil box nil when the cell size is unusable or the box falls outside `bounds`
+---@return Lib.ImagePreview.PixelBox|nil box nil when the cell size is unusable or the box falls wholly outside the image (past `bounds`, or left of or above `origin`)
 function M.to_pixels(rect, cell, opts)
   opts = opts or {}
   if
@@ -93,9 +93,10 @@ function M.to_pixels(rect, cell, opts)
   if opts.bounds then
     x2 = math.min(opts.bounds.w - 1, x2)
     y2 = math.min(opts.bounds.h - 1, y2)
-    if x1 > x2 or y1 > y2 then
-      return nil -- the selection lies wholly outside the image
-    end
+  end
+  -- wholly outside the image: past `bounds`, or (with or without them) left of or above the origin
+  if x1 > x2 or y1 > y2 then
+    return nil
   end
   return { x1 = x1, y1 = y1, x2 = x2, y2 = y2 }
 end

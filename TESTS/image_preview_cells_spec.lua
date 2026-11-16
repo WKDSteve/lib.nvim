@@ -116,6 +116,26 @@ return function(H)
     nil,
     "a box wholly outside the image is nil"
   )
+  -- without bounds the far edge is open, but the near one is not: a selection
+  -- wholly left of or above the image's origin is outside it too
+  eq(
+    cells.to_pixels(
+      { row = 5, col = 1, h = 1, w = 2 },
+      { w = 10, h = 20 },
+      { origin = { row = 1, col = 5 } }
+    ),
+    nil,
+    "a box wholly left of the origin is nil, not inverted"
+  )
+  eq(
+    cells.to_pixels(
+      { row = 1, col = 5, h = 2, w = 1 },
+      { w = 10, h = 20 },
+      { origin = { row = 5, col = 1 } }
+    ),
+    nil,
+    "a box wholly above the origin is nil, not inverted"
+  )
 
   -- fractional cell size (a real terminal): the box still covers every pixel of the cells
   same(
