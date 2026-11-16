@@ -194,7 +194,11 @@ function M.who(path, cb, opts)
   local timeout = (opts and opts.timeout) or 60000
   vim.system(
     { exe, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-Path", path },
-    { text = true, timeout = timeout },
+    -- Its own working directory, not Neovim's: on Windows a process's cwd
+    -- holds that folder, and the folder asked about is usually the one Neovim
+    -- stands in (a move of it just failed). Inheriting it, the lookup itself
+    -- held the folder for its whole run and made the user's retry fail too.
+    { text = true, timeout = timeout, cwd = vim.fs.dirname(script) },
     vim.schedule_wrap(function(res)
       if res.code == 124 then -- vim.system reports its own timeout kill as 124
         cb(nil, ("holder lookup timed out after %d ms"):format(timeout))

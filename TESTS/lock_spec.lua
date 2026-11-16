@@ -85,6 +85,25 @@ return function(H)
     eq(werr, nil, "who: an unlocked file is not an error: " .. tostring(werr))
     ok(type(holders) == "table" and #holders == 0, "who: an unlocked file has no holders")
 
+    -- The lookup runs in its own folder: started from Neovim's cwd it held
+    -- that folder (on Windows a cwd is a handle), which is the case folder a
+    -- caller has just failed to move, and blocked the user's next try.
+    do
+      local seen
+      H.with_patched(vim, "system", function(_, opts, on_exit)
+        seen = opts
+        on_exit({ code = 0, stdout = "NO_HOLDER", stderr = "" })
+        return {}
+      end, function()
+        lock.who(path, function() end)
+      end)
+      ok(type(seen) == "table" and type(seen.cwd) == "string", "who: the lookup gets a cwd")
+      ok(
+        vim.fs.normalize(seen.cwd):lower() ~= vim.fs.normalize(vim.fn.getcwd()):lower(),
+        "who: the lookup does not run in Neovim's cwd: " .. tostring(seen and seen.cwd)
+      )
+    end
+
     -- The timeout is the lookup's own: a lookup that cannot finish in time is
     -- answered with an error rather than never.
     local tdone, tholders, terr = false, nil, nil
