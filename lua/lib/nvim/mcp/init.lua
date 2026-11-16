@@ -272,7 +272,11 @@ function http_post(self, message)
   end
   log(self, "in", body)
   local req_id = message.id ~= nil and message.method ~= nil and message.id or nil
-  local timeout = (self._opts.timeout_ms or M.DEFAULT_TIMEOUT_MS) + 2000
+  -- curl's own deadline follows the request's timeout (a call may ask for more than the client default), with a
+  -- margin so the request timer, which also sends notifications/cancelled, fires first
+  local pending = req_id and self._pending[req_id]
+  local timeout = ((pending and pending.timeout) or self._opts.timeout_ms or M.DEFAULT_TIMEOUT_MS)
+    + 2000
   require("lib.nvim.net.curl").fetch_raw(self._opts.url, {
     method = "POST",
     headers = http_headers(self),
@@ -290,7 +294,8 @@ function http_post(self, message)
       return
     end
     local sid = resp.headers["mcp-session-id"]
-    if sid and sid ~= "" and not self._session_id then
+    -- only the answer to initialize opens a session: a late answer from an ended session may still echo its old id
+    if sid and sid ~= "" and message.method == "initialize" then
       self._session_id = sid
     end
     if resp.status < 200 or resp.status >= 300 then
@@ -518,7 +523,7 @@ function Client.request(self, method, params, cb, opts)
   local id = self._next
   local timer = vim.uv.new_timer()
   local timeout = opts.timeout_ms or self._opts.timeout_ms or M.DEFAULT_TIMEOUT_MS
-  self._pending[id] = { cb = cb, timer = timer, method = method }
+  self._pending[id] = { cb = cb, timer = timer, method = method, timeout = timeout }
   timer:start(timeout, 0, function()
     vim.schedule(function()
       if self._pending[id] then

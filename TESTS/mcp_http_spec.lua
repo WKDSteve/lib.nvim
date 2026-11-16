@@ -59,9 +59,11 @@ return function(H)
       return reply(c, "200 OK", {}, "")
     end
     local msg = req.message or {}
+    -- a stateless server opens no session, but echoes a session header on a later answer
+    local stateless = req.headers["x-stateless"] == "1"
     if msg.method == "initialize" then
       sessions = sessions + 1
-      return json(c, { ["Mcp-Session-Id"] = "sess-" .. sessions }, {
+      return json(c, not stateless and { ["Mcp-Session-Id"] = "sess-" .. sessions } or nil, {
         jsonrpc = "2.0",
         id = msg.id,
         result = {
@@ -92,7 +94,7 @@ return function(H)
     elseif msg.method == "tools/call" then
       local name = msg.params.name
       if name == "echo" then
-        return json(c, nil, {
+        return json(c, stateless and { ["Mcp-Session-Id"] = "rogue" } or nil, {
           jsonrpc = "2.0",
           id = msg.id,
           result = {
@@ -109,6 +111,18 @@ return function(H)
         return reply(c, "404 Not Found", {}, "")
       elseif name == "slow" then
         sockets[#sockets + 1] = c -- never answered; closed at the end
+        return
+      elseif name == "late" then
+        -- answered, but only after the client-wide timeout plus curl's margin
+        local t = assert(uv.new_timer())
+        t:start(3000, 0, function()
+          t:close()
+          json(c, nil, {
+            jsonrpc = "2.0",
+            id = msg.id,
+            result = { content = { { type = "text", text = "late" } }, isError = false },
+          })
+        end)
         return
       end
     end
@@ -286,6 +300,39 @@ return function(H)
         end
       end, 3000),
       "http: stop sends DELETE with the session id"
+    )
+
+    -- a call's own timeout_ms outlives the client-wide one over HTTP as well:
+    -- curl's deadline follows the request, not the client
+    local brief = mcp.client({ id = "h4", url = url, timeout_ms = 300 })
+    clients[#clients + 1] = "h4"
+    ask(function(cb)
+      brief:list_tools(cb, { timeout_ms = 5000 })
+    end)
+    local _, late, late_err = ask(function(cb)
+      brief:call_tool("late", {}, cb, { timeout_ms = 8000 })
+    end)
+    eq(
+      late_err,
+      nil,
+      "http: a call with a longer own timeout is not cut off by the client-wide one"
+    )
+    eq(late and late.content[1].text, "late", "http: ...and its answer arrives")
+
+    -- only the answer to initialize opens a session: a header on any later answer is not adopted
+    local stateless = mcp.client({ id = "h5", url = url, headers = { ["X-Stateless"] = "1" } })
+    clients[#clients + 1] = "h5"
+    ask(function(cb)
+      stateless:call_tool("echo", {}, cb)
+    end)
+    ask(function(cb)
+      stateless:call_tool("echo", {}, cb)
+    end)
+    local calls = posts("tools/call")
+    eq(
+      calls[#calls].headers["mcp-session-id"],
+      nil,
+      "http: a session header on a non-initialize answer is not adopted"
     )
 
     -- a server that is not there
