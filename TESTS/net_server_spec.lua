@@ -217,6 +217,121 @@ return function(H)
   eq(timers(), timers_before, "answered requests leave no live timer behind")
   eq(next(s._clients), nil, "answered requests leave no client entry behind")
 
+  -- a client that sends one byte at a time costs linear work: the blank line is searched only in the newest
+  -- chunk (plus the 3 bytes before it) and the chunks are joined once, not on every read
+  local pad = ("X-Pad: " .. ("a"):rep(990) .. "\r\n"):rep(150)
+  local raw = "POST /note HTTP/1.1\r\nHost: h\r\nContent-Length: 10\r\n" .. pad .. "\r\n0123456789"
+  local feed = server._reader(#raw, 64)
+  local what, req
+  local t0 = uv.hrtime()
+  for i = 1, #raw do
+    what, req = feed(raw:sub(i, i))
+    if what then
+      break
+    end
+  end
+  local ms = (uv.hrtime() - t0) / 1e6
+  eq(what, "done", "byte-wise: the request completes on its last byte")
+  eq(req.method, "POST", "byte-wise: method")
+  eq(req.body, "0123456789", "byte-wise: the body, split over ten reads")
+  eq(#req.headers["x-pad"], 990, "byte-wise: a header line split over many reads")
+  ok(
+    ms < 750,
+    ("byte-wise: %d KB of headers one byte at a time in %.0f ms"):format(#raw / 1024, ms)
+  )
+  -- the blank line split across two reads at every offset
+  for cut = 1, 4 do
+    local text = "GET /ping HTTP/1.1\r\nHost: h\r\n\r\n"
+    local f = server._reader(1024, 0)
+    local at = #text - 4 + cut
+    eq(f(text:sub(1, at - 1)), nil, ("split at %d: not done before the rest"):format(cut))
+    eq(f(text:sub(at)), "done", ("split at %d: done with the rest"):format(cut))
+  end
+  eq(server._reader(16, 0)(("x"):rep(17)), "drop", "a header block over max_header is dropped")
+  eq(server._reader(1024, 0)("NONSENSE\r\n\r\n"), "fail", "a malformed request line fails")
+
+  -- the same over a real socket: one byte per write, Nagle off so the writes are not merged on the way
+  do
+    local text = ("GET /ping HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n\r\n"):format(s.port)
+    local c = uv.new_tcp()
+    local answer, done = {}, false
+    c:connect("127.0.0.1", s.port, function(err)
+      if err then
+        done = true
+        return
+      end
+      c:nodelay(true)
+      c:read_start(function(rerr, chunk)
+        if rerr or not chunk then
+          done = true
+          return
+        end
+        answer[#answer + 1] = chunk
+      end)
+      for i = 1, #text do
+        c:write(text:sub(i, i))
+      end
+    end)
+    vim.wait(5000, function()
+      return done
+    end, 5)
+    if not c:is_closing() then
+      c:close()
+    end
+    eq(status(table.concat(answer)), 200, "a request written one byte at a time is served")
+  end
+
+  -- at most max_clients connections at once: one more is answered 503 and closed
+  do
+    local lim = assert(server.start({
+      max_clients = 2,
+      idle_ms = 5000,
+      routes = {
+        {
+          path = "/x",
+          handler = function()
+            return 200, "text/plain", "x"
+          end,
+        },
+      },
+    }))
+    local held = {}
+    for i = 1, 2 do
+      held[i] = uv.new_tcp()
+      held[i]:connect("127.0.0.1", lim.port, function(err)
+        if not err then
+          held[i]:write("GET /x HTTP/1.1\r\n") -- never finished: the connection stays open
+        end
+      end)
+    end
+    local function open_count()
+      local n = 0
+      for _ in pairs(lim._clients) do
+        n = n + 1
+      end
+      return n
+    end
+    vim.wait(2000, function()
+      return open_count() == 2
+    end, 5)
+    eq(open_count(), 2, "max_clients: two connections held open")
+    local request = ("GET /x HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n\r\n"):format(lim.port)
+    eq(
+      status(exchange(lim.port, request)),
+      503,
+      "max_clients: the third connection is answered 503"
+    )
+    for i = 1, 2 do
+      held[i]:close()
+    end
+    vim.wait(2000, function()
+      return open_count() == 0
+    end, 5)
+    eq(open_count(), 0, "max_clients: closed connections free their slots")
+    eq(status(exchange(lim.port, request)), 200, "max_clients: a free slot serves again")
+    lim.stop()
+  end
+
   -- start-time checks
   ok(not pcall(server.start, {
     routes = {

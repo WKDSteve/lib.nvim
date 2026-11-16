@@ -26,6 +26,7 @@
 ---@field max_header? integer default 65536
 ---@field max_body? integer default 1048576
 ---@field idle_ms? integer a client that has not finished its request is dropped after this long (default 10000)
+---@field max_clients? integer connections open at once; one more is answered 503 and closed (default 64)
 
 ---@class Lib.Net.Server.Handle
 ---@field port integer

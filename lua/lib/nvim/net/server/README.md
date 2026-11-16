@@ -31,7 +31,8 @@ local s, err = server.start({
 3. **`Host` header** must be `127.0.0.1:<port>` or `localhost:<port>` (403 otherwise): protection against DNS
    rebinding from a web page.
 4. **Bounded input:** header block 64 KB, body only for routes with `body` and up to `max_body` (413), a client
-   that stalls is dropped after `idle_ms` (408).
+   that stalls is dropped after `idle_ms` (408), and at most `max_clients` (default 64) connections are open at
+   once (one more gets a 503 and is closed).
 5. **`VimLeavePre` stops every server** (`server.stop_all()`); `s.stop()` stops one.
 
 Handlers run on the main loop; they return `status, content_type, body`. An error thrown in a handler is a 500

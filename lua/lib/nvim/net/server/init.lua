@@ -14,7 +14,8 @@
 --- 3. **The `Host` header must name the loopback address** (`127.0.0.1` or `localhost`, with this port): a web
 ---    page on another origin that makes the browser resolve its own name to 127.0.0.1 (DNS rebinding) is refused.
 --- 4. **Bounded input:** the header block is capped (default 64 KB), a body is read only for a route that allows
----    one and only up to `max_body` (default 1 MB), and a stalled client is dropped after `idle_ms`.
+---    one and only up to `max_body` (default 1 MB), a stalled client is dropped after `idle_ms`, and no more than
+---    `max_clients` (default 64) connections are open at once (one more is answered 503 and closed).
 --- 5. **The server dies with the editor:** `VimLeavePre` closes every socket (`server.stop_all()`).
 ---
 --- Handlers run on the main loop (`vim.schedule`), where `vim.system():wait()` and the rest of the editor API are
@@ -55,6 +56,7 @@ local STATUS = {
   [408] = "Request Timeout",
   [413] = "Payload Too Large",
   [500] = "Internal Server Error",
+  [503] = "Service Unavailable",
 }
 
 ---@param s string
@@ -286,12 +288,68 @@ local function dispatch(s, opts, client, req)
   respond(client, code, ctype or "application/json", out or "")
 end
 
+---@internal
+---Incremental reader for one request. Chunks are kept in a list and joined once (head) and once more (body),
+---and the blank line that ends the header block is searched only in the newest chunk plus the 3 bytes before it:
+---a client that sends one byte at a time costs linear, not quadratic, work.
+---
+---`feed(chunk)` returns nothing while more input is needed, `"drop"` to close without an answer (the header block
+---outgrew `max_header`), `"fail", code, message` to refuse, or `"done", req`.
+---@param max_header integer
+---@param max_body integer
+---@return fun(chunk: string): string|nil, any, string|nil
+function M._reader(max_header, max_body)
+  local parts, total = {}, 0
+  local tail = "" -- the last (up to) 3 bytes before the newest chunk, while the header block is open
+  local head_end, req
+  return function(chunk)
+    parts[#parts + 1] = chunk
+    total = total + #chunk
+    if not head_end then
+      local window = tail .. chunk
+      local pos = window:find("\r\n\r\n", 1, true)
+      if not pos then
+        if total > max_header then
+          return "drop"
+        end
+        tail = window:sub(-3)
+        return
+      end
+      head_end = total - #window + pos
+      if head_end > max_header then
+        return "drop"
+      end
+      local buf = table.concat(parts)
+      parts = { buf }
+      local head = buf:sub(1, head_end - 1)
+      local first, rest = head:match("^([^\r\n]*)\r?\n?(.*)$")
+      local method, target = first:match("^(%u+)%s+(%S+)%s+HTTP/1%.[01]$")
+      if not method then
+        return "fail", 400, "malformed request"
+      end
+      req = { method = method, target = target, headers = parse_headers(rest or ""), body = "" }
+      -- decimal digits only: `tonumber` would also take "0x10", "1e3" and "nan"
+      local cl = req.headers["content-length"] or "0"
+      req.want = cl:match("^%d+$") and tonumber(cl) or -1
+      if req.want < 0 then
+        return "fail", 400, "bad Content-Length"
+      end
+      if req.want > max_body then
+        return "fail", 413, "body too large"
+      end
+    end
+    if total - (head_end + 3) < req.want then
+      return -- wait for the rest of the body
+    end
+    req.body = table.concat(parts):sub(head_end + 4, head_end + 3 + req.want)
+    return "done", req
+  end
+end
+
 ---@param s Lib.Net.Server.Handle
 ---@param opts Lib.Net.Server.Opts
 ---@param client uv.uv_tcp_t
 local function on_connection(s, opts, client)
-  local buf = ""
-  local head_end, req
   local max_header = opts.max_header or 64 * 1024
   local max_body = opts.max_body or 1024 * 1024
   local timer = uv.new_timer()
@@ -324,59 +382,26 @@ local function on_connection(s, opts, client)
     end
   end)
 
+  local feed = M._reader(max_header, max_body)
   client:read_start(function(err, chunk)
     if err or not chunk then
       close()
       return
     end
-    buf = buf .. chunk
-    if not head_end then
-      head_end = buf:find("\r\n\r\n", 1, true)
-      if not head_end then
-        if #buf > max_header then
-          close()
-        end
-        return
-      end
-      if head_end > max_header then
-        close()
-        return
-      end
-      local head = buf:sub(1, head_end - 1)
-      local first, rest = head:match("^([^\r\n]*)\r?\n?(.*)$")
-      local method, target = first:match("^(%u+)%s+(%S+)%s+HTTP/1%.[01]$")
-      req = { method = method, target = target, headers = parse_headers(rest or ""), body = "" }
-      -- decimal digits only: `tonumber` would also take "0x10", "1e3" and "nan"
-      local cl = req.headers["content-length"] or "0"
-      req.want = cl:match("^%d+$") and tonumber(cl) or -1
-    end
-    if not req.method then
+    local what, a, b = feed(chunk)
+    if what == "drop" then
+      close()
+    elseif what == "fail" then
       done_reading()
       vim.schedule(function()
-        fail(client, 400, "malformed request")
+        fail(client, a, b)
       end)
-      return
-    end
-    if req.want < 0 or req.want > max_body then
+    elseif what == "done" then
       done_reading()
       vim.schedule(function()
-        fail(
-          client,
-          req.want < 0 and 400 or 413,
-          req.want < 0 and "bad Content-Length" or "body too large"
-        )
+        dispatch(s, opts, client, a)
       end)
-      return
     end
-    local have = #buf - (head_end + 3)
-    if have < req.want then
-      return -- wait for the rest of the body
-    end
-    req.body = buf:sub(head_end + 4, head_end + 3 + req.want)
-    done_reading()
-    vim.schedule(function()
-      dispatch(s, opts, client, req)
-    end)
   end)
 end
 
@@ -419,6 +444,7 @@ function M.start(opts)
     server:close()
     return nil, "cannot bind 127.0.0.1: the socket has no address (port taken?)"
   end
+  local max_clients = opts.max_clients or 64
   local handle = { port = addr.port, name = opts.name or "server", _server = server, _clients = {} }
   handle.url = ("http://127.0.0.1:%d/"):format(handle.port)
 
@@ -428,8 +454,41 @@ function M.start(opts)
     end
     local client = uv.new_tcp()
     server:accept(client)
+    local open = 0
+    for _ in pairs(handle._clients) do
+      open = open + 1
+    end
     handle._clients[client] = true
     owners[client] = handle
+    if open >= max_clients then
+      -- over the limit: answer 503 at once, without parsing the request. The request bytes are read and
+      -- discarded and the socket is half-closed first: closing it with unread input sends a reset, and a
+      -- reset can throw the 503 away on the client's side before it is read. The connection goes when the
+      -- client hangs up, or after a short grace period.
+      local grace = uv.new_timer()
+      local function gone()
+        if not grace:is_closing() then
+          grace:stop()
+          grace:close()
+        end
+        close_client(client)
+      end
+      grace:start(1000, 0, gone)
+      client:read_start(function(rerr, chunk)
+        if rerr or not chunk then
+          gone()
+        end
+      end)
+      client:write(
+        "HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+        function()
+          if not client:is_closing() then
+            client:shutdown()
+          end
+        end
+      )
+      return
+    end
     on_connection(handle, opts, client)
   end)
   if not listened then
