@@ -181,6 +181,42 @@ return function(H)
   local stalled = exchange(s.port, ("GET /ping HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n"):format(s.port))
   eq(status(stalled), 408, "a client that never finishes its headers gets a 408")
 
+  -- Content-Length is decimal digits only: `tonumber` would also take hex and exponents
+  a = exchange(
+    s.port,
+    ("POST /note HTTP/1.1\r\nHost: 127.0.0.1:%d\r\nContent-Length: 0x3\r\n\r\n[1]"):format(s.port)
+  )
+  eq(status(a), 400, "a hex Content-Length is a 400")
+  a = exchange(
+    s.port,
+    ("POST /note HTTP/1.1\r\nHost: 127.0.0.1:%d\r\nContent-Length: 3e0\r\n\r\n[1]"):format(s.port)
+  )
+  eq(status(a), 400, "an exponent Content-Length is a 400")
+
+  -- a finished request leaves no timer and no client entry behind
+  local function timers()
+    local n = 0
+    uv.walk(function(h)
+      if h:get_type() == "timer" and not h:is_closing() then
+        n = n + 1
+      end
+    end)
+    return n
+  end
+  vim.wait(50)
+  local timers_before = timers()
+  for _ = 1, 10 do
+    get(s, "/ping")
+  end
+  exchange(s.port, "NONSENSE\r\n\r\n")
+  exchange(
+    s.port,
+    ("POST /note HTTP/1.1\r\nHost: 127.0.0.1:%d\r\nContent-Length: 100\r\n\r\n"):format(s.port)
+  )
+  vim.wait(50)
+  eq(timers(), timers_before, "answered requests leave no live timer behind")
+  eq(next(s._clients), nil, "answered requests leave no client entry behind")
+
   -- start-time checks
   ok(not pcall(server.start, {
     routes = {

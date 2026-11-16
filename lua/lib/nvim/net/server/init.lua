@@ -124,6 +124,22 @@ local function split_target(target)
   return path, query
 end
 
+-- client -> the handle whose `_clients` set holds it; weak so a dropped client is never kept alive
+local owners = setmetatable({}, { __mode = "k" })
+
+---Close a client connection and take it out of its server's `_clients` set.
+---@param client uv.uv_tcp_t
+local function close_client(client)
+  if not client:is_closing() then
+    client:close()
+  end
+  local owner = owners[client]
+  if owner then
+    owner._clients[client] = nil
+    owners[client] = nil
+  end
+end
+
 ---@param client uv.uv_tcp_t
 ---@param code integer
 ---@param ctype string
@@ -144,9 +160,7 @@ local function respond(client, code, ctype, body)
     "",
   }, "\r\n")
   client:write(head .. body, function()
-    if not client:is_closing() then
-      client:close()
-    end
+    close_client(client)
   end)
 end
 
@@ -281,14 +295,21 @@ local function on_connection(s, opts, client)
   local max_header = opts.max_header or 64 * 1024
   local max_body = opts.max_body or 1024 * 1024
   local timer = uv.new_timer()
-  local function close()
-    if timer and not timer:is_closing() then
+  -- the request is read (or refused): the idle timer has done its job, and a
+  -- merely stopped timer is a live libuv handle that is never collected
+  local function done_reading()
+    client:read_stop()
+    if not timer:is_closing() then
       timer:stop()
       timer:close()
     end
-    if not client:is_closing() then
-      client:close()
+  end
+  local function close()
+    if not timer:is_closing() then
+      timer:stop()
+      timer:close()
     end
+    close_client(client)
   end
   timer:start(opts.idle_ms or 10000, 0, function()
     if not client:is_closing() then
@@ -298,6 +319,8 @@ local function on_connection(s, opts, client)
           close()
         end
       )
+    else
+      close() -- the server stopped and closed the client: the timer still needs closing
     end
   end)
 
@@ -323,19 +346,19 @@ local function on_connection(s, opts, client)
       local first, rest = head:match("^([^\r\n]*)\r?\n?(.*)$")
       local method, target = first:match("^(%u+)%s+(%S+)%s+HTTP/1%.[01]$")
       req = { method = method, target = target, headers = parse_headers(rest or ""), body = "" }
-      req.want = tonumber(req.headers["content-length"] or "0") or -1
+      -- decimal digits only: `tonumber` would also take "0x10", "1e3" and "nan"
+      local cl = req.headers["content-length"] or "0"
+      req.want = cl:match("^%d+$") and tonumber(cl) or -1
     end
     if not req.method then
-      client:read_stop()
-      timer:stop()
+      done_reading()
       vim.schedule(function()
         fail(client, 400, "malformed request")
       end)
       return
     end
     if req.want < 0 or req.want > max_body then
-      client:read_stop()
-      timer:stop()
+      done_reading()
       vim.schedule(function()
         fail(
           client,
@@ -350,8 +373,7 @@ local function on_connection(s, opts, client)
       return -- wait for the rest of the body
     end
     req.body = buf:sub(head_end + 4, head_end + 3 + req.want)
-    client:read_stop()
-    timer:stop()
+    done_reading()
     vim.schedule(function()
       dispatch(s, opts, client, req)
     end)
@@ -407,6 +429,7 @@ function M.start(opts)
     local client = uv.new_tcp()
     server:accept(client)
     handle._clients[client] = true
+    owners[client] = handle
     on_connection(handle, opts, client)
   end)
   if not listened then
