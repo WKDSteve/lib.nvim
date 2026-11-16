@@ -110,6 +110,21 @@ return function(H)
       "DeletionDate=2026-02-01T10:00:00",
     }, base .. "/Trash/info/restore me.2.txt.trashinfo")
 
+    -- a dangling symlink at the destination counts as taken: `fs_stat` sees nothing there, and
+    -- `fs_rename` would silently replace the link
+    local link_ok = vim.uv.fs_symlink(dir .. "/no such target", f)
+    if link_ok then
+      local l_ok, l_err = trash.restore_blocking(f)
+      eq(l_ok, false, "xdg restore: a dangling symlink at the destination is refused")
+      ok(tostring(l_err):find("exists"), "xdg restore: ...as existing: " .. tostring(l_err))
+      eq(vim.uv.fs_readlink(f), dir .. "/no such target", "xdg restore: the symlink is left alone")
+      ok(
+        vim.uv.fs_stat(base .. "/Trash/files/restore me.2.txt"),
+        "xdg restore: the trashed file stays in the trash"
+      )
+      vim.uv.fs_unlink(f)
+    end
+
     local r_ok, r_err = trash.restore_blocking(f)
     vim.env.XDG_DATA_HOME = saved
     ok(r_ok, "xdg restore: " .. tostring(r_err))

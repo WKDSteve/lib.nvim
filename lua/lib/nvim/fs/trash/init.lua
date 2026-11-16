@@ -308,7 +308,9 @@ local function xdg_restore_blocking(path)
   if not best then
     return false, "not in the trash: " .. path
   end
-  if uv.fs_stat(path) then
+  -- lstat, not stat: a dangling symlink at `path` stats as missing, and fs_rename would silently replace it.
+  -- A window between this check and the rename remains (libuv has no rename-without-replace).
+  if uv.fs_lstat(path) then
     return false, "destination exists: " .. path
   end
   local ok, err = uv.fs_rename(files_dir .. "/" .. best, path)
