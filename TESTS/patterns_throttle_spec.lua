@@ -2,23 +2,64 @@
 return function(H)
   local eq, ok = H.eq, H.ok
   local throttle = require("lib.nvim.patterns.throttle")
+  local uv = vim.uv or vim.loop
+
+  -- Waits below wait for a state, never for a fixed time: under load (parallel suites, BelowNormal
+  -- priority) a 40 ms pause can end far later than 40 ms. The generous ceiling only bounds a hang.
+  local CEILING = 5000
+
+  -- Records every pause timer the throttle opens (it calls `uv.new_timer()` at call time), so a
+  -- spec can wait until the pause is really over: the throttle closes its timer when the pause ends.
+  local function track_timers(body)
+    local made = {}
+    local real = uv.new_timer
+    uv.new_timer = function(...)
+      local h = real(...)
+      made[#made + 1] = h
+      return h
+    end
+    local okb, err = pcall(body, made)
+    uv.new_timer = real
+    if not okb then
+      error(err, 0)
+    end
+  end
+
+  local function all_closed(made)
+    for _, h in ipairs(made) do
+      if not h:is_closing() then
+        return false
+      end
+    end
+    return true
+  end
 
   -- leading + trailing: first call at once, burst collapses into one trailing call with the latest args
   local seen = {}
   local t = throttle.new(function(x)
     seen[#seen + 1] = x
   end, 40)
-  t.call(1)
-  eq(#seen, 1, "leading: first call runs at once")
-  t.call(2)
-  t.call(3)
-  eq(#seen, 1, "calls during the pause are held")
-  vim.wait(300, function()
-    return #seen >= 2
-  end)
-  eq(table.concat(seen, ","), "1,3", "trailing: latest arguments run after the pause")
-  vim.wait(120, function()
-    return false
+  track_timers(function(made)
+    t.call(1)
+    eq(#seen, 1, "leading: first call runs at once")
+    t.call(2)
+    t.call(3)
+    eq(#seen, 1, "calls during the pause are held")
+    ok(
+      vim.wait(CEILING, function()
+        return #seen >= 2
+      end),
+      "trailing call ran"
+    )
+    eq(table.concat(seen, ","), "1,3", "trailing: latest arguments run after the pause")
+    -- the trailing call opened a second pause; wait until it has ended (timer closed)
+    ok(#made >= 2, "the trailing call opened a pause of its own")
+    ok(
+      vim.wait(CEILING, function()
+        return all_closed(made)
+      end),
+      "the pause after the trailing call ends"
+    )
   end)
   t.call(4)
   eq(seen[#seen], 4, "after a quiet period the next call is leading again")
@@ -45,7 +86,7 @@ return function(H)
   r.call("a")
   r.call("b")
   eq(#trail, 0, "leading=false: nothing at once")
-  vim.wait(300, function()
+  vim.wait(CEILING, function()
     return #trail >= 1
   end)
   eq(table.concat(trail, ","), "b", "leading=false: latest runs after the pause")
