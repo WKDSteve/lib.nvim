@@ -93,11 +93,18 @@ end
 ---@param e Lib.Tree.Entry
 local function compute_agg(self, e)
   local aggs = {}
+  -- how many children carry each aggregate status: lets `shift_agg` find the worst one without a rescan
+  local kid_status = {}
   if e.kids then
     for _, kid in ipairs(e.kids) do
-      aggs[#aggs + 1] = self._by_id[kid].agg
+      local a = self._by_id[kid].agg
+      aggs[#aggs + 1] = a
+      if a.status ~= nil then
+        kid_status[a.status] = (kid_status[a.status] or 0) + 1
+      end
     end
   end
+  e.kid_status = kid_status
   local default = default_aggregate(self, e.node, aggs)
   if self._aggregate then
     local ok, custom = pcall(self._aggregate, e.node, aggs, default)
@@ -285,6 +292,55 @@ local function refresh_subtree(self, e, changes)
   changes[#changes + 1] = { from = r, old_count = old_n, new_count = #fresh }
 end
 
+---Update the default aggregate of `e` for one child whose aggregate went from `old` to `new`, without visiting the
+---other children: counts and total move by the difference, the status comes from `e.kid_status`. Rescanning every
+---child on each push made N status pushes under one folder O(N²) (20 000 tests: minutes).
+---Returns false where only a full `compute_agg` gives the right answer: a custom `aggregate`, no bookkeeping, or
+---two different statuses tied for worst (the full scan picks the first child's, which is order dependent).
+---@param self Lib.Tree
+---@param e Lib.Tree.Entry
+---@param old Lib.Tree.Agg
+---@param new Lib.Tree.Agg
+---@return boolean done
+local function shift_agg(self, e, old, new)
+  local ks = e.kid_status
+  if self._aggregate or not ks or not e.kids or #e.kids == 0 or not e.agg then
+    return false
+  end
+  if old.status ~= nil then
+    local n = (ks[old.status] or 0) - 1
+    ks[old.status] = n > 0 and n or nil
+  end
+  if new.status ~= nil then
+    ks[new.status] = (ks[new.status] or 0) + 1
+  end
+  local worst, worst_rank, tied = nil, -1, false
+  for st in pairs(ks) do
+    local r = rank_of(self, st)
+    if r > worst_rank then
+      worst, worst_rank, tied = st, r, false
+    elseif r == worst_rank then
+      tied = true
+    end
+  end
+  if tied then
+    return false -- compute_agg rebuilds `kid_status` from scratch, so the half-updated table above does no harm
+  end
+  local counts = {}
+  for st, n in pairs(e.agg.counts) do
+    counts[st] = n
+  end
+  for st, n in pairs(old.counts) do
+    local left = (counts[st] or 0) - n
+    counts[st] = left > 0 and left or nil
+  end
+  for st, n in pairs(new.counts) do
+    counts[st] = (counts[st] or 0) + n
+  end
+  e.agg = { status = worst, counts = counts, total = e.agg.total - old.total + new.total }
+  return true
+end
+
 ---Rebuild the aggregate of `e` and then of its ancestors, stopping at the first one that did not change.
 ---Visible rows of the changed ancestors come back as 1:1 splices.
 ---@param self Lib.Tree
@@ -292,9 +348,12 @@ end
 ---@param changes Lib.Tree.Splice[]
 local function propagate(self, e, changes)
   local cur = e
+  local kid_before, kid_after ---@type Lib.Tree.Agg|nil, Lib.Tree.Agg|nil
   while cur do
     local before = cur.agg
-    compute_agg(self, cur)
+    if not (kid_before and shift_agg(self, cur, kid_before, kid_after)) then
+      compute_agg(self, cur)
+    end
     local r = self._row_of[cur.id]
     if r and cur ~= e then
       if not agg_equal(before, cur.agg) then
@@ -305,6 +364,7 @@ local function propagate(self, e, changes)
     if cur ~= e and agg_equal(before, cur.agg) then
       break
     end
+    kid_before, kid_after = before, cur.agg
     cur = cur.parent and self._by_id[cur.parent] or nil
   end
 end

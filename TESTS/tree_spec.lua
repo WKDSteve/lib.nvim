@@ -499,4 +499,52 @@ return function(H)
     ok(ran, "a late answer for a replaced node does not raise: " .. tostring(err))
     eq(lt:count(), rows, "a late answer for a replaced node changes no rows")
   end
+
+  -- --------------------------------- status pushes on many siblings
+  -- One push used to rebuild the parent's aggregate over every sibling, so N
+  -- pushes under one folder were O(N^2) (20 000 tests: minutes). The parent is
+  -- now moved by the difference; the result must equal a fresh build.
+  do
+    local K = 10000
+    local kids = {}
+    for i = 1, K do
+      kids[i] = { id = i, status = "pending" }
+    end
+    local siblings = tree.new({
+      root = {
+        id = "r",
+        children = { { id = "f", children = kids }, { id = "g", status = "skipped" } },
+      },
+      expanded = { f = true },
+    })
+    local final = {}
+    local s = vim.uv.hrtime()
+    for i = 1, K do
+      local st = (i % 3 == 0) and "failed" or ((i % 3 == 1) and "passed" or "pending")
+      final[i] = { id = i, status = st }
+      siblings:push({ id = i, status = st })
+    end
+    local ms = (vim.uv.hrtime() - s) / 1e6
+    ok(ms < 2000, ("10k status pushes under one folder: %.0f ms"):format(ms))
+    local fresh = tree.new({
+      root = {
+        id = "r",
+        children = { { id = "f", children = final }, { id = "g", status = "skipped" } },
+      },
+    })
+    ok(
+      vim.deep_equal(siblings:agg("f"), fresh:agg("f")),
+      "the folder aggregate after the pushes equals a fresh build"
+    )
+    ok(
+      vim.deep_equal(siblings:agg("r"), fresh:agg("r")),
+      "the root aggregate after the pushes equals a fresh build"
+    )
+    -- back to all passed: the worst status falls back as the failures go
+    for i = 1, K do
+      siblings:push({ id = i, status = "passed" })
+    end
+    eq(siblings:agg("f").status, "passed", "with every failure gone the folder is passed again")
+    ok(vim.deep_equal(siblings:agg("f").counts, { passed = K }), "...and counts only passed")
+  end
 end

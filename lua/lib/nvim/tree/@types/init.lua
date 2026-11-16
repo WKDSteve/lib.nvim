@@ -68,6 +68,7 @@
 ---@field err? string
 ---@field asked? integer counts the reloads of the node: only the answer to the newest one is taken
 ---@field agg Lib.Tree.Agg
+---@field kid_status? table<string, integer> children per aggregate status (default rule only; internal)
 
 ---@class Lib.Tree
 ---@field _by_id table<any, Lib.Tree.Entry>
