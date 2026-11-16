@@ -108,6 +108,7 @@ lib.nvim is released under the [MIT License](https://opensource.org/licenses/MIT
 **Uses**
 
 - [docmap.nvim](https://github.com/WKDSteve/docmap.nvim): A developer tool of lib.nvim (`pattern_usage`) reads a module map that docmap.nvim made (`docmap.core.artifact`). ([picture](assets/graphs/pair/lib.nvim--docmap.nvim.png))
+- [filetree.nvim](https://github.com/WKDSteve/filetree.nvim): When the popup kit of lib.nvim creates a missing file, it reveals the new file in filetree.nvim, if filetree.nvim is loaded and set up. ([picture](assets/graphs/pair/lib.nvim--filetree.nvim.png))
 - [images.nvim](https://github.com/WKDSteve/images.nvim): The image preview of lib.nvim (`image_preview`) detects images.nvim as its provider. ([picture](assets/graphs/pair/lib.nvim--images.nvim.png))
 - [runtime-analysis.nvim](https://github.com/WKDSteve/runtime-analysis.nvim): The telemetry wrapper of lib.nvim (`strategies.telemetry_wrap`) reports to runtime-analysis.nvim (`runtime-analysis.telemetry`). ([picture](assets/graphs/pair/lib.nvim--runtime-analysis.nvim.png))
 - [tasks-desktop](https://github.com/WKDSteve/tasks-desktop): The data classes of lib.nvim come from `areas.json` in the config folder of tasks-desktop: the same file and schema tasks-hub reads. ([picture](assets/graphs/pair/lib.nvim--tasks-desktop.png))
