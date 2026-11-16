@@ -5,9 +5,11 @@
 --- Generalized from `diff.nvim` (`core/render.lua`: `three_way`, `side_by_side`). Neovim's diffmode already diffs
 --- three or more windows against each other; what is needed is the layout and the discipline around it:
 ---
---- * **`'diff'` is set window-locally.** `vim.wo[win].diff = v` behaves like `:set`: it also writes the *global*
----   value, which every window opened afterwards inherits, so the next `:tabnew` would sit in diffmode long after
----   the diff. `set()` writes with `scope = "local"`.
+--- * **`'diff'` is set window-locally**, together with what `:diffthis` sets around it (`scrollbind`, `cursorbind`,
+---   `foldmethod=diff`, `foldenable`, `nowrap`); turning it off puts those back like `:diffoff`.
+---   `vim.wo[win].diff = v` behaves like `:set`: it also writes the *global* value, which every window opened
+---   afterwards inherits, so the next `:tabnew` would sit in diffmode long after the diff. `set()` writes with
+---   `scope = "local"`.
 --- * **A split that failed is not trusted.** `:split | buffer N` can abort half way (E36, or E86 for a wiped
 ---   buffer); the current window then shows something else, and enabling diffmode on *that* shows the wrong
 ---   content. Every new window's buffer is verified, and a failure unwinds everything this call opened.
@@ -29,12 +31,56 @@ local api = vim.api
 
 local M = {}
 
----Turn `'diff'` on or off for `win`, window-locally. An invalid window is ignored: callers are cleanup loops and
----render paths where a window may have been closed in the meantime.
+-- What `:diffthis` sets besides `'diff'`, and the value it sets. All window-local.
+local BOUND = {
+  { "scrollbind", true },
+  { "cursorbind", true },
+  { "foldmethod", "diff" },
+  { "foldenable", true },
+  { "wrap", false },
+}
+
+-- win -> the values of BOUND before `set(win, true)`, put back by `set(win, false)` (like `:diffoff`)
+local saved = {}
+
+---Turn diffmode on or off for `win`, window-locally, the way `:diffthis` / `:diffoff` do: on also sets
+---`'scrollbind'`, `'cursorbind'`, `'foldmethod'=diff`, `'foldenable'` and `'nowrap'` (the panes scroll together and
+---unchanged text folds away), off puts back the values the window had before. A second `set(win, true)` keeps the
+---first saved values. An invalid window is ignored: callers are cleanup loops and render paths where a window may
+---have been closed in the meantime.
 ---@param win integer
 ---@param on boolean
 function M.set(win, on)
-  pcall(api.nvim_set_option_value, "diff", on, { win = win, scope = "local" })
+  for w in pairs(saved) do
+    if not api.nvim_win_is_valid(w) then
+      saved[w] = nil
+    end
+  end
+  if type(win) ~= "number" or not api.nvim_win_is_valid(win) then
+    return
+  end
+  local wo = { win = win, scope = "local" }
+  if on then
+    if not saved[win] then
+      local before = {}
+      for _, o in ipairs(BOUND) do
+        before[o[1]] = api.nvim_get_option_value(o[1], wo)
+      end
+      saved[win] = before
+    end
+    for _, o in ipairs(BOUND) do
+      pcall(api.nvim_set_option_value, o[1], o[2], wo)
+    end
+  else
+    local before = saved[win]
+    saved[win] = nil
+    if before then
+      for _, o in ipairs(BOUND) do
+        pcall(api.nvim_set_option_value, o[1], before[o[1]], wo)
+      end
+    end
+  end
+  pcall(api.nvim_set_option_value, "diff", on, wo)
 end
 
 ---@param win integer|nil

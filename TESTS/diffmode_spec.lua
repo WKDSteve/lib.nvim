@@ -84,6 +84,36 @@ return function(H)
   vim.api.nvim_set_current_tabpage(start_tab)
   vim.cmd("silent! tabonly")
 
+  -- what :diffthis sets besides 'diff', and :diffoff puts back
+  local origin = vim.api.nvim_get_current_win()
+  vim.api.nvim_win_set_buf(origin, a)
+  local wo = { scope = "local" }
+  wo.win = origin
+  vim.api.nvim_set_option_value("foldmethod", "indent", wo)
+  vim.api.nvim_set_option_value("wrap", true, wo)
+  vim.api.nvim_set_option_value("scrollbind", false, wo)
+  res = assert(dm.open_n_way({ a, b }, "vsplit", { origin_win = origin }))
+  for _, w in ipairs(res.windows) do
+    local o = vim.wo[w]
+    ok(o.scrollbind, "diff windows scroll together")
+    ok(o.cursorbind, "diff windows move the cursor together")
+    eq(o.foldmethod, "diff", "unchanged text folds away")
+    ok(o.foldenable, "folding is on")
+    eq(o.wrap, false, "no wrap, so the lines stay aligned")
+  end
+  dm.set(origin, true) -- a second set must not take the diff values as the ones to restore
+  dm.close(res)
+  eq(vim.wo[origin].diff, false, "the origin window is out of diffmode")
+  eq(vim.wo[origin].scrollbind, false, "its scrollbind is back")
+  eq(vim.wo[origin].cursorbind, false, "its cursorbind is back")
+  eq(vim.wo[origin].foldmethod, "indent", "its foldmethod is back")
+  eq(vim.wo[origin].wrap, true, "its wrap is back")
+  -- the global values stay untouched, so the next window starts plain
+  vim.cmd("vsplit")
+  local plain = vim.api.nvim_get_current_win()
+  eq(vim.wo[plain].scrollbind, false, "a new window does not inherit scrollbind")
+  vim.api.nvim_win_close(plain, true)
+
   dm.close(nil) -- nothing to do, no error
   for _, x in ipairs({ a, b, c, d, e }) do
     pcall(vim.api.nvim_buf_delete, x, { force = true })

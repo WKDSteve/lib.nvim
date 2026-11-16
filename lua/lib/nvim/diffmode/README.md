@@ -16,6 +16,9 @@ dm.close(res)  -- diff off everywhere, closes res.opened
   opened" cannot close the user's window. Without it, `bufs[1]` gets its own window.
 - `'diff'` is set **window-locally** (`dm.set(win, on)`): `vim.wo[win].diff = v` also writes the global value,
   and every window opened afterwards inherits it.
+- `dm.set(win, true)` also sets what `:diffthis` sets around `'diff'`: `scrollbind`, `cursorbind`,
+  `foldmethod=diff`, `foldenable` and `nowrap`, so the panes scroll together and unchanged text folds away.
+  `dm.set(win, false)` puts back the values the window had before, like `:diffoff`.
 - A split that fails (E36, E86 for a wiped buffer) is detected by checking the new window's buffer; everything
   this call opened is closed again and the answer is `nil, err`. Diffmode is never enabled on the wrong window.
 
