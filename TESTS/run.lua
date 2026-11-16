@@ -95,6 +95,7 @@ local specs = {
   "autocmd_docs_spec.lua",
   "usercmd_registry_spec.lua",
   "bindings_audit_spec.lua",
+  "bindings_checklist_points_spec.lua",
   "keymap_portability_spec.lua",
   "keymap_tap_spec.lua",
   "keymap_runtime_spec.lua",
