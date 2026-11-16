@@ -77,8 +77,26 @@ return function(H)
       assert(not listen_err, listen_err)
       local client = assert(uv.new_tcp())
       server:accept(client)
+      local answered = false
       client:read_start(function(_, chunk)
         captured.data = (captured.data or "") .. (chunk or "")
+        if answered then
+          return
+        end
+        -- answer only once the whole request is in: answering after the first segment lets
+        -- curl stop before it sends a body that comes in a later one (seen on CI)
+        local data = captured.data
+        local head_end = data:find("\r\n\r\n", 1, true)
+        if chunk and not head_end then
+          return
+        end
+        local want = head_end
+            and tonumber(data:sub(1, head_end):lower():match("\ncontent%-length:%s*(%d+)"))
+          or 0
+        if chunk and head_end and #data - (head_end + 3) < want then
+          return
+        end
+        answered = true
         client:write(response)
         client:shutdown(function()
           client:close()
