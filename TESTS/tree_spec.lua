@@ -448,4 +448,55 @@ return function(H)
     best = math.min(best, (vim.uv.hrtime() - s) / 1e6)
   end
   ok(best < 5, ("a one-node update in 1.5k nodes: %.2f ms"):format(best))
+
+  -- ------------------------------------- a late lazy answer for a stale node
+  -- The loader answers after its node was removed, or after the parent was
+  -- re-read and the id now belongs to a fresh entry: the answer must be
+  -- dropped, not grafted onto the dead entry (nor raise a duplicate id).
+  do
+    local late
+    local lt = tree.new({
+      root = {
+        id = "r",
+        children = {
+          {
+            id = "a",
+            children = function(_, cb)
+              late = cb
+            end,
+          },
+        },
+      },
+    })
+    lt:expand("a")
+    lt:remove("a")
+    local size = lt:size()
+    local ran = pcall(late, { { id = "x" }, { id = "y" } })
+    ok(ran, "a late answer for a removed node does not raise")
+    eq(lt:size(), size, "a late answer for a removed node adds no nodes")
+    eq(lt:node("x"), nil, "a late answer for a removed node registers no child")
+  end
+  do
+    local late
+    local lt = tree.new({
+      root = {
+        id = "r",
+        children = {
+          {
+            id = "a",
+            children = function(_, cb)
+              late = cb
+            end,
+          },
+        },
+      },
+    })
+    lt:expand("a")
+    lt:set_children("r", { { id = "a", children = { { id = "x" } } } })
+    lt:expand("a")
+    local rows = lt:count()
+    local ran, err = pcall(late, { { id = "x" } })
+    ok(ran, "a late answer for a replaced node does not raise: " .. tostring(err))
+    eq(lt:count(), rows, "a late answer for a replaced node changes no rows")
+  end
 end

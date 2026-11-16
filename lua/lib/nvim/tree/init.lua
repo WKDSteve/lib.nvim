@@ -417,7 +417,9 @@ end
 ---@param changes Lib.Tree.Splice[]
 ---@param async boolean  true when called back later: report through `on_change`
 local function finish_load(self, e, list, err, changes, async)
-  if e.state ~= "loading" then
+  -- `self._by_id[e.id] ~= e`: the node was removed, or its parent re-read and
+  -- the id now names a fresh entry. A late answer belongs to neither.
+  if e.state ~= "loading" or self._by_id[e.id] ~= e then
     return
   end
   if err ~= nil or type(list) ~= "table" then
