@@ -87,25 +87,31 @@ return function(H)
   -- After a `:cd` a plain name still finds its scratch buffer (Neovim keeps
   -- its short name), and the lookup neither creates a buffer nor fires
   -- BufNew/BufAdd (the full-name probe goes through `bufadd()`).
+  -- `:only` runs before the counting starts: closing windows left by
+  -- earlier specs of the shared run wipes their `bufhidden=wipe` buffers.
   local cwd = vim.fn.getcwd()
-  local events = 0
+  vim.cmd("silent! only")
+  local count = #api.nvim_list_bufs()
+  local events = {}
   local au = api.nvim_create_autocmd({ "BufNew", "BufAdd", "BufWipeout", "OptionSet" }, {
     callback = function(ev)
       if ev.event ~= "OptionSet" or ev.match == "eventignore" then
-        events = events + 1
+        events[#events + 1] = ev.event .. ":" .. ev.match
       end
     end,
   })
-  local count = #api.nvim_list_bufs()
-  vim.cmd("silent! only")
   eq(open("lib-ons-spec[1].txt", { "rel3" }), rel, "found again without new buffers")
   vim.cmd.cd(vim.fn.fnameescape(vim.fn.fnamemodify(cwd, ":h")))
-  local after_cd = o("lib-ons-spec[1].txt", { "rel4" })
+  local after_cd = open("lib-ons-spec[1].txt", { "rel4" })
   vim.cmd.cd(vim.fn.fnameescape(cwd))
   api.nvim_del_autocmd(au)
   eq(after_cd, rel, "a plain name finds its buffer after :cd")
   eq(#api.nvim_list_bufs(), count, "the lookup creates no buffer")
-  eq(events, 0, "the lookup fires no BufNew/BufAdd/BufWipeout and no OptionSet for eventignore")
+  eq(
+    table.concat(events, ","),
+    "",
+    "the lookup fires no BufNew/BufAdd/BufWipeout and no OptionSet for eventignore"
+  )
   eq(vim.bo[rel].buftype, "nofile", "the found buffer is still the scratch buffer")
 
   -- A leading `~` stays a folder name below the cwd, as Neovim stores it.
