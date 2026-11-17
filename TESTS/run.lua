@@ -134,6 +134,7 @@ local specs = {
   "spawn_env_spec.lua",
   "async_spec.lua",
   "async_walk_spec.lua",
+  "collect_skip_spec.lua",
   "async_map_limit_spec.lua",
   "wslpath_spec.lua",
   "system_job_spec.lua",

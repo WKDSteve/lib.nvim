@@ -14,12 +14,11 @@ local collect_recursive = require("lib.nvim.fs.collect_recursive")
 -- Everything (files + directories)
 local all = collect_recursive.collect("/repo")
 
--- Files only, skipping .git and node_modules subtrees entirely
-local files = collect_recursive.files("/repo", {
-  ignore = function(abs_path, is_dir)
-    return is_dir and (abs_path:match("/%.git$") ~= nil or abs_path:match("/node_modules$") ~= nil)
-  end,
-})
+-- Files only, skipping the folders of lib.nvim.fs.ignore.list (.git, node_modules, .claude, target, ...)
+local files = collect_recursive.files("/repo", { ignore = collect_recursive.skip() })
+
+-- What globpath("/repo", "**/*.md") shows (no dot entries), minus those folders, and much faster
+local md = collect_recursive.files_with_ext("/repo", { "md" })
 
 -- Directories only
 local dirs = collect_recursive.dirs("/repo")
@@ -39,6 +38,15 @@ end)
 | `M.collect(root, opts)` | `string[], string[]?` | Absolute paths matching `opts.kind` (default `"all"`), plus `errors` |
 | `M.files(root, opts)`   | `string[], string[]?` | Shorthand for `collect` with `kind = "files"`         |
 | `M.dirs(root, opts)`    | `string[], string[]?` | Shorthand for `collect` with `kind = "dirs"`          |
+| `M.files_with_ext(root, exts, skip_opts)` | `string[], string[]?` | Files whose extension is one of `exts` (case-insensitive), walked with `skip(skip_opts)` (default `{ hidden = false }`) |
+| `M.skip(opts)` | `fun(abs_path, is_dir): boolean` | An `ignore` predicate: skips the folders named in `opts.dirs` (default `lib.nvim.fs.ignore.list.basenames`), and with `hidden = false` every dot entry |
+
+## Instead of `globpath(root, "**/*.ext")`
+
+`globpath` shows no dot entries but walks into `node_modules`, and it is slow on Windows. Measured
+2026-11-17 (STEVESPC): `**/*.md` took 1.1 s on lib.nvim and 7.3 s on a vault of 7 000 files (one run 49 s);
+this walker with `skip()` took 75 and 400 ms for every file. `files_with_ext(root, { "md" })` returns what
+`globpath` returns, minus the skipped folders (`TESTS/collect_skip_spec.lua` compares both).
 
 `errors` is `nil` when every directory could be read. Otherwise it holds one
 `"<dir>: <reason>"` entry per directory `fs_scandir` refused — the root
