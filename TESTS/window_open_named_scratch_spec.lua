@@ -89,9 +89,11 @@ return function(H)
   -- BufNew/BufAdd (the full-name probe goes through `bufadd()`).
   local cwd = vim.fn.getcwd()
   local events = 0
-  local au = api.nvim_create_autocmd({ "BufNew", "BufAdd", "BufWipeout" }, {
-    callback = function()
-      events = events + 1
+  local au = api.nvim_create_autocmd({ "BufNew", "BufAdd", "BufWipeout", "OptionSet" }, {
+    callback = function(ev)
+      if ev.event ~= "OptionSet" or ev.match == "eventignore" then
+        events = events + 1
+      end
     end,
   })
   local count = #api.nvim_list_bufs()
@@ -103,7 +105,7 @@ return function(H)
   api.nvim_del_autocmd(au)
   eq(after_cd, rel, "a plain name finds its buffer after :cd")
   eq(#api.nvim_list_bufs(), count, "the lookup creates no buffer")
-  eq(events, 0, "the lookup fires no BufNew/BufAdd/BufWipeout")
+  eq(events, 0, "the lookup fires no BufNew/BufAdd/BufWipeout and no OptionSet for eventignore")
   eq(vim.bo[rel].buftype, "nofile", "the found buffer is still the scratch buffer")
 
   -- A leading `~` stays a folder name below the cwd, as Neovim stores it.

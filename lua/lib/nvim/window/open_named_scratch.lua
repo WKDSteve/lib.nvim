@@ -15,8 +15,9 @@ local api = vim.api
 -- `name`, resolved the way `nvim_buf_set_name` resolves it (cwd-relative
 -- names, a kept `~`, `scheme://` names as given, `/` = `\` and folded case
 -- where the file system wants it), or nil. `bufadd()` creates a buffer when
--- there is none; that one is wiped again, and 'eventignore' keeps the
--- BufNew/BufWipeout pair from reaching anyone.
+-- there is none; that one is wiped again. Both run under `:noautocmd`, so
+-- no BufNew/BufWipeout reaches anyone (setting 'eventignore' by hand would
+-- fire OptionSet when it is put back).
 ---@param name string
 ---@return integer?
 local function by_full_name(name)
@@ -24,15 +25,18 @@ local function by_full_name(name)
   for _, b in ipairs(api.nvim_list_bufs()) do
     before[b] = true
   end
-  local ei = vim.o.eventignore
-  vim.o.eventignore = "all"
-  local ok, b = pcall(vim.fn.bufadd, name)
-  if ok and not before[b] then
-    pcall(api.nvim_buf_delete, b, { force = true })
-    b = nil
+  local var = "lib_nvim_open_named_scratch_bufadd"
+  local ok = pcall(vim.cmd, ("noautocmd let g:%s = bufadd(%s)"):format(var, vim.fn.string(name)))
+  local b = vim.g[var]
+  vim.g[var] = nil
+  if not ok or type(b) ~= "number" then
+    return nil
   end
-  vim.o.eventignore = ei
-  return ok and b or nil
+  if not before[b] then
+    pcall(vim.cmd, ("noautocmd bwipeout! %d"):format(b))
+    return nil
+  end
+  return b
 end
 
 -- The buffer named exactly `name`, or nil, by Neovim's own name lookup
