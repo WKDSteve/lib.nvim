@@ -96,16 +96,18 @@ return function(H)
     "files_with_ext: .md and .MD, no dot entries, no skipped folders"
   )
   local glob = vim.fn.globpath(root, "**/*.md", false, true)
+  -- Whether globpath matches B.MD depends on the file system (Windows and macOS: case-insensitive,
+  -- Linux: not), so both sides are compared on the lower-case ".md" names only; the case-insensitive
+  -- match of files_with_ext is checked above.
   local glob_kept = {}
   for _, p in ipairs(rel(glob)) do
-    if not p:find("^node_modules/") and not p:find("^target/") then
+    if not p:find("^node_modules/") and not p:find("^target/") and p:match("%.md$") then
       glob_kept[#glob_kept + 1] = p
     end
   end
-  -- globpath matches the extension case-insensitively on Windows only: elsewhere B.MD is not its hit
   local md_rel = {}
   for _, p in ipairs(rel(md)) do
-    if vim.fn.has("win32") == 1 or p:match("%.md$") then
+    if p:match("%.md$") then
       md_rel[#md_rel + 1] = p
     end
   end
