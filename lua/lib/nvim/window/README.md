@@ -249,6 +249,12 @@ local bufnr, winid = window.open_named_scratch("MyPlugin://log", lines, {
 If a window already shows the named buffer (in any tab), that window is
 focused instead of opening a new split.
 
+The name is matched **exactly**, as Neovim itself compares buffer names
+(`bufexists()`): `log://x.log` never picks up the buffer of `log://x.log.1`,
+and `*`, `?`, `[`, `%`, `#` in a name are plain characters, not wildcards.
+A plain name (without `scheme://`) is stored as an absolute path below the
+cwd, like any `nvim_buf_set_name`. An empty name raises.
+
 ---
 
 ### `is_usable_window(winid) -> boolean` / `target_window(opts?) -> winid|nil`

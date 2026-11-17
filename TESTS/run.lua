@@ -225,6 +225,7 @@ local specs = {
   "progress_resolve_style_spec.lua",
   "nvim_helpers_spec.lua",
   "window_spec.lua",
+  "window_open_named_scratch_spec.lua",
   "focus_helpers_spec.lua",
   "selection_spec.lua",
   "context_spec.lua",
