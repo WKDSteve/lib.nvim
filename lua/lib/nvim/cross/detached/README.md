@@ -36,11 +36,27 @@ end)
 | `kill(pid)` | Ends a *registered* process and its children (`taskkill /T /F` on Windows, the process group elsewhere). Anything not in the register is refused. |
 | `kill_orphans(confirm)` | `kill` for every orphan `confirm(entry)` accepts; returns how many. |
 | `is_alive(pid)` | Whether a process with that pid exists (signal 0). |
+| `start_time(pid)` | When that process started, seconds since the epoch; `nil` when there is none or it can not be read. |
 | `path()` | The register file: `stdpath("state")/lib.nvim/detached.json`. |
 
-**Limits.** A pid can be reused by the system after a process ended. Entries older than `MAX_AGE_DAYS` (14) are
-dropped instead of listed, and a process is reported while its pid answers a signal 0, but a reused pid that is alive
-again cannot be told apart here. That is why `kill_orphans` asks per entry and `kill` only takes registered pids.
+**A pid is not an identity.** The system hands a pid out again once its process ended (Windows quickly, after a
+reboot anything goes). `track` therefore also records the process's start time, and `list` and `kill` accept an entry
+only while a process with that pid **and** that start time runs (within `START_TOLERANCE`, 2 s). Everything else
+counts as ended and drops out of the register, and `kill` refuses it without touching the process:
+
+- a reused pid (another start time),
+- a start time that can not be read (no rights, no `ps`, a Lua without ffi on Windows),
+- an entry from before this check (no `proc_start`).
+
+The owner is judged the same way: a reused owner pid still leaves an orphan.
+
+| System | Where the start time comes from |
+|---|---|
+| Windows | `GetProcessTimes` through LuaJIT's ffi (`PROCESS_QUERY_LIMITED_INFORMATION`, no PowerShell started) |
+| Linux | `/proc/<pid>/stat` field 22 plus `btime` from `/proc/stat` |
+| macOS, BSD | `ps -o lstart= -p <pid>` (with `LC_ALL=C`) |
+
+Entries older than `MAX_AGE_DAYS` (14) are dropped as well, and `kill_orphans` still asks per entry.
 
 The register is one JSON file written atomically; two Neovims registering in the same instant can lose one entry (a read-modify-write
 without a lock), which only means that process is not listed later.

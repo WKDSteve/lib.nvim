@@ -156,6 +156,84 @@ return function(H)
       "list: an entry past MAX_AGE_DAYS is not trusted (the pid may be reused)"
     )
 
+    -- start_time: what tells a reused pid from the registered process
+    local own_start = detached.start_time(uv.os_getpid())
+    ok(type(own_start) == "number", "start_time: this process has one: " .. tostring(own_start))
+    ok(
+      own_start <= os.time() + detached.START_TOLERANCE and own_start > os.time() - 86400,
+      "start_time: ...a recent one in seconds since the epoch: " .. tostring(own_start)
+    )
+    eq(detached.start_time(0), nil, "start_time: pid 0 has none")
+    eq(detached.start_time("x"), nil, "start_time: a string has none")
+
+    ---Rewrite the register file's entries in place.
+    local function rewrite(fn)
+      local doc = vim.json.decode(slurp(path))
+      fn(doc.entries)
+      local fw = assert(io.open(path, "wb"))
+      fw:write(vim.json.encode(doc))
+      fw:close()
+    end
+
+    local reused = sleeper()
+    local reused_start = detached.start_time(reused)
+    ok(
+      type(reused_start) == "number" and reused_start >= own_start - detached.START_TOLERANCE,
+      "start_time: a child started after us: " .. tostring(reused_start)
+    )
+    detached.track(reused, { name = "reused" })
+    local recorded = vim.json.decode(slurp(path)).entries[1].proc_start
+    ok(
+      type(recorded) == "number" and math.abs(recorded - reused_start) < 0.01,
+      "track: records the start time: " .. tostring(recorded)
+    )
+
+    -- a reused pid: a live process under the pid, but not the one that started when the entry says
+    rewrite(function(es)
+      es[1].proc_start = es[1].proc_start - 3600
+    end)
+    eq(#detached.list(), 0, "list: a pid whose start time differs is not listed")
+    eq(#vim.json.decode(slurp(path)).entries, 0, "list: ...and drops out of the register")
+    detached.track(reused, { name = "reused" })
+    rewrite(function(es)
+      es[1].proc_start = es[1].proc_start - 3600
+    end)
+    local refused_reuse, why_reuse = detached.kill(reused)
+    eq(refused_reuse, false, "kill: a pid whose start time differs is refused")
+    ok(tostring(why_reuse):find("start time", 1, true) ~= nil, "kill: ...and says why")
+    ok(detached.is_alive(reused), "kill: ...and the process still runs")
+
+    -- an entry from before the check: no start time, nothing to verify against
+    for _, way in ipairs({ "list", "kill" }) do
+      detached.track(reused, { name = "legacy" })
+      rewrite(function(es)
+        es[1].proc_start = nil
+        es[1].owner_start = nil
+      end)
+      if way == "list" then
+        eq(#detached.list(), 0, "list: an entry without a start time is not listed")
+      else
+        eq(detached.kill(reused), false, "kill: an entry without a start time is refused")
+      end
+      ok(detached.is_alive(reused), way .. ": ...and the process still runs")
+    end
+
+    -- the genuine entry is found
+    detached.track(reused, { name = "reused" })
+    local genuine = detached.list()
+    eq(#genuine, 1, "list: the registered process with its start time is listed")
+    eq(genuine[1].pid, reused, "list: ...under its pid")
+    eq(genuine[1].orphan, false, "list: ...and we, its owner, run")
+
+    -- a reused owner pid: a live process under the owner's pid that started at another time leaves an orphan
+    rewrite(function(es)
+      es[1].owner_start = es[1].owner_start - 3600
+    end)
+    local orphaned = detached.list({ orphans = true })
+    eq(#orphaned, 1, "list: an owner pid with another start time counts as gone")
+    eq(orphaned[1].orphan, true, "list: ...the process is an orphan")
+    detached.untrack(reused)
+
     -- untrack
     local t = sleeper()
     detached.track(t, { name = "t" })
