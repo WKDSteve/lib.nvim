@@ -37,10 +37,10 @@ presets.custom(a, b)        -- { a, b }, or nil, "from must be <= to"
 presets.dates(presets.days_ago(7, now)) -- "2026-10-07", "2026-10-14"
 ```
 
-`dates(range, now?)` gives the first and the last local calendar day a range
+`dates(range, open?)` gives the first and the last local calendar day a range
 covers (`YYYY-MM-DD`): a `to` at a local midnight is exclusive, any other `to`
-covers its own day. Pass the `now` an open range was built with, so a range
-built at 00:00:00 sharp still ends today.
+covers its own day. `open = true` for a range that ends at `now` (`today`,
+`this_*`, `days_ago`), so one built at 00:00:00 sharp still ends today.
 
 ## Range words
 

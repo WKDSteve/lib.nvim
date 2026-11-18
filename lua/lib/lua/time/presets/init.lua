@@ -207,18 +207,20 @@ end
 
 ---The first and the last local calendar day a range covers, `YYYY-MM-DD`.
 ---A `to` at a local midnight is exclusive (that day is not covered); any
----other `to` covers its own day. Pass the `now` the range was built with: an
----open range (`to == now`) always covers now's day, also at 00:00:00 sharp,
----where its `to` would otherwise read as an exclusive midnight.
+---other `to` covers its own day. `open = true` says the range ends at `now`
+---(today, this_week, days_ago, ...): its `to` then always covers its own day,
+---also at 00:00:00 sharp, where it would otherwise read as an exclusive
+---midnight. Which ranges are open the caller knows; `to == now` cannot tell
+---(`yesterday` built at midnight ends at `now` too, exclusively).
 ---@nodiscard
 ---@param range LibTimeRange
----@param now? integer the `now` of an open range
+---@param open? boolean the range ends at `now` (default false)
 ---@return string first
 ---@return string last
-function M.dates(range, now)
+function M.dates(range, open)
   local first = os.date("%Y-%m-%d", range.from) --[[@as string]]
   local to = range.to
-  if to > range.from and to ~= now and to == day_start(to) then
+  if not open and to > range.from and to == day_start(to) then
     to = to - 1
   end
   return first, os.date("%Y-%m-%d", math.max(to, range.from)) --[[@as string]]
