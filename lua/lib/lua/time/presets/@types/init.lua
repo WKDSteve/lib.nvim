@@ -22,7 +22,7 @@
 ---@field days_ago fun(n: integer, now?: integer): LibTimeRange|nil, string|nil
 ---@field MAX_DAYS_AGO integer
 ---@field custom fun(from: integer, to: integer): LibTimeRange|nil, string|nil
----@field dates fun(range: LibTimeRange): string, string
+---@field dates fun(range: LibTimeRange, now?: integer): string, string
 ---@field ALIASES table<string, string>
 ---@field KEYWORDS string[]
 ---@field parse fun(tokens: string|string[]|nil, now?: integer): LibTimeWordRange|nil, string|nil

@@ -95,6 +95,15 @@ return function(H)
       assert.are.same({ "2026-10-07", "2026-10-14" }, { first, last })
       first, last = presets.dates(presets.today(NOW))
       assert.are.same({ "2026-10-14", "2026-10-14" }, { first, last })
+      -- An open range built at 00:00:00 sharp still covers today when it is given its now.
+      local midnight = day(2026, 10, 14)
+      first, last = presets.dates(presets.this_month(midnight), midnight)
+      assert.are.same({ "2026-10-01", "2026-10-14" }, { first, last })
+      first, last = presets.dates(presets.days_ago(7, midnight), midnight)
+      assert.are.same({ "2026-10-07", "2026-10-14" }, { first, last })
+      -- Without its now, a midnight `to` is exclusive.
+      first, last = presets.dates(presets.this_month(midnight))
+      assert.are.same({ "2026-10-01", "2026-10-13" }, { first, last })
       -- An empty range at a midnight still covers its own day.
       first, last = presets.dates({ from = day(2026, 10, 14), to = day(2026, 10, 14) })
       assert.are.same({ "2026-10-14", "2026-10-14" }, { first, last })
