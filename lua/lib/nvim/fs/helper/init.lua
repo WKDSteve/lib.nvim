@@ -193,7 +193,8 @@ local function start()
       if state.chan ~= chan then
         return
       end
-      if state.stopping then
+      -- stopped on purpose, or Neovim is quitting and took it along: no end to report
+      if state.stopping or vim.v.exiting ~= vim.NIL then
         state.chan, state.pid = nil, nil
         return
       end
