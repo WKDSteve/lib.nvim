@@ -6,6 +6,8 @@
 ---@class Lib.Fs.CollectRecursive.Opts
 ---@field ignore (fun(abs_path: string, is_dir: boolean): boolean)|nil Return true to skip an entry; for directories this also prunes the whole subtree.
 ---@field kind Lib.Fs.CollectRecursive.Kind|nil Defaults to "all".
+---@field gitignore boolean|nil `files_async` only: list through `lib.nvim.fs.fast` (helper, fd, rg), leaving out what `.gitignore` names and `.git`; `ignore` is applied afterwards. Opt-in: other hits than the plain walk.
+---@field tier Lib.Fs.Fast.Tier|nil With `gitignore`: force a tier of `lib.nvim.fs.fast` (specs).
 
 ---@class Lib.Fs.CollectRecursive
 ---@field collect fun(root: string, opts?: Lib.Fs.CollectRecursive.Opts): string[], string[]? # `errors` is nil when every directory could be read, otherwise one "<dir>: <reason>" per directory that could not be opened (root included); `paths` is then whatever was reachable.

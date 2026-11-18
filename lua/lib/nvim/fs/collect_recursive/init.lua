@@ -296,8 +296,53 @@ local function walk_async(dir, opts, out, errors, is_cancelled)
   end
 end
 
+---`files_async` with `gitignore = true`: listed by `lib.nvim.fs.fast` (the file helper, `fd`, `rg`),
+---which leaves out what `.gitignore` names; `opts.ignore` is applied afterwards, to every folder above
+---a file too, so the result is what pruning would give.
+---@param root string
+---@param opts Lib.Fs.CollectRecursive.Opts
+---@param on_done fun(paths: string[], errors: string[]|nil)
+---@return fun() cancel
+local function gitignore_files(root, opts, on_done)
+  local fast = require("lib.nvim.fs.fast")
+  local base = fast.norm(root)
+  local ignore = opts.ignore
+  ---@type table<string, boolean>
+  local verdict = {}
+  ---@param dir string
+  ---@return boolean
+  local function dir_ignored(dir)
+    if #dir <= #base then
+      return false
+    end
+    local hit = verdict[dir]
+    if hit == nil then
+      local parent = dir:match("^(.*)/[^/]*$")
+      hit = (parent ~= nil and dir_ignored(parent)) or (ignore ~= nil and ignore(dir, true) == true)
+      verdict[dir] = hit
+    end
+    return hit
+  end
+  return fast.list_all(root, { ignore = "gitignore", tier = opts.tier }, function(paths, ok)
+    local out = paths
+    if ignore then
+      out = {}
+      for _, path in ipairs(paths) do
+        local parent = path:match("^(.*)/[^/]*$") or base
+        if not dir_ignored(parent) and not ignore(path, false) then
+          out[#out + 1] = path
+        end
+      end
+    end
+    on_done(out, (not ok) and { base .. ": the listing did not finish" } or nil)
+  end)
+end
+
 ---Async counterpart to `collect()`: same result, without blocking the main
----loop while it walks. `on_done(paths, errors)` fires exactly once,
+---loop while it walks. With `opts.gitignore = true` (files only) it is a different listing on purpose:
+---through the file helper / `fd` / `rg`, without what `.gitignore` names, without `.git`, paths in
+---`lib.nvim.fs.fast.norm` spelling; the Lua walk is the last tier there (it leaves out the folders of
+---`lib.nvim.fs.ignore.list` instead of reading `.gitignore`). `on_done(paths, errors)` fires exactly once,
 ---`vim.schedule`-dispatched — never for a cancelled walk. `errors` carries
 ---the same "<dir>: <reason>" list `collect()` returns, or `nil`.
 ---
@@ -312,6 +357,13 @@ end
 function M.collect_async(root, opts, on_done)
   opts = opts or {}
   opts.kind = opts.kind or "all"
+  if opts.gitignore then
+    assert(
+      opts.kind == "files",
+      "collect_recursive: gitignore = true lists files only (files_async)"
+    )
+    return gitignore_files(root, opts, on_done)
+  end
 
   local cancelled = false
   local function is_cancelled()

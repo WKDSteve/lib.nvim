@@ -20,6 +20,10 @@ local files = collect_recursive.files("/repo", { ignore = collect_recursive.skip
 -- What globpath("/repo", "**/*.md") shows (no dot entries), minus those folders, and much faster
 local md = collect_recursive.files_with_ext("/repo", { "md" })
 
+-- Files of a repository without what .gitignore names, through lib.nvim.fs.fast (the file helper,
+-- fd, rg): opt-in, the hits differ from the plain walk; files only, `ignore` applied afterwards
+collect_recursive.files_async("/repo", { gitignore = true }, function(paths, errors) end)
+
 -- Directories only
 local dirs = collect_recursive.dirs("/repo")
 
