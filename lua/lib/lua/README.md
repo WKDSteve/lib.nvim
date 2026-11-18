@@ -46,7 +46,7 @@ local tables = require("lib.lua.tables")
 | `lib.lua.range` | see [`range/README.md`](range/README.md) |
 | `lib.lua.uuid` | see [`uuid/README.md`](uuid/README.md) |
 | `lib.lua.yaml` | see [`yaml/README.md`](yaml/README.md) |
-| `lib.lua.time` | time helpers (no README yet) |
+| `lib.lua.time` | [`diff`](time/diff/README.md), [`format`](time/format/README.md), [`presets`](time/presets/README.md) (date ranges, range words EN/DE, `--since=`), [`parse`](time/parse/README.md) (log timestamps onto UTC ms) |
 
 `functions`, `json`, `strings` and `tables` are documented in their own
 directories' READMEs alongside this one.

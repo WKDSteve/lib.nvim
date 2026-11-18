@@ -124,8 +124,11 @@ Editor-independent Lua helpers. No `vim` API; usable/testable outside Neovim.
                         (center_text, center_text_lines)
     lib.lua.functions   meta helpers: noop, identity, const, raise, …
     lib.lua.time        time / diff calculation; presets (today/yesterday/
-                        last_week/this_{month,quarter,year}); format
-                        (iso/human/short/log/filename/unix timestamps)
+                        last_week/this_{week,month,quarter,year}/previous_*,
+                        days_ago, range words EN/DE via parse, since_utc);
+                        format (iso/human/short/log/filename/unix/12h/long/
+                        rfc2822 timestamps); parse (log timestamps of many
+                        notations onto UTC milliseconds, no os.date)
     lib.lua.json        encode (pure-Lua JSON encoder) + decode helpers
     lib.lua.yaml        minimal, deliberately non-spec-complete YAML decoder
     lib.lua.uuid        UUIDv4 generate/format

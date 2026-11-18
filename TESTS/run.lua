@@ -187,6 +187,8 @@ local specs = {
   "ui_list_spec.lua",
   "statusline_spec.lua",
   "lua_helpers_spec.lua",
+  "time_parse_spec.lua",
+  "time_presets_spec.lua",
   "memo_spec.lua",
   "patterns_result_spec.lua",
   "patterns_specification_spec.lua",
