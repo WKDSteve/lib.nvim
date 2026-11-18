@@ -56,4 +56,6 @@ Same API as stdio (`request`, `list_tools`, `call_tool`, `cancel`, `log`, `stop`
 **Why `vim.system` and not `system.job`:** `lib.nvim.system.job.start` does not expose an open stdin pipe. This
 module calls `vim.system(cmd, { stdin = true })` itself and uses `lib.nvim.system.lines` for the line splitting.
 
+The server side (stdio, tool registry) is [`lib.nvim.mcp.server`](server/README.md).
+
 Not here: `resources/read`, server-initiated sampling, a server-pushed stream outside a request (`GET` SSE), resumption.

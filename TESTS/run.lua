@@ -275,6 +275,7 @@ local specs = {
   "tree_registry_spec.lua",
   "mcp_spec.lua",
   "mcp_http_spec.lua",
+  "mcp_server_spec.lua",
   "net_server_spec.lua",
   "diffmode_spec.lua",
   "image_preview_cells_spec.lua",
