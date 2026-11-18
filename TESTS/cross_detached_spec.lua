@@ -275,7 +275,6 @@ return function(H)
     -- (filetree.nvim TESTS/gaps.lua): no live channel stands behind the id, so jobpid() raises E900. That
     -- must neither abort an untracked launch (which never needs the pid) nor a tracked one.
     local FAKE_JOB = 4242
-    local before_fake = #detached.list()
     stub_jobstart(FAKE_JOB)
     local untracked_ok, untracked = pcall(run.run_detached, { "fake-gui.exe" })
     eq(untracked_ok, true, "run_detached: a fake job id does not raise: " .. tostring(untracked))
@@ -292,7 +291,12 @@ return function(H)
     )
     eq(tracked_res, true, "run_detached: ...and the launch counts as done")
     unstub_jobstart()
-    eq(#detached.list(), before_fake, "run_detached: no pid, nothing registered")
+    -- by name, not by count: "spec-quick" above may still run or have ended meanwhile, which changes the count
+    -- (seen on macOS, where list() asks `ps` per entry and takes long enough for it to end in between)
+    local fake_entries = vim.tbl_filter(function(e)
+      return e.name == "spec-fake"
+    end, vim.json.decode(slurp(path)).entries)
+    eq(#fake_entries, 0, "run_detached: no pid, nothing registered")
   end
 
   local finished, err = pcall(body)
