@@ -401,7 +401,14 @@ local function default_runner(argv, sys_opts)
   if not ok then
     return { code = -1, stdout = "", stderr = tostring(proc) }
   end
-  local obj = proc:wait(sys_opts.timeout_ms)
+  local waited, obj = pcall(proc.wait, proc, sys_opts.timeout_ms)
+  if not (waited and type(obj) == "table") then
+    -- No result (seen when `gh auth token` hung): a timeout, and the process must not outlive it.
+    pcall(proc.kill, proc, 9)
+    local why = waited and ("no answer within %s ms"):format(tostring(sys_opts.timeout_ms))
+      or tostring(obj)
+    return { code = 124, stdout = "", stderr = why }
+  end
   return { code = obj.code, stdout = obj.stdout or "", stderr = obj.stderr or "" }
 end
 

@@ -536,4 +536,31 @@ return function(H)
     local _, reason2 = github.token({ runner = runner(0, "  \n") })
     eq(reason2, "`gh auth token` printed no token", "github.token: empty gh output is no token")
   end)
+
+  -- The default runner: a `wait` that answers nil (seen when `gh auth token` hung) is a timeout
+  -- with a reason, not "attempt to index local 'obj'"; the process is killed, not left running.
+  with_env("LIB_SPEC_GH_TOKEN", nil, function()
+    local killed
+    local orig_system = vim.system
+    vim.system = function()
+      return {
+        wait = function()
+          return nil
+        end,
+        kill = function(_, signal)
+          killed = signal or true
+        end,
+      }
+    end
+    local success, tok, reason = pcall(github.token, { timeout_ms = 5 })
+    vim.system = orig_system
+    ok(success, "github.token: a nil wait does not throw: " .. tostring(tok))
+    eq(tok, nil, "github.token: no token when gh never answered")
+    eq(
+      reason,
+      "`gh auth token` failed (exit 124): no answer within 5 ms",
+      "github.token: a nil wait reads as a timeout"
+    )
+    ok(killed ~= nil, "github.token: the hanging gh is killed")
+  end)
 end
