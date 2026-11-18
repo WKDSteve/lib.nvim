@@ -84,6 +84,17 @@ picker row: middle-ellipsis to fit a max length, or a Harpoon-style
 - **Module:** `lib.nvim.fs.path_shorten`
 - **Config:** `opts.style` — `"fit"` (default) | `"label"`
 
+## Fast listings — helper, fd, Lua
+
+Deep list, folder size and recursive watch for every plugin, with the fastest means the machine has:
+the file helper of filetree.nvim (one Rust process for all plugins), then `fd` / `rg --files`, then a
+Lua walk. The options are the switches of `fd`; a helper that ends hands its work to the next tier.
+
+- **Tab:** true
+- **Module:** `lib.nvim.fs.fast` (`list`/`list_all`/`size`/`watch`), `lib.nvim.fs.helper` (the client)
+- **Config:** `vim.g.lib_fs_helper` (`"auto"`, `false`, a path); filetree.nvim's `native.fs.helper`
+  takes precedence when filetree is loaded
+
 ## Recursive directory walking — sync and async
 
 The recursive scanner underneath every other scan/cache module in this

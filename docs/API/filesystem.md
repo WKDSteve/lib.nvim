@@ -242,6 +242,33 @@ M.files_async(root: string, opts?, on_done): fun() cancel   -- shorthand, kind =
 M.dirs_async(root: string, opts?, on_done): fun() cancel    -- shorthand, kind = "dirs"
 ```
 
+### `lib.nvim.fs.fast` (see README)
+Deep list, folder size and recursive watch with the fastest tier there is: the file helper, `fd`,
+`rg --files`, a Lua walk (size: helper, Lua; watch: helper, libuv recursive, libuv per folder).
+
+```
+M.list(root: string, opts?: Lib.Fs.Fast.ListOpts, on_batch: fun(paths: string[]), on_done: fun(ok: boolean)): fun() cancel
+  -- opts: hidden (true), ignore "gitignore"|"names"|"none", names, no_ignore, follow, exclude (globs),
+  -- max_depth, skip (Lua walk), tier (force); `.git` is never entered
+M.list_all(root, opts?, on_done: fun(paths: string[], ok: boolean)): fun() cancel
+M.size(dir: string, on_done: fun(bytes: integer|nil, files: integer|nil, tier: "helper"|"lua"), opts?): fun() cancel
+M.watch(root: string, opts?: Lib.Fs.Fast.WatchOpts, on_change: fun(dirs: string[])): { stop, tier, handles }
+M.tier(): "helper"|"fd"|"rg"|"lua", string|nil exe
+M.norm(path): string   M.resolve(path): string exe, boolean direct   M.running(): integer
+```
+
+### `lib.nvim.fs.helper` (see README)
+The client of `filetree-helper` (built and released by filetree.nvim), one process for every plugin.
+
+```
+M.request(method: "walk"|"size"|"watch", arg: string, handler: fun(kind, payload): boolean|nil, opts?): integer|nil gen
+M.drop(gen, method?: "cancel"|"unwatch")   M.tell(gen, "follow", dir)
+M.find(): string|nil exe, string|nil why   M.available(): boolean, string|nil
+M.configure(mode?)   M.set_mode_provider(fn)   M.mode(): "auto"|false|string   -- vim.g.lib_fs_helper too
+M.default_path(): string   -- stdpath("data") .. "/filetree-helper/filetree-helper[.exe]"
+M.state(): Lib.Fs.Helper.State   M.health(ok, info, warn)   M.stop()
+```
+
 ### `lib.nvim.fs.scan_cached` (see README)
 Recursively scan one root, memoized in-memory with a TTL (session
 lifetime); built on `collect_recursive` + `lib.nvim.cache.memory`.
