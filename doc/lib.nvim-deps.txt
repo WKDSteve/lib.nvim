@@ -264,8 +264,12 @@ watcher. Call it from the CONSUMING PLUGIN's own `setup()`, never from
 :Lib deps reset-first-run [plugin]  Forget the "seen" state so the popup
                                     shows again on the next `show_once`.
 
-Opting out — set either anywhere in your own config, no
-`require("lib.nvim.deps")` call needed: >lua
+Opt-in — the popup shows nothing until you set, anywhere in your own
+config, no `require("lib.nvim.deps")` call needed: >lua
+
+    vim.g.lib_nvim_deps_first_run = true                      -- switch it on
+<
+With that on, either of these turns it off again: >lua
 
     vim.g.lib_nvim_deps_disable_first_run = true              -- every plugin
     vim.g.lib_nvim_deps_disabled_plugins = { "gopath.nvim" }  -- just these
@@ -274,8 +278,8 @@ Opting out — set either anywhere in your own config, no
 plugin alone (`lib.nvim` pulled in only as its transitive dependency) has
 no `lib.nvim` config block to put an option into, so the toggle must not
 require one. Read fresh on every `show_once` call — order-independent.
-Neither variable is retroactive: it stops FUTURE calls, it does not mark
-anything as already-seen, so removing the opt-out later resumes normally.
+While it is off nothing is marked as already-seen, so opting in later
+still shows the popup once.
 
 ------------------------------------------------------------------------------
 deps.status                                            *lib.nvim-deps-status*

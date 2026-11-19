@@ -486,15 +486,24 @@ through the same `i`/confirm/terminal path as `:Lib deps show` always has.
 or every plugin with no argument) — mainly useful for testing this exact
 flow without reinstalling the plugin.
 
-### Opting out
+### Opting in (and out again)
 
-Set either of these — anywhere in your own config, no
-`require("lib.nvim.deps")` call needed:
+The popup is **opt-in**: `show_once` shows nothing until you set, anywhere
+in your own config, no `require("lib.nvim.deps")` call needed:
+
+```lua
+vim.g.lib_nvim_deps_first_run = true                      -- switch first-run popups on
+```
+
+With that on, either of these still turns it off again:
 
 ```lua
 vim.g.lib_nvim_deps_disable_first_run = true              -- every plugin, everywhere
 vim.g.lib_nvim_deps_disabled_plugins = { "gopath.nvim" }   -- just these
 ```
+
+`:Lib deps show <plugin>` and `:checkhealth` show the same report at any
+time, opted in or not.
 
 **Where** matters less than it might seem: `vim.g` is a plain global, read
 fresh on every `show_once` call, so it works no matter when or where it's
@@ -503,16 +512,16 @@ inside that plugin's own lazy.nvim `config = function() ... end`, anywhere.
 This is deliberate: a user who installed, say, `gopath.nvim` alone (with
 `lib.nvim` pulled in only as its transitive dependency) has no `lib.nvim`
 config block of their own to put a `setup({ ... })` option into — a
-`vim.g` toggle needs no such block to exist. Both variables are also worth
+`vim.g` toggle needs no such block to exist. These variables are also worth
 mentioning explicitly in **every consuming plugin's own README**, next to
 its `docs/install.json` blurb — that's where a user who only installed
 *that one plugin* will actually be looking when they want to turn the
-popup off, not this file.
+popup on or off, not this file.
 
-Neither variable is retroactive: it stops **future** `show_once` calls, it
-does not mark anything as already-seen — so removing the opt-out later
-picks up exactly where it would have without one, rather than having
-silently consumed the "first run" while disabled.
+While the popup is off (not opted in, or opted out) `show_once` marks
+nothing as already-seen — so opting in later picks up exactly where it
+would have, rather than having silently consumed the "first run" while it
+was off.
 
 **Future direction, not yet built:** a plugin could additionally expose
 its *own* `setup({ deps_popup = false })`-style option that internally sets

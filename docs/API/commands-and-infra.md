@@ -455,7 +455,7 @@ M.seen(plugin_name, cache_opts?): boolean
 M.mark_seen(plugin_name, cache_opts?)
 M.reset(plugin_name?, cache_opts?)
 M.show_once(plugin_name, opts?): boolean shown
-  -- opt-out via vim.g.lib_nvim_deps_disable_first_run / vim.g.lib_nvim_deps_disabled_plugins
+  -- opt-in via vim.g.lib_nvim_deps_first_run = true; opt-out via vim.g.lib_nvim_deps_disable_first_run / vim.g.lib_nvim_deps_disabled_plugins
 ```
 
 ---

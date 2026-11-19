@@ -825,11 +825,60 @@ pkg:
   end
 
   -- ----------------------------------------------------------------- first_run
-  -- The three blocks below test the popup itself, so they need the opt-out
-  -- unset. A runner may have set it for every editor it starts (testing.nvim
-  -- does, `disable_first_run`); put it back once they are done.
+  -- The blocks below test the popup itself, so they need the opt-in set and
+  -- the opt-out unset. A runner may have set the opt-out for every editor it
+  -- starts (testing.nvim does, `disable_first_run`); put both back once they
+  -- are done.
   local ambient_first_run_optout = vim.g.lib_nvim_deps_disable_first_run
+  local ambient_first_run_optin = vim.g.lib_nvim_deps_first_run
   vim.g.lib_nvim_deps_disable_first_run = nil
+
+  -- Opt-in: without `vim.g.lib_nvim_deps_first_run = true` nothing is shown
+  -- and nothing is marked seen (so opting in later still shows it once).
+  do
+    local first_run = require("lib.nvim.deps.first_run")
+    local base = vim.fn.tempname()
+    local plugin_dir = base .. "/optin-fixture.nvim"
+    vim.fn.mkdir(plugin_dir .. "/docs", "p")
+    local f = io.open(plugin_dir .. "/docs/install.json", "w")
+    f:write(vim.json.encode({
+      tools = {
+        {
+          bin = "a-binary-that-should-not-exist-anywhere-oi",
+          required = true,
+          why = "Fixture for the opt-in.",
+          pkg = { apt = "ghost" },
+        },
+      },
+    }))
+    f:close()
+    vim.opt.rtp:prepend(plugin_dir)
+    local cache = { dir = vim.fn.tempname() }
+
+    for _, value in ipairs({ vim.NIL, false, 1, "yes" }) do
+      vim.g.lib_nvim_deps_first_run = value ~= vim.NIL and value or nil
+      eq(
+        first_run.show_once("optin-fixture.nvim", { cache = cache }),
+        false,
+        "show_once: not opted in (" .. tostring(value) .. ") -> false, off by default"
+      )
+    end
+    eq(
+      first_run.seen("optin-fixture.nvim", cache),
+      false,
+      "show_once: not opted in -> not marked seen"
+    )
+
+    vim.g.lib_nvim_deps_first_run = true
+    eq(
+      first_run.show_once("optin-fixture.nvim", { cache = cache }),
+      true,
+      "show_once: opted in -> the popup is shown once"
+    )
+    vim.opt.rtp:remove(plugin_dir)
+  end
+
+  vim.g.lib_nvim_deps_first_run = true
   do
     local first_run = require("lib.nvim.deps.first_run")
     local cache_dir = vim.fn.tempname()
@@ -1053,6 +1102,7 @@ pkg:
     vim.opt.rtp:remove(plugin_dir)
   end
   vim.g.lib_nvim_deps_disable_first_run = ambient_first_run_optout
+  vim.g.lib_nvim_deps_first_run = ambient_first_run_optin
 
   -- -------------------------------------------------------------------- detect
   do

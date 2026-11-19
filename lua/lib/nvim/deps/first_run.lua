@@ -18,10 +18,14 @@
 --- After the first run, `:Lib deps show pdfport.nvim` is the ongoing way to
 --- see the same report — `show_once` does not run again.
 ---
---- User-side opt-out, checked on every `show_once` call — set from the
---- user's own `init.lua`, no `require("lib.nvim.deps").setup()` call
---- needed (so it works regardless of load order relative to the plugins
---- that call `show_once`):
+--- Opt-in: nothing is shown unless the user asks for it, from their own
+--- `init.lua` — no `require("lib.nvim.deps").setup()` call needed (so it
+--- works regardless of load order relative to the plugins that call
+--- `show_once`):
+---
+---   vim.g.lib_nvim_deps_first_run = true                -- switch popups on
+---
+--- With that on, two opt-outs still win, checked on every call:
 ---
 ---   vim.g.lib_nvim_deps_disable_first_run = true        -- every plugin
 ---   vim.g.lib_nvim_deps_disabled_plugins = { "images.nvim" }  -- just these
@@ -91,13 +95,17 @@ function M.reset(plugin_name, cache_opts)
 end
 
 ---@internal
----True when the user has opted out of first-run popups, globally or for
----this specific plugin, via `vim.g`. Checked fresh on every call (not
+---True when first-run popups are off for this plugin: not opted in via
+---`vim.g.lib_nvim_deps_first_run = true` (the default), or opted out
+---globally or for this specific plugin. Checked fresh on every call (not
 ---cached) — these are meant to be set once in the user's own config and
 ---read as plain globals, not toggled at runtime.
 ---@param plugin_name string
 ---@return boolean
 local function user_disabled(plugin_name)
+  if vim.g.lib_nvim_deps_first_run ~= true then
+    return true
+  end
   if vim.g.lib_nvim_deps_disable_first_run then
     return true
   end
@@ -121,11 +129,12 @@ end
 ---welcome, not an ongoing watcher. `:Lib deps show` stays available for
 ---checking again at any time.
 ---
----Also a no-op, without marking anything seen, when the user opted out via
----`vim.g.lib_nvim_deps_disable_first_run` or
+---Also a no-op, without marking anything seen, when the user has not opted
+---in (`vim.g.lib_nvim_deps_first_run = true`, off by default) or opted out
+---via `vim.g.lib_nvim_deps_disable_first_run` or
 ---`vim.g.lib_nvim_deps_disabled_plugins` — not marking it seen means the
----popup picks up right where it would have if the user later removes the
----opt-out, rather than having been silently consumed while disabled.
+---popup picks up right where it would have once the user opts in, rather
+---than having been silently consumed while it was off.
 ---@param plugin_name string
 ---@param opts? { manager?: Lib.Deps.Manager, cache?: Lib.Cache.Opts }
 ---@return boolean shown
