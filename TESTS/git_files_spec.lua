@@ -222,6 +222,26 @@ return function(H)
     H.eq(git.remote_url_fast("origin", { dir = none }), nil, "no repository: no URL")
     H.eq(n12, 0, "no repository: no process")
 
+    -- A path that is no directory: git -C fails there, so no walking up from
+    -- it to the enclosing repository.
+    local n13, gone_ref = counted(function()
+      return git.current_ref_fast(repo .. "/does-not-exist")
+    end)
+    H.eq(gone_ref, git.current_ref(repo .. "/does-not-exist"), "missing dir: nil like git")
+    H.eq(gone_ref, nil, "missing dir: nil")
+    H.eq(n13, 0, "missing dir: no process")
+    F.write(repo .. "/a-file.txt", "x")
+    H.eq(
+      git.current_ref_fast(repo .. "/a-file.txt"),
+      nil,
+      "a file, not a directory: nil like git -C"
+    )
+    H.eq(
+      git.remote_url_fast("origin", { dir = repo .. "/does-not-exist" }),
+      git.remote_url("origin", { dir = repo .. "/does-not-exist" }),
+      "missing dir: remote nil like git"
+    )
+
     -- ── the config reader on its own ─────────────────────────────────────
     local function cu(t)
       return { files.config_url(t, "origin") }

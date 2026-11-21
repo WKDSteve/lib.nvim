@@ -706,14 +706,21 @@ function M.current_ref(dir, git_cmd)
 end
 
 ---@internal
---- An absolute, forward-slash form of `dir` (the cwd when empty).
+--- An absolute, forward-slash form of `dir` (the cwd when empty), or nil when
+--- it is not an existing directory: `git -C <dir>` fails there, so the file
+--- reader must not walk up from it to some enclosing repository.
 ---@param dir string|nil
----@return string
+---@return string|nil
 local function abs_dir(dir)
   if not dir or dir == "" then
     dir = vim.uv.cwd() or "."
   end
-  return (vim.fn.fnamemodify(dir, ":p"):gsub("\\", "/"))
+  local abs = vim.fn.fnamemodify(dir, ":p"):gsub("\\", "/")
+  local stat = vim.uv.fs_stat(abs)
+  if not stat or stat.type ~= "directory" then
+    return nil
+  end
+  return abs
 end
 
 --- `remote_url` without a process in the usual case: the URL is read from
@@ -732,6 +739,9 @@ function M.remote_url_fast(remote, opts, git_cmd)
   git_argv("git", opts, {}) -- the same `opts` check as every other function
   local name = remote or "origin"
   local dir = abs_dir(opts and opts.dir)
+  if not dir then
+    return nil
+  end
   return require("lib.nvim.git.files").remote_url(dir, name, function()
     return M.remote_url(name, { dir = dir }, git_cmd)
   end)
@@ -747,6 +757,9 @@ end
 ---@return string|nil
 function M.current_ref_fast(dir, git_cmd)
   local abs = abs_dir(dir)
+  if not abs then
+    return nil
+  end
   return require("lib.nvim.git.files").current_ref(abs, function(detached)
     if detached then
       -- `current_ref` would first try `symbolic-ref`, which must fail here.
