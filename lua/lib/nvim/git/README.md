@@ -405,6 +405,30 @@ remote.
   come late: libuv reports the exit only after helper processes such as `git-remote-http` have
   ended too, so do not wait for it to confirm a cancel.)
 
+## Branch and remote without a process: `current_ref_fast`, `remote_url_fast`
+
+`current_ref(dir)` and `remote_url(name, opts)` start `git` on every call
+(25-100 ms each on Windows; `current_ref` two on a detached HEAD). The
+`_fast` variants give the same answer from the files in `.git` — `HEAD` for
+the branch, `config` for the URL, linked worktrees and submodules followed —
+and start no process in the usual case:
+
+```lua
+git.current_ref_fast(repo)                     --> "main" (detached: git's short sha)
+git.remote_url_fast("origin", { dir = repo })  --> "https://github.com/acme/widget.git"
+```
+
+What the files cannot answer exactly the way git would goes to git, remembered
+per file content (so a moved HEAD or an edited config is never answered
+stale): a detached HEAD, a HEAD outside `refs/heads/`, a reftable repository,
+URL rewrites (`insteadOf` in the repository or the global config), includes,
+per-worktree config, quoted or commented URL values, and `GIT_DIR`,
+`GIT_WORK_TREE`, `GIT_COMMON_DIR` or `GIT_CONFIG*` in the environment.
+Not followed: a system-wide `insteadOf`, bare repositories (nil), a
+`safe.directory` refusal, and a branch that shares its name with a tag
+(`symbolic-ref --short` says `heads/<name>` there). The reader itself is
+`lib.nvim.git.files`.
+
 ## Remote URLs: `lib.nvim.git.remote`
 
 Pure — no process, no `vim.api` — parsing and building for GitHub, GitLab,

@@ -252,6 +252,7 @@ local specs = {
   "telemetry_wrap_spec.lua",
   "git_spec.lua",
   "git_refs_spec.lua",
+  "git_files_spec.lua",
   "git_status_spec.lua",
   "git_show_spec.lua",
   "git_run_spec.lua",

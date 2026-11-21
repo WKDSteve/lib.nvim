@@ -706,6 +706,57 @@ function M.current_ref(dir, git_cmd)
 end
 
 ---@internal
+--- An absolute, forward-slash form of `dir` (the cwd when empty).
+---@param dir string|nil
+---@return string
+local function abs_dir(dir)
+  if not dir or dir == "" then
+    dir = vim.uv.cwd() or "."
+  end
+  return (vim.fn.fnamemodify(dir, ":p"):gsub("\\", "/"))
+end
+
+--- `remote_url` without a process in the usual case: the URL is read from
+--- the repository's `config` (linked worktrees and submodules included).
+--- Falls back to `remote_url` (git) when the files cannot answer exactly the
+--- way git would -- URL rewrites (`insteadOf`, also global), includes,
+--- per-worktree config, quoted values, `GIT_DIR`/`GIT_CONFIG*` in the
+--- environment -- and remembers that answer per config content. Not
+--- followed: a system-wide `insteadOf` and bare repositories (nil); see
+--- `lib.nvim.git.files`.
+---@param remote? string Remote name, defaults to "origin".
+---@param opts? Lib.Git.Opts `dir`: the repository (default: cwd).
+---@param git_cmd? string Git binary for the fallback.
+---@return string|nil
+function M.remote_url_fast(remote, opts, git_cmd)
+  git_argv("git", opts, {}) -- the same `opts` check as every other function
+  local name = remote or "origin"
+  local dir = abs_dir(opts and opts.dir)
+  return require("lib.nvim.git.files").remote_url(dir, name, function()
+    return M.remote_url(name, { dir = dir }, git_cmd)
+  end)
+end
+
+--- `current_ref` without a process in the usual case: the branch is read
+--- from the worktree's `HEAD`. A detached HEAD (git's short sha), a HEAD
+--- outside `refs/heads/`, a reftable repository or `GIT_DIR` in the
+--- environment go to git; the answer for a detached HEAD is remembered per
+--- `HEAD` content, so moving HEAD is never answered stale.
+---@param dir? string Directory inside the repository (default: cwd).
+---@param git_cmd? string Git binary for the fallback.
+---@return string|nil
+function M.current_ref_fast(dir, git_cmd)
+  local abs = abs_dir(dir)
+  return require("lib.nvim.git.files").current_ref(abs, function(detached)
+    if detached then
+      -- `current_ref` would first try `symbolic-ref`, which must fail here.
+      return git_system({ git_cmd or "git", "-C", abs, "rev-parse", "--short", "HEAD" })
+    end
+    return M.current_ref(abs, git_cmd)
+  end)
+end
+
+---@internal
 ---@param path string
 ---@return boolean
 local function is_absolute(path)
