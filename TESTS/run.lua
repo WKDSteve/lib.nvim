@@ -312,6 +312,7 @@ local specs = {
   "config_schema_spec.lua",
   "config_new_spec.lua",
   "cross_executable_spec.lua",
+  "core_has_exec_spec.lua",
   "cross_detached_spec.lua",
   "cross_open_default_spec.lua",
   "cross_reveal_macos_spec.lua",

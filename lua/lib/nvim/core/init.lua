@@ -6,17 +6,26 @@ local lazy = require("lib.lua.lazy")
 
 local M = {}
 
-local exec_cache = {} ---@type table<string, boolean>
+---The memoized, $PATH-indexed lookups of `lib.nvim.cross.executable`. Loaded on
+---first use: `lib.nvim.core` is required early and must stay cheap to load.
+---@return table
+local function executable()
+  return (require("lib.nvim.cross.executable"))
+end
 
+---Whether `bin` is on PATH (or, for a path, is executable). Memoized per name.
+---
+---Answered by `lib.nvim.cross.executable.exists`: on Windows a name that is
+---NOT installed costs a walk of every $PATH entry times every $PATHEXT
+---extension (~80 ms each on a 78-entry PATH, measured 2026-11-21), and a tool
+---with eight alternative names (hover.nvim's browser lookup) paid that eight
+---times, ~640 ms. `cross.executable` switches to an index of $PATH once the
+---native lookups cost as much as building it, so every further name is a table
+---lookup.
 ---@param bin string
 ---@return boolean
 function M.has_exec(bin)
-  local cached = exec_cache[bin]
-  if cached == nil then
-    cached = vim.fn.executable(bin) == 1
-    exec_cache[bin] = cached
-  end
-  return cached
+  return executable().exists(bin)
 end
 
 ---Return the first candidate binary found on PATH, or nil if none are.
@@ -24,6 +33,15 @@ end
 ---@param candidates string[]
 ---@return string|nil
 function M.first_available(candidates)
+  -- Several names at once (a tool and its alternatives): most of them are usually
+  -- missing, and on Windows one missing name already costs more than indexing $PATH
+  -- (~80 ms against ~25 ms), so index first.
+  if #candidates > 2 then
+    local index = require("lib.nvim.cross.executable.index")
+    if index.supported() and not index.ready() then
+      index.build()
+    end
+  end
   for _, bin in ipairs(candidates) do
     if M.has_exec(bin) then
       return bin
@@ -41,7 +59,8 @@ end
 ---any known caller re-checks).
 ---@param bin string
 function M.forget_exec(bin)
-  exec_cache[bin] = nil
+  -- also makes `bin` skip an index built before it was installed
+  executable().clear(bin)
 end
 
 M.simple_echo = lazy.require("lib.nvim.core.simple_echo")
