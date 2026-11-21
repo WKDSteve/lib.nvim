@@ -55,6 +55,7 @@ sent over plain `http://` except to a loopback host (`localhost`, `127.x.x.x`,
 | `etag`       | `If-None-Match`; an unchanged resource answers `304`                    |
 | `query`      | URL-encoded query string                                               |
 | `method`     | HTTP method (default `GET`)                                            |
+| `body`       | Request body as `application/json` (GraphQL: `POST /graphql`); argv, no secrets |
 | `api_base`   | API root for a path                                                    |
 | `timeout_ms` | deadline, default 15000; `false` lifts it                              |
 | `max_bytes`  | response size limit, default 5 MiB; `false` lifts it                   |

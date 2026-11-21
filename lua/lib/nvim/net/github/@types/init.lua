@@ -7,6 +7,7 @@
 ---@field etag? string Sent as `If-None-Match`; an unchanged resource answers `304` (`result.not_modified`)
 ---@field query? table<string, string> URL-encoded and appended as `?k=v&...`
 ---@field method? string HTTP method (default `"GET"`)
+---@field body? string Request body, sent as `Content-Type: application/json` (a GraphQL query: `method = "POST"`, path `/graphql`); it goes into curl's argv, so never put a secret in it
 ---@field api_base? string API root for a path (default `https://api.github.com`); ignored for an absolute URL
 ---@field timeout_ms? integer|false Request deadline (default 15000); `false` lifts it
 ---@field max_bytes? integer|false Response size limit, curl's `--max-filesize` (default 5 MiB); `false` lifts it

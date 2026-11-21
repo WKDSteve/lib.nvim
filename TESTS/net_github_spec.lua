@@ -563,4 +563,18 @@ return function(H)
     )
     ok(killed ~= nil, "github.token: the hanging gh is killed")
   end)
+  -- A body (a GraphQL query): handed to curl with a JSON content type.
+  do
+    local transport, seen = fake(response(200, {}, '{"data":{"viewer":{"login":"me"}}}'))
+    local res, err = github.request_blocking("/graphql", {
+      method = "POST",
+      body = '{"query":"{ viewer { login } }"}',
+      transport = transport,
+    })
+    eq(err, nil, "github: a body request is no error")
+    eq(res.data.data.viewer.login, "me", "github: the GraphQL answer is decoded")
+    eq(seen.opts.body, '{"query":"{ viewer { login } }"}', "github: the body reaches curl")
+    eq(seen.opts.headers["Content-Type"], "application/json", "github: a body is sent as JSON")
+    eq(seen.opts.method, "POST", "github: the method is passed on")
+  end
 end

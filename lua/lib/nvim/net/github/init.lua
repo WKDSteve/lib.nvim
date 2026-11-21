@@ -154,8 +154,12 @@ local function curl_opts(opts, token)
   if opts.etag then
     headers["If-None-Match"] = opts.etag
   end
+  if opts.body then
+    headers["Content-Type"] = "application/json"
+  end
   return {
     method = opts.method,
+    body = opts.body,
     headers = headers,
     bearer_token = token,
     query = opts.query,
