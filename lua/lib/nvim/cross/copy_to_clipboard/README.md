@@ -1,6 +1,7 @@
 # `lib.nvim.cross.copy_to_clipboard`
 
-Cross-platform clipboard write, returning a plain `boolean`.
+Cross-platform clipboard write, returning a plain `boolean` (or, with a
+callback, answering later without blocking the editor).
 
 Tries Neovim's `+` register first (`vim.fn.setreg`). If that fails (e.g. no
 clipboard provider configured), falls through to an OS-appropriate external
@@ -34,3 +35,24 @@ if not ok then
   vim.notify("clipboard copy failed", vim.log.levels.WARN)
 end
 ```
+
+## Without waiting: `copy_to_clipboard(text, on_done)`
+
+The blocking form waits for the external tool; on Windows that is a
+PowerShell start, 150-800 ms of a frozen editor per copy. For a keypress pass
+a callback instead: the call returns `nil` at once and `on_done(ok)` runs
+later on the main loop (always on a later tick, also when the `+` register
+took the text right away).
+
+```lua
+copy_to_clipboard(path, function(ok)
+  vim.notify(ok and ("copied " .. path) or "clipboard copy failed")
+end)
+```
+
+Background writes keep the order of the calls: one tool runs at a time, a
+copy made meanwhile waits, and a newer waiting copy replaces an older one
+(both callers get the answer of the write that ran), so the clipboard always
+ends with the last text. A blocking copy first waits for background writes
+still running, and so does `VimLeavePre` (quitting right after a copy keeps
+it). A tool that runs longer than 10 s is killed and counts as failed.

@@ -38,7 +38,7 @@
 ---@field shell fun(): OsShell
 ---@field run fun(cmd: string, cb: fun(ok:boolean, res:OsRunResult)): nil
 ---@field run_blocking fun(cmd: string): OsRunResult
----@field copy_to_clipboard fun(text: string): boolean
+---@field copy_to_clipboard fun(text: string, on_done?: fun(ok: boolean)): boolean|nil
 ---@field run_blocking fun(cmd: string[], input?: string): boolean, string|nil # Low-level argv-based process runner with stdin support.
 
 return {}

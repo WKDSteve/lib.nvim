@@ -41,7 +41,7 @@
 ---@field capitalize fun(s: string): string
 ---@field const fun(value: any): fun(): any # Constant value generator. Returns a function that always yields the provided value. Useful for lazy defaults, dependency injection, or testing.
 ---@field contains fun(s: string, needle: string): boolean
----@field copy_to_clipboard fun(text: string): boolean # Copy text to system clipboard using platform-appropriate backend
+---@field copy_to_clipboard fun(text: string, on_done?: fun(ok: boolean)): boolean|nil # Copy text to system clipboard using platform-appropriate backend
 ---@field count_lines fun(s: string): integer # Count lines in a string
 ---@field dedent fun(s: string): string
 ---@field delete_terminal_buf fun(bufnr: integer): boolean|nil # Deletes terminal buffer
