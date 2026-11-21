@@ -315,39 +315,49 @@ function M.refs(dir, opts, git_cmd)
   opts = opts or {}
   local bin = git_cmd or "git"
 
-  ---@param pattern string
-  ---@param strip integer How many leading ref path components to drop.
-  ---@return string[]
-  local function for_each_ref(pattern, strip)
-    local argv = { bin }
-    if dir and dir ~= "" then
-      argv[#argv + 1] = "-C"
-      argv[#argv + 1] = dir
-    end
-    vim.list_extend(argv, {
-      "for-each-ref",
-      "--sort=-creatordate",
-      ("--format=%%(refname:strip=%d)"):format(strip),
-      pattern,
-    })
-    local out = git_system(argv)
-    if not out then
-      return {}
-    end
-    return vim.split(out, "\n", { trimempty = true })
-  end
-
-  local groups = {}
+  -- One `for-each-ref` for every wanted group (it used to be one process per
+  -- group: three synchronous starts, ~75 ms on Windows, on the first <Tab>).
+  -- The full refname says which group a line belongs to; splitting the one
+  -- date-sorted list by group keeps each group's order (git breaks date ties
+  -- by refname, the same within a group as across groups).
+  local kinds = {} ---@type string[]
   if opts.branches ~= false then
-    groups[#groups + 1] = for_each_ref("refs/heads/", 2)
+    kinds[#kinds + 1] = "heads"
   end
   if opts.remotes ~= false then
-    -- strip=2 leaves "origin/main", which is what git accepts as a revision;
-    -- strip=3 would leave a bare "main" that collides with the local branch.
-    groups[#groups + 1] = for_each_ref("refs/remotes/", 2)
+    kinds[#kinds + 1] = "remotes"
   end
   if opts.tags ~= false then
-    groups[#groups + 1] = for_each_ref("refs/tags/", 2)
+    kinds[#kinds + 1] = "tags"
+  end
+  if #kinds == 0 then
+    return {}
+  end
+
+  local argv = { bin }
+  if dir and dir ~= "" then
+    argv[#argv + 1] = "-C"
+    argv[#argv + 1] = dir
+  end
+  vim.list_extend(argv, { "for-each-ref", "--sort=-creatordate", "--format=%(refname)" })
+  local by_kind = {} ---@type table<string, string[]>
+  for _, kind in ipairs(kinds) do
+    argv[#argv + 1] = "refs/" .. kind .. "/"
+    by_kind[kind] = {}
+  end
+  local raw = git_system(argv)
+  for line in (raw or ""):gmatch("[^\r\n]+") do
+    -- strip=2: "refs/remotes/origin/main" -> "origin/main", which is what git
+    -- accepts as a revision (a bare "main" would collide with the branch).
+    local kind, name = line:match("^refs/([^/]+)/(.+)$")
+    if kind and by_kind[kind] then
+      local list = by_kind[kind]
+      list[#list + 1] = name
+    end
+  end
+  local groups = {}
+  for _, kind in ipairs(kinds) do
+    groups[#groups + 1] = by_kind[kind]
   end
 
   local out, seen = {}, {}
