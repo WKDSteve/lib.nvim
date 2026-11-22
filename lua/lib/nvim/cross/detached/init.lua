@@ -99,24 +99,30 @@ local function start_time_windows(pid)
   if not has_ffi then
     return nil
   end
-  -- each declaration on its own: another plugin may have declared one of them already, which is fine
+  -- The C declarations are one namespace per process: another plugin in this Neovim (testing.nvim's
+  -- testing.child.winproc does) may have declared GetProcessTimes with a FILETIME struct of its own, and then a
+  -- second plain declaration fails and the call with our struct throws. So the functions get names of our own and
+  -- reach the real symbols through asm() redirection; nothing can collide either way.
   pcall(ffi.cdef, "typedef struct { uint32_t lo; uint32_t hi; } lib_nvim_detached_filetime;")
-  pcall(ffi.cdef, "void* OpenProcess(uint32_t access, int inherit, uint32_t pid);")
-  pcall(ffi.cdef, "int CloseHandle(void* h);")
   pcall(
     ffi.cdef,
-    "int GetProcessTimes(void* h, lib_nvim_detached_filetime* c, lib_nvim_detached_filetime* e,"
-      .. " lib_nvim_detached_filetime* k, lib_nvim_detached_filetime* u);"
+    'void* lib_nvim_detached_OpenProcess(uint32_t access, int inherit, uint32_t pid) asm("OpenProcess");'
+  )
+  pcall(ffi.cdef, 'int lib_nvim_detached_CloseHandle(void* h) asm("CloseHandle");')
+  pcall(
+    ffi.cdef,
+    "int lib_nvim_detached_GetProcessTimes(void* h, lib_nvim_detached_filetime* c, lib_nvim_detached_filetime* e,"
+      .. ' lib_nvim_detached_filetime* k, lib_nvim_detached_filetime* u) asm("GetProcessTimes");'
   )
   local ok, secs = pcall(function()
     local k32 = ffi.C
-    local h = k32.OpenProcess(0x1000, 0, pid)
+    local h = k32.lib_nvim_detached_OpenProcess(0x1000, 0, pid)
     if h == nil then
       return nil
     end
     local t = ffi.new("lib_nvim_detached_filetime[4]")
-    local got = k32.GetProcessTimes(h, t[0], t[1], t[2], t[3])
-    k32.CloseHandle(h)
+    local got = k32.lib_nvim_detached_GetProcessTimes(h, t[0], t[1], t[2], t[3])
+    k32.lib_nvim_detached_CloseHandle(h)
     if got == 0 then
       return nil
     end
@@ -155,9 +161,10 @@ local function start_time_proc(pid)
   local hz = 100
   local has_ffi, ffi = pcall(require, "ffi")
   if has_ffi then
-    pcall(ffi.cdef, "long sysconf(int name);")
+    -- a name of our own (see start_time_windows): a foreign `sysconf` declaration can not get in the way
+    pcall(ffi.cdef, 'long lib_nvim_detached_sysconf(int name) asm("sysconf");')
     local ok, v = pcall(function()
-      return tonumber(ffi.C.sysconf(2)) -- _SC_CLK_TCK
+      return tonumber(ffi.C.lib_nvim_detached_sysconf(2)) -- _SC_CLK_TCK
     end)
     if ok and v and v > 0 then
       hz = v

@@ -8,6 +8,7 @@ return function(H)
   local detached = require("lib.nvim.cross.detached")
   local run = require("lib.nvim.cross.run")
   local uv = vim.uv or vim.loop
+  local spec_dir = debug.getinfo(1, "S").source:sub(2):match("(.*[/\\])") or "./"
 
   ---A file's content, with the handle closed again (Windows will not rename over a file that is still open).
   local function slurp(p)
@@ -165,6 +166,46 @@ return function(H)
     )
     eq(detached.start_time(0), nil, "start_time: pid 0 has none")
     eq(detached.start_time("x"), nil, "start_time: a string has none")
+
+    -- start_time with the same C functions already declared by someone else in the process, as testing.nvim's
+    -- testing.child.winproc does (its own FILETIME struct): the full suite loads it through
+    -- notify_popup_fallback_spec, and then every start time read nil and list() came back empty. A child Neovim
+    -- so the foreign declarations come first whatever this suite loaded before.
+    local root = vim.fs.normalize(vim.fn.fnamemodify(spec_dir .. "..", ":p")):gsub("/$", "")
+    local probe = vim.fn.tempname() .. "_foreign_cdef.lua"
+    local pf = assert(io.open(probe, "wb"))
+    pf:write(table.concat({
+      'local ffi = require("ffi")',
+      'pcall(ffi.cdef, "struct spec_foreign_ft { uint32_t a; uint32_t b; };")',
+      'pcall(ffi.cdef, "void *OpenProcess(uint32_t a, int i, uint32_t p);")',
+      'pcall(ffi.cdef, "int CloseHandle(void *h);")',
+      'pcall(ffi.cdef, "int GetProcessTimes(void *h, struct spec_foreign_ft *c, struct spec_foreign_ft *e,'
+        .. ' struct spec_foreign_ft *k, struct spec_foreign_ft *u);")',
+      'pcall(ffi.cdef, "int sysconf(long n);")',
+      "vim.opt.rtp:append(" .. string.format("%q", root) .. ")",
+      'local state = vim.fn.tempname() .. "_detached_probe"',
+      "vim.fn.stdpath = function() return state end",
+      'local d = require("lib.nvim.cross.detached")',
+      "local pid = (vim.uv or vim.loop).os_getpid()",
+      "local st = d.start_time(pid)",
+      'd.track(pid, { name = "probe" })',
+      'io.stdout:write(tostring(st), " ", #d.list(), "\\n")',
+      'vim.fn.delete(state, "rf")',
+    }, "\n"))
+    pf:close()
+    local res = vim
+      .system({ vim.v.progpath, "-n", "-i", "NONE", "--headless", "-u", "NONE", "-l", probe }, {
+        text = true,
+      })
+      :wait(30000)
+    vim.fn.delete(probe)
+    local probe_start, probe_listed = (res.stdout or ""):match("(%S+) (%d+)")
+    ok(
+      tonumber(probe_start) ~= nil,
+      "start_time: still read when the C functions were declared elsewhere first: "
+        .. vim.inspect({ code = res.code, stdout = res.stdout, stderr = res.stderr })
+    )
+    eq(probe_listed, "1", "list: ...and a tracked process is listed then")
 
     ---Rewrite the register file's entries in place.
     local function rewrite(fn)
