@@ -17,6 +17,7 @@
 | `:Lib deps status` | Every declared tool across every plugin, and what's missing here |
 | `:Lib helptags` | Regenerate all helptags now |
 | `:Lib notify clear [{source}]` | Clear the notify history (optionally by source) |
+| `:Lib notify dismiss` | Close every visible notification toast (history stays) |
 | `:Lib notify history [{source}]` | Open the notify history (optionally filtered by source) |
 | `:Lib notify last` | Show the last delivered message in full (viewer) |
 | `:Lib ps-profile` | Open the active PowerShell profile |

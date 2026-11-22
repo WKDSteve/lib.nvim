@@ -111,6 +111,24 @@ was actually green here. Point consumer checkouts at it instead:
 Same convention for `hover.nvim`, `lsp.nvim` and `runtime-analysis.nvim`
 if a plugin checks those out too.
 
+## Specs that stub `vim.notify`
+
+A test runner usually has no ui.nvim on its runtimepath. There, a
+`create(prefix, { popup = true })` notifier shows a **multi-line** message in
+lib.nvim's own toast instead of handing it to `vim.notify`, so a spec that
+replaces `vim.notify` to read the text sees nothing. Turn that fallback off
+for such specs (it is one switch for the whole process):
+
+```lua
+local popup = require("lib.nvim.notify").popup
+popup.setup({ fallback_toast = false }) -- multi-line goes to vim.notify again
+-- ... the spec ...
+popup.setup({ fallback_toast = true }) -- restore the default
+```
+
+Setting it once at the top of the runner (or `minimal_init.lua`) is fine too,
+when no spec of the plugin looks at the toast itself.
+
 ## `deps/` — declaring optional external tools
 
 Two starting points for a plugin's `docs/INSTALL.md` or `docs/install.json`

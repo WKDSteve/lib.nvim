@@ -69,6 +69,7 @@ action the flat set would also omit.
 | `:Lib deps reset-first-run [{plugin}]` | Forget that a plugin's (or every plugin's) first-run popup was already shown |
 | `:Lib notify last` | Show the last delivered message in full, in a read-only viewer |
 | `:Lib notify history [{source}]` | Open the notify history (optionally filtered by source) |
+| `:Lib notify dismiss` | Close every visible notification toast (the history stays) |
 | `:Lib notify clear [{source}]` | Clear the notify history (optionally by source) |
 
 `{plugin}` completes from the `DEPS_PLUGIN` argument type — the set of plugins

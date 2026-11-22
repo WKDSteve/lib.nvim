@@ -114,6 +114,91 @@ return function(H)
     popup.clear()
   end
 
+  ---Run `fn` with the toast's clock (`vim.defer_fn`) replaced by a fake one,
+  ---then let all of the fake time pass: every timer `fn` started fires now.
+  ---No real waiting.
+  ---@return integer started timers started inside `fn`
+  local function with_fake_clock(fn)
+    local timers = {}
+    local real_defer = vim.defer_fn
+    vim.defer_fn = function(cb, ms)
+      timers[#timers + 1] = { cb = cb, ms = ms }
+    end
+    local fine, err = pcall(fn)
+    vim.defer_fn = real_defer
+    if not fine then
+      error(err, 0)
+    end
+    for _, t in ipairs(timers) do
+      t.cb()
+    end
+    return #timers
+  end
+
+  do -- the multi-line fallback toast has no time limit: it stays until closed
+    toast.clear()
+    popup.clear()
+    local started
+    without_ui_nvim(function()
+      started = with_fake_clock(function()
+        popup.deliver("plan:\nstep one\nstep two", vim.log.levels.INFO, { source = "spec" })
+      end)
+    end)
+    eq(started, 0, "no time limit: the fallback toast starts no close timer")
+    eq(toast.active(), 1, "no time limit: after all the fake time it is still on screen")
+
+    popup.dismiss()
+    eq(toast.active(), 0, "dismiss: closes the toast")
+    eq(#popup.history(), 1, "dismiss: the history stays")
+    popup.clear()
+  end
+
+  do -- an explicit per-call timeout still wins over the sticky default
+    without_ui_nvim(function()
+      with_fake_clock(function()
+        popup.deliver("a\nb", vim.log.levels.INFO, { timeout = 500 })
+      end)
+    end)
+    eq(toast.active(), 0, "explicit timeout: the caller's own limit still closes it")
+    toast.clear()
+    popup.clear()
+  end
+
+  do -- `:Lib notify dismiss` is one of the routes
+    local found = false
+    for _, route in ipairs(popup.routes()) do
+      if route.path[1] == "notify" and route.path[2] == "dismiss" then
+        found = true
+        route.run({ args = {} })
+      end
+    end
+    ok(found, "routes: notify dismiss exists")
+  end
+
+  do -- the test switch: fallback_toast = false hands the whole text to vim.notify
+    toast.clear()
+    popup.clear()
+    popup.setup({ fallback_toast = false })
+    local fine, err = pcall(function()
+      local echoed = without_ui_nvim(function()
+        popup.deliver("first\nsecond\nthird", vim.log.levels.WARN, { source = "spec" })
+      end)
+      eq(#echoed, 1, "switch off: the multi-line message goes to vim.notify")
+      eq(echoed[1] and echoed[1].msg, "first\nsecond\nthird", "switch off: with its whole text")
+      eq(toast.active(), 0, "switch off: and no toast")
+    end)
+    popup.setup({ fallback_toast = true })
+    if not fine then
+      error(err, 0)
+    end
+    local echoed = without_ui_nvim(function()
+      popup.deliver("x\ny", vim.log.levels.WARN)
+    end)
+    eq(#echoed, 0, "switch back on: the toast is the fallback again")
+    toast.clear()
+    popup.clear()
+  end
+
   -- ------------------------------------------------------------ embedded editor
 
   local spec_dir = debug.getinfo(1, "S").source:sub(2):match("(.*[/\\])") or "./"

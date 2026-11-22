@@ -19,7 +19,12 @@
 ---   3b. without ui.nvim, a multi-line message is shown via lib.nvim's own
 ---      toast (`lib.nvim.ui.kit.toast`, which `ui.kit.toast` re-exports): as an
 ---      echo it would stop the editor at a hit-enter prompt when it comes from a
----      callback; a one-line message stays an echo (step 4)
+---      callback; a one-line message stays an echo (step 4). This toast has
+---      no time limit: it stays until it is closed (`:Lib notify dismiss`,
+---      `popup.dismiss()`), so command output that is meant to be read does
+---      not vanish. `setup({ fallback_toast = false })` turns this step off
+---      (the message goes to `vim.notify` again) -- the switch for specs that
+---      stub `vim.notify`
 ---   4. else, when no toast can be shown, `vim.notify` -- a message is never lost
 ---
 --- `messages` defaults to false, not true: Neovim has no API to add a message
@@ -54,6 +59,7 @@ local M = {}
 ---@field toast_min_level integer Below this vim.log.levels value: recorded in history/`:messages` only, no toast (default INFO)
 ---@field timeouts table<integer, integer> Per-level toast lifetime override in ms, merged over `LEVELS[*].timeout`
 ---@field history_full boolean `show_history()` shows entries in full instead of collapsed to `max_lines` (default false)
+---@field fallback_toast boolean Without ui.nvim, show a multi-line message as lib.nvim's own toast (default true); false hands it to `vim.notify`, as before -- the switch for specs that stub `vim.notify` and read the text
 
 ---Partial form of `Lib.Notify.Popup.Config` accepted by `M.setup`: every
 ---field optional, a field left unset keeps its current value.
@@ -67,6 +73,7 @@ local M = {}
 ---@field toast_min_level? integer
 ---@field timeouts? table<integer, integer>
 ---@field history_full? boolean
+---@field fallback_toast? boolean
 
 ---@type Lib.Notify.Popup.Config
 local config = {
@@ -78,6 +85,7 @@ local config = {
   toast_min_level = vim.log.levels.INFO,
   timeouts = {},
   history_full = false,
+  fallback_toast = true,
 }
 
 local FALLBACK_WIDTH = 38 -- wrap width when the toast cannot report its own
@@ -483,6 +491,7 @@ end
 ---@param opts Lib.Notify.Popup.Opts
 ---@return boolean shown
 local function show_toast(message, level, opts)
+  local sticky = false -- the fallback toast without ui.nvim: no time limit
   local ok_toast, toast = pcall(require, "ui.kit.toast")
   if not ok_toast then
     -- No ui.nvim. A one-line message stays an echo (`vim.notify`), as it always
@@ -490,13 +499,18 @@ local function show_toast(message, level, opts)
     -- callback rather than a command -- stops the editor at a hit-enter prompt:
     -- it gets lib.nvim's own toast instead (`ui.kit.toast` is a re-export of
     -- it), so it is short-lived, needs no key and shows the whole text.
-    if not vim.trim(message):find("\n", 1, true) then
+    -- It has no time limit (`timeout = 0`, unless the caller passed one): it
+    -- is often command output meant to be read (`--dry-run` plans), and
+    -- unlike ui.nvim's toasts it has no history chip to fall back on. It stays
+    -- until `:Lib notify dismiss` / `M.dismiss()` closes it.
+    if not config.fallback_toast or not vim.trim(message):find("\n", 1, true) then
       return false
     end
     ok_toast, toast = pcall(require, "lib.nvim.ui.kit.toast")
     if not ok_toast then
       return false
     end
+    sticky = true
   end
 
   local spec = LEVELS[level] or LEVELS[vim.log.levels.INFO]
@@ -527,7 +541,7 @@ local function show_toast(message, level, opts)
   end
   local max_lines = opts.max_lines or config.max_lines
   local max_bytes = opts.toast_max_bytes or config.toast_max_bytes
-  local timeout = opts.timeout or config.timeouts[level] or spec.timeout
+  local timeout = opts.timeout or (sticky and 0) or config.timeouts[level] or spec.timeout
   local ok = pcall(toast.open, {
     title = title,
     message = wrap(body, width, max_lines, max_bytes),
@@ -650,6 +664,21 @@ function M.setup(opts)
   end
   if opts.history_full ~= nil then
     config.history_full = opts.history_full and true or false
+  end
+  if opts.fallback_toast ~= nil then
+    config.fallback_toast = opts.fallback_toast and true or false
+  end
+end
+
+---Closes every visible toast -- the way to close the fallback toast without
+---ui.nvim, which has no time limit (see the module doc comment, step 3b).
+---Leaves the history alone (`M.clear` forgets it). Loads no toast module that
+---is not loaded yet: with none loaded, no toast can be open.
+---@return nil
+function M.dismiss()
+  local toast = package.loaded["lib.nvim.ui.kit.toast"]
+  if type(toast) == "table" and type(toast.clear) == "function" then
+    toast.clear()
   end
 end
 
@@ -808,6 +837,13 @@ function M.routes()
       desc = "Open the notify history (optionally filtered by source)",
       run = function(ctx)
         M.show_history(ctx.args.source)
+      end,
+    },
+    {
+      path = { "notify", "dismiss" },
+      desc = "Close every visible notification toast (history stays)",
+      run = function()
+        M.dismiss()
       end,
     },
     {

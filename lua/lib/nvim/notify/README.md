@@ -9,7 +9,7 @@
     - [Configuring the toast (cap, min level, timeouts)](#configuring-the-toast-cap-min-level-timeouts)
     - [Global default: `notify.setup({ popup = true })`](#global-default-notifysetup-popup--true)
     - [Full text: `expand_last()` and the history's `<C-s>` toggle](#full-text-expand_last-and-the-historys-c-s-toggle)
-    - [`:Lib notify last | history | clear`](#lib-notify-last--history--clear)
+    - [`:Lib notify last | history | dismiss | clear`](#lib-notify-last--history--dismiss--clear)
   - [`lib.nvim.notify.safe`](#libnvimnotifysafe)
     - [When is `lib.nvim.notify.safe` needed](#when-is-libnvimnotifysafe-needed)
     - [`safe.schedule`](#safeschedule)
@@ -91,8 +91,23 @@ reaches it, for a rich `vim.notify` backend to render.
 multi-line one gets lib.nvim's own toast (`lib.nvim.ui.kit.toast`, which
 `ui.kit.toast` re-exports): as an echo it would stop the editor at a
 hit-enter prompt whenever it comes from a callback (an async git answer)
-rather than from inside a command. The toast is short-lived, needs no key,
-and the full text stays in the history (`:Lib notify last`).
+rather than from inside a command. This toast has **no time limit**: it is
+often command output meant to be read (a `--dry-run` plan), so it stays until
+it is closed with `:Lib notify dismiss` (or `popup.dismiss()`, e.g. from a
+keymap of your own). It needs no key and never takes focus, and the full text
+stays in the history (`:Lib notify last`). A caller that passes its own
+`timeout` still gets that one.
+
+**Specs that stub `vim.notify`** and read a multi-line message's text turn
+this fallback off, so the message reaches `vim.notify` in full again:
+
+```lua
+local popup = require("lib.nvim.notify").popup
+popup.setup({ fallback_toast = false }) -- before the spec
+-- ... vim.notify = function(msg) ... end, assertions ...
+popup.setup({ fallback_toast = true }) -- after it (the default)
+```
+
 `popup.deliver(msg, level, { source, title, timeout })` is the
 direct entry point. `title` overrides the toast's default title; omit it and
 a multi-line message's own first line becomes the title instead (e.g.
@@ -125,6 +140,7 @@ popup.setup({
   toast_min_level = vim.log.levels.INFO, -- below this: history/:messages only, no toast
   timeouts = { [vim.log.levels.ERROR] = 10000 }, -- per-level override, merged in
   history_full = false, -- show_history(): collapsed (default) or full entries
+  fallback_toast = true, -- without ui.nvim: multi-line as lib's toast; false = vim.notify
 })
 
 -- Per call: overrides `popup.setup`'s defaults for this one delivery only.
@@ -167,14 +183,15 @@ popup.expand_last() -- read-only viewer panel, the last delivered message in ful
 the same way (`[+N lines, <C-s>]`); pressing `<C-s>` there (buffer-local, same
 effect as `popup.toggle_full()`) expands every entry in place.
 
-### `:Lib notify last | history | clear`
+### `:Lib notify last | history | dismiss | clear`
 
-`lib.nvim_usrcmds`'s `:Lib` verb carries these three subcommands (see
+`lib.nvim_usrcmds`'s `:Lib` verb carries these four subcommands (see
 `lib.nvim.notify.popup.routes()`):
 
 ```vim
 :Lib notify last              " expand_last()
 :Lib notify history [source]  " show_history(source)
+:Lib notify dismiss           " dismiss(): close every visible toast, history stays
 :Lib notify clear [source]    " clear(source)
 ```
 
