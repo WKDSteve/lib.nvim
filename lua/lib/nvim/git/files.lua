@@ -24,6 +24,10 @@
 --- branch name that is also a tag name (`symbolic-ref --short` then says
 --- `heads/<name>`, this reader `<name>`).
 ---
+--- The commit of HEAD and of its upstream come from the same files plus the
+--- refs (`ref_sha`, `head`, `head_sha`, `upstream`; `git.head_hash_fast`,
+--- `git.ahead_behind_fast`); what they cannot answer says `unsure`.
+---
 --- Plain `io` and `string` for the reading, so the functions are cheap enough
 --- for a statusline or a scan over many repositories.
 
@@ -294,6 +298,234 @@ function M.current_ref(dir, ask_git)
   return M.remembered(table.concat({ "ref", info.gitdir, head }, "\0"), function()
     return ask_git(detached)
   end)
+end
+
+---@param s string|nil
+---@return boolean
+local function is_sha(s)
+  return s ~= nil and (#s == 40 or #s == 64) and s:match("^%x+$") ~= nil
+end
+
+---The refs that live in a worktree's own git directory, not in the common
+---one: git's `refs/worktree/`, `refs/bisect/`, `refs/rewritten/` and the
+---pseudo refs at the top (`HEAD`, `ORIG_HEAD`, ...).
+---@param ref string
+---@return boolean
+local function per_worktree(ref)
+  return not ref:find("/")
+    or ref:match("^refs/worktree/") ~= nil
+    or ref:match("^refs/bisect/") ~= nil
+    or ref:match("^refs/rewritten/") ~= nil
+end
+
+---Whether the repository keeps its refs in a reftable (its `HEAD` file is a
+---stub then, and loose refs and `packed-refs` say nothing).
+---@param info Lib.Git.Files.Info
+---@return boolean
+local function is_reftable(info)
+  return read(info.commondir .. "/reftable/tables.list") ~= nil
+end
+
+---The commit a ref names, as git resolves it: the loose file first (it wins
+---over `packed-refs`), then `packed-refs`; a symbolic ref (`ref: ...`) is
+---followed, five steps at most. A per-worktree ref is read from the
+---worktree's own git directory.
+---@param info Lib.Git.Files.Info What `find` answered.
+---@param ref string A full ref name, e.g. `refs/heads/main`.
+---@return string|nil sha Lower case; nil: the ref does not exist (an unborn branch, an upstream never fetched) or `unsure`.
+---@return boolean|nil unsure The files do not answer it the way git would (a reftable, a ref file that is neither a sha nor a ref, a name with `..`); ask git.
+function M.ref_sha(info, ref)
+  if is_reftable(info) then
+    return nil, true
+  end
+  for _ = 1, 5 do
+    if type(ref) ~= "string" or ref:find("%.%.") or ref:find("[%z\r\n]") then
+      return nil, true
+    end
+    local base = per_worktree(ref) and info.gitdir or info.commondir
+    local loose = read(base .. "/" .. ref)
+    if loose then
+      local text = trim(loose)
+      if is_sha(text) then
+        return text:lower(), nil
+      end
+      local next_ref = text:match("^ref:%s*(%S+)$")
+      if not next_ref then
+        return nil, true
+      end
+      ref = next_ref
+    else
+      local packed = read(info.commondir .. "/packed-refs")
+      if packed then
+        for line in packed:gmatch("[^\r\n]+") do
+          local sha, name = line:match("^(%x+) (%S+)$")
+          if name == ref and is_sha(sha) then
+            return sha:lower(), nil
+          end
+        end
+      end
+      return nil, nil
+    end
+  end
+  return nil, true
+end
+
+---@class Lib.Git.Files.Head
+---@field sha string|nil    The commit of HEAD; nil on an unborn branch.
+---@field branch string|nil The branch HEAD is on (`main`); nil when HEAD is detached.
+---@field info Lib.Git.Files.Info
+
+---The commit HEAD is at and the branch it is on, from the files.
+---@param dir string An absolute directory inside the work tree.
+---@return Lib.Git.Files.Head|nil head nil: no repository, or `unsure`.
+---@return boolean|nil unsure The files do not answer it the way git would (`GIT_DIR` and friends in the environment, a reftable, a HEAD outside `refs/heads/`); ask git.
+function M.head(dir)
+  if M.env_redirects() then
+    return nil, true
+  end
+  local info = M.find(dir)
+  if not info then
+    return nil, nil
+  end
+  if is_reftable(info) then
+    return nil, true
+  end
+  local text = read(info.gitdir .. "/HEAD")
+  if not text then
+    return nil, true
+  end
+  text = trim(text)
+  if is_sha(text) then
+    return { sha = text:lower(), info = info }, nil
+  end
+  local branch = text:match("^ref:%s*refs/heads/(%S+)$")
+  if not branch or branch == ".invalid" then
+    return nil, true
+  end
+  local sha, unsure = M.ref_sha(info, "refs/heads/" .. branch)
+  if unsure then
+    return nil, true
+  end
+  return { sha = sha, branch = branch, info = info }, nil
+end
+
+---The full commit of HEAD (`git rev-parse HEAD`), from the files.
+---@param dir string An absolute directory inside the work tree.
+---@return string|nil sha nil: no repository, an unborn branch, or `unsure`.
+---@return boolean|nil unsure Ask git (see `head`).
+function M.head_sha(dir)
+  local head, unsure = M.head(dir)
+  if unsure then
+    return nil, true
+  end
+  return head and head.sha or nil, nil
+end
+
+---The keys of one `[section "sub"]` of a git config text, as git reads them:
+---section names and keys without case, the subsection with it, a comment
+---after a value dropped. `unsure` when the text could change the answer in a
+---way this reader does not follow: an `include`/`includeIf`, per-worktree
+---config, the old `[section.sub]` form, a line it cannot parse.
+---
+---A key whose value this reader cannot take literally -- quoted or escaped
+---(a Windows path in a `url` is written with `\\`), or given more than once
+---(a multi-valued key such as a second `fetch`) -- is left out of `values`
+---and named in `unclear`: it does not make the other keys unsure.
+---@param text string
+---@param section string Lower case, e.g. `branch`.
+---@param sub string
+---@return table<string, string> values Keys lower case.
+---@return boolean unsure
+---@return table<string, true> unclear Keys (lower case) whose value is not in `values` for the reasons above.
+function M.config_section(text, section, sub)
+  local lower = text:lower()
+  if lower:find("%[%s*include") or lower:find("worktreeconfig") then
+    return {}, true, {}
+  end
+  local values, unclear, inside = {}, {}, false
+  for line in text:gmatch("[^\r\n]+") do
+    local stripped = trim(line)
+    if stripped:sub(1, 1) == "[" then
+      local name, quoted = stripped:match('^%[%s*([%w%.%-]+)%s+"(.-)"%s*%]$')
+      if name then
+        inside = name:lower() == section and quoted == sub
+      elseif stripped:match("^%[%s*[%w%.%-]+%s*%]$") then
+        inside = false
+        if stripped:match("^%[%s*[%w%-]+%.") then
+          return {}, true, {} -- `[branch.main]`: a case-folded subsection
+        end
+      else
+        return {}, true, {}
+      end
+    elseif inside and stripped ~= "" and not stripped:match("^[#;]") then
+      local key, value = stripped:match("^([%w%-]+)%s*=%s*(.-)$")
+      if not key then
+        return {}, true, {}
+      end
+      key = key:lower()
+      value = value:gsub("%s+[#;].*$", "")
+      if unclear[key] or values[key] ~= nil or value:find('["\\]') then
+        values[key] = nil
+        unclear[key] = true
+      else
+        values[key] = trim(value)
+      end
+    end
+  end
+  return values, false, unclear
+end
+
+---@class Lib.Git.Files.Upstream
+---@field head string     The commit of HEAD.
+---@field upstream string The commit of the branch HEAD tracks (`@{u}`), as the last fetch left it.
+---@field branch string   The branch HEAD is on.
+
+---The commits of HEAD and of its upstream (`@{u}`), from the files: the
+---branch in `branch.<name>.merge`, from the remote in `branch.<name>.remote`
+---through the default fetch refspec (`refs/remotes/<remote>/<branch>`), or a
+---local branch (`remote = .`).
+---@param dir string An absolute directory inside the work tree.
+---@return Lib.Git.Files.Upstream|nil pair nil: no repository, an unborn or detached HEAD, an upstream never fetched -- or `unsure`.
+---@return boolean|nil unsure Ask git: see `head` and `config_section`; also a fetch refspec other than the default, and a branch without an upstream in this repository's config (the global config may still name one).
+function M.upstream(dir)
+  local head, unsure = M.head(dir)
+  if unsure then
+    return nil, true
+  end
+  if not head or not head.sha or not head.branch then
+    return nil, nil
+  end
+  local config = read(head.info.commondir .. "/config")
+  if not config then
+    return nil, true
+  end
+  -- a missing key is unsure too: the global config may still name the upstream
+  local branch, bad = M.config_section(config, "branch", head.branch)
+  if bad or not branch.merge or not branch.remote then
+    return nil, true
+  end
+  local merged = branch.merge:match("^refs/heads/(.+)$")
+  if not merged then
+    return nil, true
+  end
+  local ref
+  if branch.remote == "." then
+    ref = "refs/heads/" .. merged
+  else
+    local remote, rbad = M.config_section(config, "remote", branch.remote)
+    if rbad or remote.fetch ~= ("+refs/heads/*:refs/remotes/%s/*"):format(branch.remote) then
+      return nil, true
+    end
+    ref = ("refs/remotes/%s/%s"):format(branch.remote, merged)
+  end
+  local upstream, uns = M.ref_sha(head.info, ref)
+  if uns then
+    return nil, true
+  end
+  if not upstream then
+    return nil, nil
+  end
+  return { head = head.sha, upstream = upstream, branch = head.branch }, nil
 end
 
 return M

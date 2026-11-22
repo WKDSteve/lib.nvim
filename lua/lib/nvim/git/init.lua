@@ -794,6 +794,56 @@ function M.current_ref_fast(dir, git_cmd)
   end)
 end
 
+--- `head_hash` without a process in the usual case: the commit is read from
+--- `HEAD` and the ref it names (loose file, then `packed-refs`; linked
+--- worktrees included). Falls back to `head_hash` (git) when the files cannot
+--- answer the way git would: a reftable repository, a HEAD outside
+--- `refs/heads/`, `GIT_DIR`/`GIT_CONFIG*` in the environment; see
+--- `lib.nvim.git.files.head`. nil outside a repository and on an unborn
+--- branch, as `head_hash`.
+---@param opts? Lib.Git.Opts `dir`: the repository (default: cwd).
+---@param git_cmd? string Git binary for the fallback.
+---@return string|nil
+function M.head_hash_fast(opts, git_cmd)
+  git_argv("git", opts, {}) -- the same `opts` check as every other function
+  local dir = abs_dir(opts and opts.dir)
+  if not dir then
+    return nil
+  end
+  local sha, unsure = require("lib.nvim.git.files").head_sha(dir)
+  if unsure then
+    return M.head_hash({ dir = dir }, git_cmd)
+  end
+  return sha
+end
+
+--- `ahead_behind` without a process when HEAD and its upstream are the same
+--- commit, read from the files (`lib.nvim.git.files.upstream`): in sync is
+--- `false, false` at once. Different commits go to `ahead_behind` (git
+--- counts them), and so does everything the files cannot answer the way git
+--- would (an upstream only the global config names, a fetch refspec of its
+--- own, a reftable, ...). No repository, a detached or unborn HEAD and an
+--- upstream never fetched are `false, false` without a process, as
+--- `ahead_behind` answers them.
+---@param opts? Lib.Git.Opts `dir`: the repository (default: cwd).
+---@param git_cmd? string Git binary for the fallback.
+---@return boolean ahead, boolean behind
+function M.ahead_behind_fast(opts, git_cmd)
+  git_argv("git", opts, {})
+  local dir = abs_dir(opts and opts.dir)
+  if not dir then
+    return false, false
+  end
+  local pair, unsure = require("lib.nvim.git.files").upstream(dir)
+  if unsure then
+    return M.ahead_behind({ dir = dir }, git_cmd)
+  end
+  if not pair or pair.head == pair.upstream then
+    return false, false
+  end
+  return M.ahead_behind({ dir = dir }, git_cmd)
+end
+
 ---@internal
 ---@param path string
 ---@return boolean

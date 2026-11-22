@@ -444,6 +444,29 @@ Not followed: a system-wide `insteadOf`, bare repositories (nil), a
 (`symbolic-ref --short` says `heads/<name>` there). The reader itself is
 `lib.nvim.git.files`.
 
+## Commit of HEAD and its upstream without a process: `head_hash_fast`, `ahead_behind_fast`
+
+`head_hash` (`rev-parse HEAD`) and `ahead_behind` (`rev-list HEAD...@{u}`)
+start `git` each time. `head_hash_fast(opts)` reads the commit from `HEAD`
+and the ref it names (the loose file wins over `packed-refs`; symbolic refs
+and linked worktrees followed). `ahead_behind_fast(opts)` reads HEAD and its
+upstream (`branch.<name>.remote`/`merge` through the default fetch refspec,
+or `remote = .`): the same commit is `false, false` at once, different
+commits are counted by git.
+
+```lua
+git.head_hash_fast({ dir = repo })     --> "3a62e63f..." (no process)
+git.ahead_behind_fast({ dir = repo })  --> false, false (in sync: no process)
+```
+
+Anything the files cannot answer the way git would goes to git: a reftable,
+a HEAD outside `refs/heads/`, `GIT_DIR`/`GIT_CONFIG*` in the environment, a
+branch whose upstream this repository's config does not name (the global
+config may), a fetch refspec of its own, an include. The building blocks are
+in `lib.nvim.git.files`: `ref_sha(info, ref)`, `head(dir)`, `head_sha(dir)`,
+`upstream(dir)` and `config_section(text, section, sub)`, each answering
+`value, unsure` -- with `unsure` the caller asks git.
+
 ## Remote URLs: `lib.nvim.git.remote`
 
 Pure — no process, no `vim.api` — parsing and building for GitHub, GitLab,

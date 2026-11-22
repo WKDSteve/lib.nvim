@@ -255,6 +255,7 @@ local specs = {
   "git_spec.lua",
   "git_refs_spec.lua",
   "git_files_spec.lua",
+  "git_files_head_spec.lua",
   "git_status_spec.lua",
   "git_show_spec.lua",
   "git_run_spec.lua",
