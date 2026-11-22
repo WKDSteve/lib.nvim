@@ -118,6 +118,21 @@ git.refs("/path/to/repo", { limit = 20 })      -- another repo, capped
 git.refs(nil, { remotes = false, tags = false })  -- local branches only
 ```
 
+`git.refs` blocks. A completion has to answer synchronously, but it can fetch
+the list ahead of time: `git.refs_async(dir?, opts?, on_done)` runs the same
+single `for-each-ref` in the background and hands `on_done(refs, err)` the
+same list (order, groups, `limit`), always `vim.schedule`d -- also when git
+cannot be started (`{}` plus the reason). It returns `{ stop }`; after
+`stop()` the answer is dropped.
+
+```lua
+local cached = {}
+local handle = git.refs_async(root, { limit = 200 }, function(refs, err)
+  if not err then cached = refs end
+end)
+-- later, in the completion function: return cached
+```
+
 Two details matter more than they look:
 
 - **Sorted by creator date, newest first.** `git for-each-ref` defaults to

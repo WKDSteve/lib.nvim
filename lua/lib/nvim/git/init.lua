@@ -287,6 +287,81 @@ function M.info(dir, git_cmd)
   }
 end
 
+---@internal
+--- The `for-each-ref` of `refs`/`refs_async`: what comes after `git` (with
+--- `-C dir` when given) and the wanted groups in their order; `nil` when no
+--- group is wanted.
+---
+--- One `for-each-ref` for every wanted group (it used to be one process per
+--- group: three synchronous starts, ~75 ms on Windows, on the first <Tab>).
+---@param dir string|nil
+---@param opts { branches?: boolean, remotes?: boolean, tags?: boolean, limit?: integer }
+---@return string[]|nil args
+---@return string[] kinds
+local function refs_job(dir, opts)
+  local kinds = {} ---@type string[]
+  if opts.branches ~= false then
+    kinds[#kinds + 1] = "heads"
+  end
+  if opts.remotes ~= false then
+    kinds[#kinds + 1] = "remotes"
+  end
+  if opts.tags ~= false then
+    kinds[#kinds + 1] = "tags"
+  end
+  if #kinds == 0 then
+    return nil, kinds
+  end
+  local args = {}
+  if dir and dir ~= "" then
+    args[#args + 1] = "-C"
+    args[#args + 1] = dir
+  end
+  vim.list_extend(args, { "for-each-ref", "--sort=-creatordate", "--format=%(refname)" })
+  for _, kind in ipairs(kinds) do
+    args[#args + 1] = "refs/" .. kind .. "/"
+  end
+  return args, kinds
+end
+
+---@internal
+--- Split the one date-sorted `for-each-ref` list by group, groups in `kinds`
+--- order, deduplicated, capped at `opts.limit`. Splitting keeps each group's
+--- order (git breaks date ties by refname, the same within a group as across
+--- groups).
+---@param raw string|nil
+---@param kinds string[]
+---@param opts { limit?: integer }
+---@return string[]
+local function refs_parse(raw, kinds, opts)
+  local by_kind = {} ---@type table<string, string[]>
+  for _, kind in ipairs(kinds) do
+    by_kind[kind] = {}
+  end
+  for line in (raw or ""):gmatch("[^\r\n]+") do
+    -- strip=2: "refs/remotes/origin/main" -> "origin/main", which is what git
+    -- accepts as a revision (a bare "main" would collide with the branch).
+    local kind, name = line:match("^refs/([^/]+)/(.+)$")
+    if kind and by_kind[kind] then
+      local list = by_kind[kind]
+      list[#list + 1] = name
+    end
+  end
+  local out, seen = {}, {}
+  for _, kind in ipairs(kinds) do
+    for _, ref in ipairs(by_kind[kind]) do
+      if not seen[ref] then
+        seen[ref] = true
+        out[#out + 1] = ref
+        if opts.limit and #out >= opts.limit then
+          return out
+        end
+      end
+    end
+  end
+  return out
+end
+
 --- List the repository's named revisions: local branches, then remote
 --- branches, then tags — each group sorted by most recent commit first, and
 --- the whole list deduplicated in that order.
@@ -307,72 +382,22 @@ end
 --- Takes an explicit `dir` for the same reason `info` above does: a caller
 --- completing a revision for *a particular repository* usually does not mean
 --- the editor's cwd.
+---
+--- Blocks the caller; `refs_async` fetches the same list in the background
+--- (a completion that must answer synchronously fetches it ahead of time).
 ---@param dir? string Path inside the target repo. Defaults to the cwd.
 ---@param opts? { branches?: boolean, remotes?: boolean, tags?: boolean, limit?: integer } Which groups to include (all three default to true) and a cap on the total.
 ---@param git_cmd? string
 ---@return string[] # Possibly empty — a fresh repo with no commits has no refs, and neither does a non-repo.
 function M.refs(dir, opts, git_cmd)
   opts = opts or {}
-  local bin = git_cmd or "git"
-
-  -- One `for-each-ref` for every wanted group (it used to be one process per
-  -- group: three synchronous starts, ~75 ms on Windows, on the first <Tab>).
-  -- The full refname says which group a line belongs to; splitting the one
-  -- date-sorted list by group keeps each group's order (git breaks date ties
-  -- by refname, the same within a group as across groups).
-  local kinds = {} ---@type string[]
-  if opts.branches ~= false then
-    kinds[#kinds + 1] = "heads"
-  end
-  if opts.remotes ~= false then
-    kinds[#kinds + 1] = "remotes"
-  end
-  if opts.tags ~= false then
-    kinds[#kinds + 1] = "tags"
-  end
-  if #kinds == 0 then
+  local args, kinds = refs_job(dir, opts)
+  if not args then
     return {}
   end
-
-  local argv = { bin }
-  if dir and dir ~= "" then
-    argv[#argv + 1] = "-C"
-    argv[#argv + 1] = dir
-  end
-  vim.list_extend(argv, { "for-each-ref", "--sort=-creatordate", "--format=%(refname)" })
-  local by_kind = {} ---@type table<string, string[]>
-  for _, kind in ipairs(kinds) do
-    argv[#argv + 1] = "refs/" .. kind .. "/"
-    by_kind[kind] = {}
-  end
-  local raw = git_system(argv)
-  for line in (raw or ""):gmatch("[^\r\n]+") do
-    -- strip=2: "refs/remotes/origin/main" -> "origin/main", which is what git
-    -- accepts as a revision (a bare "main" would collide with the branch).
-    local kind, name = line:match("^refs/([^/]+)/(.+)$")
-    if kind and by_kind[kind] then
-      local list = by_kind[kind]
-      list[#list + 1] = name
-    end
-  end
-  local groups = {}
-  for _, kind in ipairs(kinds) do
-    groups[#groups + 1] = by_kind[kind]
-  end
-
-  local out, seen = {}, {}
-  for _, group in ipairs(groups) do
-    for _, ref in ipairs(group) do
-      if not seen[ref] then
-        seen[ref] = true
-        out[#out + 1] = ref
-        if opts.limit and #out >= opts.limit then
-          return out
-        end
-      end
-    end
-  end
-  return out
+  local argv = { git_cmd or "git" }
+  vim.list_extend(argv, args)
+  return refs_parse(git_system(argv), kinds, opts)
 end
 
 --- One path's entry in a `status_porcelain` map.
@@ -1050,6 +1075,52 @@ end
 function M.run_async(args, opts, on_done, git_cmd)
   local argv = run_argv_for(args, opts, git_cmd)
   return exec_async(argv, opts and opts.input or nil, runner_opts(opts), on_done)
+end
+
+--- Async counterpart to `refs`: the same list (order, groups, `limit`),
+--- without blocking the caller.
+---
+--- `on_done(refs, err)` is always `vim.schedule`d, also when git cannot be
+--- started or no group is wanted. `refs` is always a list -- empty where
+--- `refs` answers `{}` -- and `err` says why git failed (`nil` on success,
+--- also for a repo without refs). After `stop()`, `on_done` is not called.
+---@param dir? string Path inside the target repo. Defaults to the cwd.
+---@param opts? { branches?: boolean, remotes?: boolean, tags?: boolean, limit?: integer, timeout_ms?: integer } As for `refs`, plus a deadline for git.
+---@param on_done fun(refs: string[], err: string|nil)
+---@param git_cmd? string
+---@return { stop: fun() } handle Kills git and drops its answer; harmless after it finished.
+function M.refs_async(dir, opts, on_done, git_cmd)
+  opts = opts or {}
+  local stopped = false
+  local job ---@type { stop: fun() }|nil
+  local handle = {
+    stop = function()
+      stopped = true
+      if job then
+        pcall(job.stop)
+      end
+    end,
+  }
+  local args, kinds = refs_job(dir, opts)
+  if not args then
+    vim.schedule(function()
+      if not stopped then
+        on_done({}, nil)
+      end
+    end)
+    return handle
+  end
+  job = M.run_async(args, { timeout_ms = opts.timeout_ms }, function(res)
+    if stopped then
+      return
+    end
+    if not res.ok then
+      on_done({}, failure_message(res, "git for-each-ref", opts))
+      return
+    end
+    on_done(refs_parse(res.stdout, kinds, opts), nil)
+  end, git_cmd)
+  return handle
 end
 
 ---@internal
