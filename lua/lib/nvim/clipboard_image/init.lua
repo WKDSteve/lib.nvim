@@ -1,5 +1,5 @@
 ---@module 'lib.nvim.clipboard_image'
---- Save the image on the system clipboard as a PNG file (synchronous).
+--- Save the image on the system clipboard as a PNG file (`save` waits, `save_async` does not).
 ---@description
 --- Platform tools, detected and never assumed:
 --- * Windows -- `powershell.exe -STA` with `System.Windows.Forms.Clipboard` (the
@@ -103,30 +103,13 @@ function M.tool(opts)
   return spec.tool, nil
 end
 
----Write the clipboard image to `path` as a PNG. Nothing is left behind on failure.
+---Read the tool's result: the file is written (or was by the tool) and is a PNG, or why not.
+---@param spec { cmd: string[], stdout: boolean, tool: string }
 ---@param path string
----@param opts? Lib.ClipboardImage.Opts
+---@param res table  # { code, stdout?, stderr? } of the tool
 ---@return boolean ok
 ---@return string|nil err
-function M.save(path, opts)
-  if type(path) ~= "string" or path == "" then
-    return false, "clipboard_image.save needs a target path"
-  end
-  local spec, err = command(path, opts)
-  if not spec then
-    return false, err
-  end
-
-  local run = opts and opts.system
-    or function(cmd, o)
-      return vim.system(cmd, o):wait(o.timeout)
-    end
-  local ran, res =
-    pcall(run, spec.cmd, { text = false, timeout = (opts and opts.timeout_ms) or 15000 })
-  if not ran or type(res) ~= "table" then
-    return false, ("cannot run %s: %s"):format(spec.tool, tostring(res))
-  end
-
+local function finish(spec, path, res)
   if spec.stdout then
     local data = res.stdout
     if res.code ~= 0 or type(data) ~= "string" or data == "" then
@@ -158,6 +141,87 @@ function M.save(path, opts)
     return false, "no image in the clipboard"
   end
   return true, nil
+end
+
+---The command for `path`, or why there is none (also for a missing path).
+---@param path any
+---@param opts? Lib.ClipboardImage.Opts
+---@return { cmd: string[], stdout: boolean, tool: string }|nil spec
+---@return string|nil err
+local function prepare(path, opts)
+  if type(path) ~= "string" or path == "" then
+    return nil, "clipboard_image.save needs a target path"
+  end
+  return command(path, opts)
+end
+
+---@param opts? Lib.ClipboardImage.Opts
+---@return table
+local function system_opts(opts)
+  return { text = false, timeout = (opts and opts.timeout_ms) or 15000 }
+end
+
+---Write the clipboard image to `path` as a PNG. Nothing is left behind on failure.
+---Waits for the tool (on Windows a PowerShell start); from a keypress use `save_async`.
+---@param path string
+---@param opts? Lib.ClipboardImage.Opts
+---@return boolean ok
+---@return string|nil err
+function M.save(path, opts)
+  local spec, err = prepare(path, opts)
+  if not spec then
+    return false, err
+  end
+
+  local run = opts and opts.system
+    or function(cmd, o)
+      return vim.system(cmd, o):wait(o.timeout)
+    end
+  local ran, res = pcall(run, spec.cmd, system_opts(opts))
+  if not ran or type(res) ~= "table" then
+    return false, ("cannot run %s: %s"):format(spec.tool, tostring(res))
+  end
+  return finish(spec, path, res)
+end
+
+---`save` without waiting: the tool runs in the background and `on_done(ok, err)` is called later on the main
+---loop, always on a later tick (also when there is no tool or no path). The answer is the one `save` gives.
+---`opts.system` (specs) is called at once, as in `save`, and its result is read as the tool's exit.
+---@param path string
+---@param opts? Lib.ClipboardImage.Opts
+---@param on_done fun(ok: boolean, err: string|nil)
+function M.save_async(path, opts, on_done)
+  assert(type(on_done) == "function", "clipboard_image.save_async needs a callback")
+  local function answer(ok, err)
+    vim.schedule(function()
+      on_done(ok, err)
+    end)
+  end
+  local spec, err = prepare(path, opts)
+  if not spec then
+    answer(false, err)
+    return
+  end
+  local function exited(res)
+    if type(res) ~= "table" then
+      answer(false, ("cannot run %s: %s"):format(spec.tool, tostring(res)))
+      return
+    end
+    -- On the main loop: `finish` writes the file, and the caller's callback may touch buffers.
+    vim.schedule(function()
+      on_done(finish(spec, path, res))
+    end)
+  end
+  if opts and opts.system then
+    local ran, res = pcall(opts.system, spec.cmd, system_opts(opts))
+    exited(ran and res or tostring(res))
+    return
+  end
+  -- The exit callback of vim.system runs in a fast event; `exited` only schedules from there.
+  local ran, serr = pcall(vim.system, spec.cmd, system_opts(opts), exited)
+  if not ran then
+    answer(false, ("cannot run %s: %s"):format(spec.tool, tostring(serr)))
+  end
 end
 
 return M

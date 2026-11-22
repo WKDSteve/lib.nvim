@@ -154,4 +154,115 @@ return function(H)
     "clipboard_image.save needs a target path",
     "an empty path is refused"
   )
+
+  -- ---- save_async: never waits, answers on a later tick ---------------------
+  ---Run `save_async` and wait (in the spec, not in the module) for its answer.
+  local function async(path, opts)
+    local got
+    ci.save_async(path, opts, function(a, b)
+      got = { a, b }
+    end)
+    local sync = got ~= nil
+    vim.wait(2000, function()
+      return got ~= nil
+    end, 5)
+    return got, sync
+  end
+
+  -- A stand-in for vim.system whose wait() throws: the call must go through the exit callback.
+  local real_system = vim.system
+  local spawned
+  local ran_ok, ran_err = pcall(function()
+    vim.system = function(cmd, o, on_exit)
+      spawned = { cmd = cmd, o = o, on_exit = on_exit }
+      return {
+        wait = function()
+          error("save_async waited for the tool")
+        end,
+      }
+    end
+    local got
+    ci.save_async(tmp, {
+      platform = "linux",
+      has = function(exe)
+        return exe == "wl-paste"
+      end,
+    }, function(a, b)
+      got = { a, b }
+    end)
+    ok(spawned and spawned.cmd[1] == "wl-paste", "save_async starts the tool")
+    ok(type(spawned.on_exit) == "function", "with an exit callback")
+    eq(spawned.o.text, false, "the PNG bytes are read as bytes")
+    ok(got == nil, "and returns before the tool has answered")
+    -- libuv calls the exit callback in a fast event: the answer must still reach the main loop.
+    local timer = assert(vim.uv.new_timer())
+    timer:start(0, 0, function()
+      timer:close()
+      spawned.on_exit({ code = 0, stdout = PNG })
+    end)
+    vim.wait(2000, function()
+      return got ~= nil
+    end, 5)
+    ok(got and got[1], "the clipboard image is saved: " .. tostring(got and got[2]))
+    eq(vim.fn.readblob(tmp):sub(1, 4), "\137PNG", "the bytes are written by the callback")
+    cleanup()
+
+    -- the tool cannot be started (not on PATH): a message, on a later tick
+    vim.system = function()
+      error("ENOENT: no such file or directory")
+    end
+    local res, sync = async(tmp, { platform = "windows" })
+    ok(not sync, "a failed start answers on a later tick")
+    ok(
+      res and not res[1] and res[2]:find("cannot run powershell.exe", 1, true),
+      "and names the tool"
+    )
+  end)
+  vim.system = real_system
+  cleanup()
+  ok(ran_ok, tostring(ran_err))
+
+  local res, sync = async("", {})
+  ok(not sync, "a missing path answers on a later tick")
+  eq(res, { false, "clipboard_image.save needs a target path" }, "and is refused")
+
+  res, sync = async(tmp, {
+    platform = "linux",
+    has = function()
+      return false
+    end,
+  })
+  ok(not sync and not res[1] and res[2]:find("wl-paste", 1, true), "no tool: the same message")
+
+  res = async(tmp, {
+    platform = "windows",
+    system = function()
+      return { code = 3 }
+    end,
+  })
+  eq(res, { false, "no image in the clipboard" }, "the answer is the one save gives (exit 3)")
+
+  res = async(tmp, {
+    platform = "linux",
+    has = function()
+      return true
+    end,
+    system = fake({ code = 0, stdout = "just some copied text" }),
+  })
+  ok(not res[1] and res[2]:find("no PNG", 1, true), "text is not stored as an image")
+  ok(vim.uv.fs_stat(tmp) == nil, "and nothing is written")
+
+  res = async(tmp, {
+    platform = "linux",
+    has = function()
+      return true
+    end,
+    system = function()
+      error("boom")
+    end,
+  })
+  ok(not res[1] and res[2]:find("cannot run wl-paste", 1, true), "a throwing runner is a message")
+
+  local threw = pcall(ci.save_async, tmp, {})
+  ok(not threw, "save_async without a callback is a programming error")
 end
