@@ -153,6 +153,25 @@ return function(H)
     popup.clear()
   end
 
+  do -- at most fallback_toast_max (3) sticky toasts: a newer one closes the oldest
+    toast.clear()
+    popup.clear()
+    without_ui_nvim(function()
+      with_fake_clock(function()
+        for i = 1, 4 do
+          popup.deliver(("message %d\nline two"):format(i), vim.log.levels.INFO)
+        end
+      end)
+    end)
+    eq(toast.active(), 3, "cap: four sticky messages leave three toasts on screen")
+    local all = table.concat(toast_texts(), "\n")
+    ok(not all:find("message 1", 1, true), "cap: the oldest one is closed")
+    ok(all:find("message 4", 1, true), "cap: the newest one is shown")
+    eq(#popup.history(), 4, "cap: the history keeps all four")
+    toast.clear()
+    popup.clear()
+  end
+
   do -- an explicit per-call timeout still wins over the sticky default
     without_ui_nvim(function()
       with_fake_clock(function()

@@ -95,8 +95,9 @@ rather than from inside a command. This toast has **no time limit**: it is
 often command output meant to be read (a `--dry-run` plan), so it stays until
 it is closed with `:Lib notify dismiss` (or `popup.dismiss()`, e.g. from a
 keymap of your own). It needs no key and never takes focus, and the full text
-stays in the history (`:Lib notify last`). A caller that passes its own
-`timeout` still gets that one.
+stays in the history (`:Lib notify last`). At most three of them are on screen
+at once (`fallback_toast_max`): a newer one closes the oldest. A caller that
+passes its own `timeout` still gets that one.
 
 **Specs that stub `vim.notify`** and read a multi-line message's text turn
 this fallback off, so the message reaches `vim.notify` in full again:
@@ -141,6 +142,7 @@ popup.setup({
   timeouts = { [vim.log.levels.ERROR] = 10000 }, -- per-level override, merged in
   history_full = false, -- show_history(): collapsed (default) or full entries
   fallback_toast = true, -- without ui.nvim: multi-line as lib's toast; false = vim.notify
+  fallback_toast_max = 3, -- most such toasts on screen; a newer one closes the oldest
 })
 
 -- Per call: overrides `popup.setup`'s defaults for this one delivery only.

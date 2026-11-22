@@ -22,7 +22,8 @@
 ---      callback; a one-line message stays an echo (step 4). This toast has
 ---      no time limit: it stays until it is closed (`:Lib notify dismiss`,
 ---      `popup.dismiss()`), so command output that is meant to be read does
----      not vanish. `setup({ fallback_toast = false })` turns this step off
+---      not vanish. At most `fallback_toast_max` (3) of them are on screen: a
+---      newer one closes the oldest. `setup({ fallback_toast = false })` turns this step off
 ---      (the message goes to `vim.notify` again) -- the switch for specs that
 ---      stub `vim.notify`
 ---   4. else, when no toast can be shown, `vim.notify` -- a message is never lost
@@ -60,6 +61,7 @@ local M = {}
 ---@field timeouts table<integer, integer> Per-level toast lifetime override in ms, merged over `LEVELS[*].timeout`
 ---@field history_full boolean `show_history()` shows entries in full instead of collapsed to `max_lines` (default false)
 ---@field fallback_toast boolean Without ui.nvim, show a multi-line message as lib.nvim's own toast (default true); false hands it to `vim.notify`, as before -- the switch for specs that stub `vim.notify` and read the text
+---@field fallback_toast_max integer Most fallback toasts without a time limit on screen at once (default 3); a newer one closes the oldest, whose text stays in the history
 
 ---Partial form of `Lib.Notify.Popup.Config` accepted by `M.setup`: every
 ---field optional, a field left unset keeps its current value.
@@ -74,6 +76,7 @@ local M = {}
 ---@field timeouts? table<integer, integer>
 ---@field history_full? boolean
 ---@field fallback_toast? boolean
+---@field fallback_toast_max? integer
 
 ---@type Lib.Notify.Popup.Config
 local config = {
@@ -86,6 +89,7 @@ local config = {
   timeouts = {},
   history_full = false,
   fallback_toast = true,
+  fallback_toast_max = 3,
 }
 
 local FALLBACK_WIDTH = 38 -- wrap width when the toast cannot report its own
@@ -486,6 +490,30 @@ local function derive_title(message, source, baked_prefix, spec)
   return fallback_title, message
 end
 
+-- The fallback toasts without a time limit that are on screen, oldest first.
+---@type Lib.UI.Kit.Surface[]
+local sticky_toasts = {}
+
+---Remembers a fallback toast without a time limit and closes the oldest ones
+---beyond `config.fallback_toast_max`: many multi-line messages from callbacks
+---(async git answers) would otherwise stack past the bottom of the screen
+---until `:Lib notify dismiss`. Their text stays in the history.
+---@param surf Lib.UI.Kit.Surface
+local function keep_sticky(surf)
+  local live = {}
+  for _, s in ipairs(sticky_toasts) do
+    if s:is_valid() then
+      live[#live + 1] = s
+    end
+  end
+  live[#live + 1] = surf
+  while #live > config.fallback_toast_max do
+    local oldest = table.remove(live, 1)
+    pcall(oldest.close, oldest)
+  end
+  sticky_toasts = live
+end
+
 ---@param message string
 ---@param level integer
 ---@param opts Lib.Notify.Popup.Opts
@@ -542,12 +570,15 @@ local function show_toast(message, level, opts)
   local max_lines = opts.max_lines or config.max_lines
   local max_bytes = opts.toast_max_bytes or config.toast_max_bytes
   local timeout = opts.timeout or (sticky and 0) or config.timeouts[level] or spec.timeout
-  local ok = pcall(toast.open, {
+  local ok, surf = pcall(toast.open, {
     title = title,
     message = wrap(body, width, max_lines, max_bytes),
     timeout = timeout,
     theme = { hl = { border = hl, title = hl } },
   })
+  if ok and sticky and timeout == 0 and surf then
+    keep_sticky(surf)
+  end
   return ok
 end
 
@@ -667,6 +698,9 @@ function M.setup(opts)
   end
   if opts.fallback_toast ~= nil then
     config.fallback_toast = opts.fallback_toast and true or false
+  end
+  if type(opts.fallback_toast_max) == "number" and opts.fallback_toast_max >= 1 then
+    config.fallback_toast_max = math.floor(opts.fallback_toast_max)
   end
 end
 
