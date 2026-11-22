@@ -86,6 +86,13 @@ The message is handed to plain `vim.notify` instead when `ui.notify` is
 enabled (it already renders toasts) or when no toast can be shown, so a
 message is never lost -- and in both cases `opts.title` (see below) still
 reaches it, for a rich `vim.notify` backend to render.
+
+**Without ui.nvim**, a one-line message stays a plain echo (`vim.notify`). A
+multi-line one gets lib.nvim's own toast (`lib.nvim.ui.kit.toast`, which
+`ui.kit.toast` re-exports): as an echo it would stop the editor at a
+hit-enter prompt whenever it comes from a callback (an async git answer)
+rather than from inside a command. The toast is short-lived, needs no key,
+and the full text stays in the history (`:Lib notify last`).
 `popup.deliver(msg, level, { source, title, timeout })` is the
 direct entry point. `title` overrides the toast's default title; omit it and
 a multi-line message's own first line becomes the title instead (e.g.

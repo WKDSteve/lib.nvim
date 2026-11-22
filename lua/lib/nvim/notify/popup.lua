@@ -16,6 +16,10 @@
 ---   2. if `ui.notify` (ui.nvim) is enabled it already turns `vim.notify` into
 ---      toasts, so the message is handed to `vim.notify` to avoid a second popup
 ---   3. else shown via `ui.kit.toast` (soft dependency on ui.nvim)
+---   3b. without ui.nvim, a multi-line message is shown via lib.nvim's own
+---      toast (`lib.nvim.ui.kit.toast`, which `ui.kit.toast` re-exports): as an
+---      echo it would stop the editor at a hit-enter prompt when it comes from a
+---      callback; a one-line message stays an echo (step 4)
 ---   4. else, when no toast can be shown, `vim.notify` -- a message is never lost
 ---
 --- `messages` defaults to false, not true: Neovim has no API to add a message
@@ -481,7 +485,18 @@ end
 local function show_toast(message, level, opts)
   local ok_toast, toast = pcall(require, "ui.kit.toast")
   if not ok_toast then
-    return false
+    -- No ui.nvim. A one-line message stays an echo (`vim.notify`), as it always
+    -- was. A multi-line one would be an echo of several lines, which -- from a
+    -- callback rather than a command -- stops the editor at a hit-enter prompt:
+    -- it gets lib.nvim's own toast instead (`ui.kit.toast` is a re-export of
+    -- it), so it is short-lived, needs no key and shows the whole text.
+    if not vim.trim(message):find("\n", 1, true) then
+      return false
+    end
+    ok_toast, toast = pcall(require, "lib.nvim.ui.kit.toast")
+    if not ok_toast then
+      return false
+    end
   end
 
   local spec = LEVELS[level] or LEVELS[vim.log.levels.INFO]

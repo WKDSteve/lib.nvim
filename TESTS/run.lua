@@ -74,6 +74,7 @@ local specs = {
   "polymorphic_rootresolver_spec.lua",
   "logger_spec.lua",
   "notify_popup_spec.lua",
+  "notify_popup_fallback_spec.lua",
   "echo_spec.lua",
   "messages_spec.lua",
   "output_spec.lua",
