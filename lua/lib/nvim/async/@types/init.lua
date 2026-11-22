@@ -20,7 +20,24 @@
 ---exactly once when finished, optionally return a `Lib.Async.Stoppable`.
 ---@alias Lib.Async.MapLimitWorker fun(item: any, index: integer, done: fun(result: any, err: any)): Lib.Async.Stoppable|nil
 
+---Options for `require("lib.nvim.async").all`.
+---@class Lib.Async.AllOpts
+---@field in_flight? Lib.Async.InFlight Counts the run as one piece of work until `on_done` returned.
+
+---@class Lib.Async.InFlightClass
+---@field new fun(): Lib.Async.InFlight
+
+---Counter of callbacks still to come (`idle()` for specs). One per consumer.
+---@class Lib.Async.InFlight
+---@field pending integer Tracked pieces of work that have not called back yet.
+---@field track fun(self: Lib.Async.InFlight, cb?: function): function Count one piece of work; the returned wrapper uncounts it once, after `cb` returned.
+---@field count fun(self: Lib.Async.InFlight): integer How many tracked pieces have not called back yet.
+---@field idle fun(self: Lib.Async.InFlight): boolean Whether nothing tracked is waiting for its callback.
+
 ---@class Lib.Async
+---@field all fun(tasks: (fun(done: fun(result: any, err: any)): Lib.Async.Stoppable|nil)[], on_done: fun(results: any[], errors: any[], stopped: boolean), opts?: Lib.Async.AllOpts): Lib.Async.Stoppable # Start every task at once, answer once when the last one is back.
+---@field InFlight Lib.Async.InFlightClass
+---@field in_flight fun(): Lib.Async.InFlight Shorthand for `InFlight.new()`.
 ---@field await fun(starter: fun(resume: fun(...))): ... Suspend until `starter` calls its `resume`.
 ---@field map_limit fun(items: any[], limit: integer, worker: Lib.Async.MapLimitWorker, on_done: fun(results: any[], errors: any[], stopped: boolean), opts?: Lib.Async.MapLimitOpts): Lib.Async.Stoppable # Run a callback-style worker over every item with at most `limit` in flight; results in item order, `stop()` kills what is still running.
 ---@field run fun(body: function, on_done?: function, opts?: Lib.Async.RunOpts) Drive an `await`-using coroutine to completion.
@@ -57,9 +74,11 @@
 ---"Newest request wins" token gate instance. Not tied to `M.run`; usable
 ---around any callback-based async call.
 ---@class Lib.Async.LatestWins
----@field token integer The most recently minted token.
----@field begin fun(self: Lib.Async.LatestWins): integer Mint a new token, superseding the previous one.
----@field is_current fun(self: Lib.Async.LatestWins, token: integer): boolean Whether `token` is still the newest one minted.
+---@field token integer The most recently minted token without a key.
+---@field keyed table<any, integer> The most recently minted token per key.
+---@field begin fun(self: Lib.Async.LatestWins, key?: any): integer Mint a new token, superseding the previous one (of the same key).
+---@field is_current fun(self: Lib.Async.LatestWins, token: integer, key?: any): boolean Whether `token` is still the newest one minted (for `key`).
+---@field ticket fun(self: Lib.Async.LatestWins, key?: any): fun(): boolean `begin(key)` as a closure: `valid()` until the next token of the same key.
 ---@field if_current fun(self: Lib.Async.LatestWins, token: integer, fn: fun(...), ...) Run `fn` only if `token` is still current.
 
 return {}

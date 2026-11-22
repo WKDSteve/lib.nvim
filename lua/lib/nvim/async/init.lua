@@ -401,6 +401,113 @@ function M.map_limit(items, limit, worker, on_done, opts)
 end
 
 -- =========================================================
+-- Counting work in flight
+-- =========================================================
+
+--- A counter of callbacks still to come: what a spec waits for
+--- (`vim.wait(ms, function() return flight:idle() end)`) after a command that
+--- fires async work, instead of guessing a delay.
+---
+--- `:track(cb)` counts one piece of work and returns `cb` wrapped: the count
+--- goes down once, **after** `cb` returned (also when it threw). Work started
+--- from inside `cb` is therefore counted before the first piece is uncounted,
+--- so `idle()` only turns true once a whole chain of answers is done.
+---
+--- One counter per consumer (a module-level `local flight =
+--- async.in_flight()`), not one global: a spec of one plugin must not wait for
+--- the work of another.
+local InFlight = class.new("InFlight")
+
+function InFlight:init()
+  self.pending = 0
+end
+
+--- Count one piece of work; call the returned function (instead of `cb`) when
+--- it is done. A second call of the returned function is ignored.
+---@generic F: function
+---@param cb? F
+---@return F
+function InFlight:track(cb)
+  self.pending = self.pending + 1
+  local settled = false
+  return function(...)
+    if settled then
+      return
+    end
+    settled = true
+    if not cb then
+      self.pending = self.pending - 1
+      return
+    end
+    local outcome = pack(pcall(cb, ...))
+    self.pending = self.pending - 1
+    if not outcome[1] then
+      error(outcome[2], 0)
+    end
+    return unpack(outcome, 2, outcome.n)
+  end
+end
+
+--- How many tracked pieces of work have not called back yet.
+---@return integer
+function InFlight:count()
+  return self.pending
+end
+
+--- Whether nothing tracked is waiting for its callback.
+---@return boolean
+function InFlight:idle()
+  return self.pending == 0
+end
+
+M.InFlight = InFlight
+
+--- Shorthand for `InFlight.new()`.
+---@return Lib.Async.InFlight
+function M.in_flight()
+  return InFlight.new()
+end
+
+-- =========================================================
+-- All at once
+-- =========================================================
+
+--- Start every task at once and answer **once**, when the last one is back:
+--- `on_done(results, errors, stopped)` with `results[i]`/`errors[i]` belonging
+--- to `tasks[i]`, `vim.schedule`d.
+---
+--- `tasks[i](done)` starts one piece of work and calls `done(result, err)`
+--- exactly once; it may return a `Lib.Async.Stoppable` so the handle's
+--- `stop()` can kill it. A task that answers at once (synchronously) cannot
+--- finish the run before the last task started. A task that throws counts
+--- as finished with that error. After `stop()`, answers that come later are
+--- discarded. This is `map_limit` with no limit -- the same guarantees.
+---
+--- `opts.in_flight` (a `Lib.Async.InFlight`) counts the run as one piece of
+--- work from the call until `on_done` returned, so `idle()` stays false while
+--- the scheduled `on_done` is still to come.
+---@param tasks (fun(done: fun(result: any, err: any)): Lib.Async.Stoppable|nil)[]
+---@param on_done fun(results: any[], errors: any[], stopped: boolean)
+---@param opts? Lib.Async.AllOpts
+---@return Lib.Async.Stoppable handle
+function M.all(tasks, on_done, opts)
+  if type(tasks) ~= "table" then
+    error("lib.nvim.async.all: `tasks` must be a list of functions", 2)
+  end
+  if type(on_done) ~= "function" then
+    error("lib.nvim.async.all: `on_done` must be a function", 2)
+  end
+  opts = opts or {}
+  local finish = on_done
+  if opts.in_flight then
+    finish = opts.in_flight:track(on_done)
+  end
+  return M.map_limit(tasks, math.max(1, #tasks), function(task, _, done)
+    return task(done)
+  end, finish)
+end
+
+-- =========================================================
 -- Supersession
 -- =========================================================
 
@@ -416,21 +523,47 @@ local LatestWins = class.new("LatestWins")
 
 function LatestWins:init()
   self.token = 0
+  self.keyed = {} ---@type table<any, integer>
 end
 
 --- Mint a new token, superseding whichever one was handed out before it.
+--- With `key`, only tokens of the same key are superseded: one gate serves
+--- several independent commands (`gate:begin("status")` does not invalidate
+--- `gate:begin("browse")`).
+---@param key? any
 ---@return integer token
-function LatestWins:begin()
-  self.token = self.token + 1
-  return self.token
+function LatestWins:begin(key)
+  if key == nil then
+    self.token = self.token + 1
+    return self.token
+  end
+  local token = (self.keyed[key] or 0) + 1
+  self.keyed[key] = token
+  return token
 end
 
---- Whether `token` is still the newest one `begin()` handed out — i.e.
---- nothing has superseded it since.
+--- Whether `token` is still the newest one `begin(key)` handed out — i.e.
+--- nothing of the same key has superseded it since.
 ---@param token integer
+---@param key? any
 ---@return boolean
-function LatestWins:is_current(token)
-  return token == self.token
+function LatestWins:is_current(token, key)
+  if key == nil then
+    return token == self.token
+  end
+  return token == self.keyed[key]
+end
+
+--- `begin(key)` as a closure: the returned `valid()` is true until the next
+--- `begin`/`ticket` of the same key. The shape a callback checks before it
+--- applies a late answer (`if not valid() then return end`).
+---@param key? any
+---@return fun(): boolean valid
+function LatestWins:ticket(key)
+  local token = self:begin(key)
+  return function()
+    return self:is_current(token, key)
+  end
 end
 
 --- Run `fn` only if `token` is still current; a no-op otherwise. Convenience

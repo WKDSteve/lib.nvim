@@ -133,6 +133,60 @@ semantics worth knowing:
   worker throws reaches `errors[i]` unchanged (a table stays a table).
 - `limit` is clamped to at least 1; an empty list still reports (asynchronously).
 
+### all — several queries at once, one answer
+
+```lua
+local flight = async.in_flight() -- one per plugin, module-level
+
+local handle = async.all({
+  function(done) return git.run_async({ "rev-parse", "HEAD" }, { dir = d }, done) end,
+  function(done) return git.run_async({ "remote", "get-url", "origin" }, { dir = d }, done) end,
+}, function(results, errors, stopped)
+  -- vim.schedule-dispatched, once; results[i] belongs to tasks[i]
+end, { in_flight = flight })
+```
+
+`all` is `map_limit` without a limit: every task starts at once, the answer
+comes once the last one is back, and the same guarantees hold (a task that
+answers synchronously cannot finish the run before the last task started, a
+throwing task is that task's error, `stop()` kills what is in flight and drops
+late answers). With `in_flight` the run counts as busy until `on_done` has
+*returned*, not only until the last task answered.
+
+### InFlight — what a spec waits for
+
+```lua
+local flight = async.in_flight()
+git.run_async(args, opts, flight:track(function(res) ... end))
+-- in a spec:
+vim.wait(5000, function() return flight:idle() end)
+```
+
+`flight:track(cb)` counts one piece of work and returns `cb` wrapped; the
+count goes down once, **after** `cb` returned (also when it threw). Work
+started from inside `cb` is counted before `cb`'s own piece is uncounted, so
+`idle()` only turns true once a whole chain of answers is done. Use one
+counter per plugin: a spec must not wait for another plugin's work.
+
+### LatestWins — the newest request wins
+
+```lua
+local gate = async.latest_wins()
+
+local function status()
+  local valid = gate:ticket("status") -- invalidates the previous "status" ticket only
+  git.run_async(args, opts, function(res)
+    if not valid() then return end -- the user asked again meanwhile
+    show(res)
+  end)
+end
+```
+
+`begin(key?)` mints a token and supersedes the previous one of the same key;
+`is_current(token, key?)` and `if_current(token, fn, ...)` check it.
+`ticket(key?)` is `begin` as a closure. Without a key there is one token per
+gate, as before.
+
 ## API
 
 | Function                        | Meaning                                                                 |
@@ -141,6 +195,9 @@ semantics worth knowing:
 | `async.run(body, on_done?, opts?)` | Drive an `await`-using coroutine; `on_done` gets `body`'s return values, `vim.schedule`-dispatched |
 | `async.wrap(fn, argc)`             | Callback-style `fn` (callback last, at position `argc`) → awaitable        |
 | `async.map_limit(items, limit, worker, on_done, opts?)` | Run a callback-style `worker(item, index, done)` over every item, at most `limit` in flight; `on_done(results, errors, stopped)`; returns `{ stop }` |
+| `async.all(tasks, on_done, opts?)` | Start every `task(done)` at once; `on_done(results, errors, stopped)` once; `opts.in_flight` counts the run; returns `{ stop }` |
+| `async.in_flight()`                | Counter: `:track(cb)` → wrapped `cb`, `:count()`, `:idle()`                |
+| `async.latest_wins()`              | Gate: `:begin(key?)`, `:is_current(token, key?)`, `:if_current(token, fn, ...)`, `:ticket(key?)` → `valid()` |
 | `async.Semaphore.new(permits)`     | `:acquire()` (awaitable), `:release()`, `:with(body, ...)` (acquire, run guarded, always release) |
 | `async.Condvar.new()`              | `:wait()` (awaitable), `:notify_one()`, `:notify_all()`                    |
 

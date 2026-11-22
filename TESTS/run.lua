@@ -138,6 +138,7 @@ local specs = {
   "fs_fast_spec.lua",
   "collect_gitignore_spec.lua",
   "async_map_limit_spec.lua",
+  "async_all_spec.lua",
   "wslpath_spec.lua",
   "system_job_spec.lua",
   "system_job_kill_tree_spec.lua",
