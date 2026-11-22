@@ -21,6 +21,11 @@
 --- Handlers run on the main loop (`vim.schedule`), where `vim.system():wait()` and the rest of the editor API are
 --- allowed; libuv read callbacks are a fast-event context where they are not.
 ---
+--- A handler that asks git or another program should not block the editor for it: a route with `async = true`
+--- gets `handler(req, respond)` and answers with `respond(status, ctype?, body?)` whenever it is ready. A throw
+--- before the answer is a 500, no answer within `timeout_ms` a 504; `respond` is effective once, and a late one
+--- (client gone, server stopped, deadline passed) is a no-op.
+---
 ---```lua
 --- local server = require("lib.nvim.net.server")
 --- local s = server.start({
@@ -57,6 +62,7 @@ local STATUS = {
   [413] = "Payload Too Large",
   [500] = "Internal Server Error",
   [503] = "Service Unavailable",
+  [504] = "Gateway Timeout",
 }
 
 ---@param s string
@@ -212,6 +218,57 @@ local function find_route(routes, path, method)
   return nil, nil, allowed
 end
 
+---Default deadline of an asynchronous route that never answers.
+M.ASYNC_TIMEOUT_MS = 30000
+
+---Run an asynchronous route: `handler(req, respond)` answers through `respond(status, ctype?, body?)`, now or
+---later. Only the first answer counts -- `respond`, a throw before it (500) or the deadline (504) -- and every
+---later one is a no-op, as is any answer once the client is gone or the server stopped (its socket is closed
+---then). `respond` may be called from a libuv callback: answering uses only libuv and `vim.json`.
+---@param opts Lib.Net.Server.Opts
+---@param route Lib.Net.Server.Route
+---@param client uv.uv_tcp_t
+---@param request Lib.Net.Server.Request
+local function dispatch_async(opts, route, client, request)
+  local settled = false
+  local timer = uv.new_timer()
+  ---Take the one answer; false when one was given already.
+  local function settle()
+    if settled then
+      return false
+    end
+    settled = true
+    if timer and not timer:is_closing() then
+      timer:stop()
+      timer:close()
+    end
+    return true
+  end
+  local function answer(code, ctype, out)
+    if not settle() then
+      return
+    end
+    if type(code) ~= "number" then
+      return fail(client, 500, "handler answered no status")
+    end
+    respond(client, code, ctype or "application/json", out or "")
+  end
+  local deadline = route.timeout_ms or opts.async_timeout_ms or M.ASYNC_TIMEOUT_MS
+  if timer then
+    timer:start(deadline, 0, function()
+      vim.schedule(function()
+        if settle() then
+          fail(client, 504, ("no answer within %d ms"):format(deadline))
+        end
+      end)
+    end)
+  end
+  local ok, err = pcall(route.handler, request, answer)
+  if not ok and settle() then
+    fail(client, 500, tostring(err))
+  end
+end
+
 ---Validate and run one request. Main loop.
 ---@param s Lib.Net.Server.Handle
 ---@param opts Lib.Net.Server.Opts
@@ -271,14 +328,18 @@ local function dispatch(s, opts, client, req)
     return fail(client, 400, "a body is required")
   end
 
-  local ok, code, ctype, out = pcall(route.handler, {
+  local request = {
     method = req.method,
     path = path,
     query = query,
     params = captures,
     headers = req.headers,
     body = body,
-  })
+  }
+  if route.async then
+    return dispatch_async(opts, route, client, request)
+  end
+  local ok, code, ctype, out = pcall(route.handler, request)
   if not ok then
     return fail(client, 500, tostring(code))
   end

@@ -17,7 +17,14 @@
 ---@field query? table<string, string|fun(value: string): boolean> the only query keys the route accepts, each with its validator
 ---@field body? boolean|fun(raw: string): any a body is accepted; a function parses it (it gets only the raw body, so `vim.json.decode` fits as is; a throw or a falsy result is a 400)
 ---@field body_required? boolean
----@field handler fun(req: Lib.Net.Server.Request): integer, string?, string? status, content type, body
+---@field handler fun(req: Lib.Net.Server.Request, respond?: Lib.Net.Server.Respond): integer?, string?, string? status, content type, body; with `async` the return values are ignored and the answer goes through `respond`
+---@field async? boolean the handler answers through `respond(status, ctype?, body?)`, now or later (see `Lib.Net.Server.Respond`)
+---@field timeout_ms? integer deadline of an `async` route: no answer by then is a 504 (default `opts.async_timeout_ms`, else 30000)
+
+---The answer of an asynchronous route. Only the first answer counts: a second `respond`, one after the deadline
+---(504), after the handler threw (500), after the client left or after the server stopped writes nothing and does
+---not throw. Callable from a libuv callback. A non-number status is a 500.
+---@alias Lib.Net.Server.Respond fun(status: integer, ctype?: string, body?: string)
 
 ---@class Lib.Net.Server.Opts
 ---@field routes Lib.Net.Server.Route[]
@@ -27,6 +34,7 @@
 ---@field max_body? integer default 1048576
 ---@field idle_ms? integer a client that has not finished its request is dropped after this long (default 10000)
 ---@field max_clients? integer connections open at once; one more is answered 503 and closed (default 64)
+---@field async_timeout_ms? integer default deadline of the `async` routes (default 30000)
 
 ---@class Lib.Net.Server.Handle
 ---@field port integer
