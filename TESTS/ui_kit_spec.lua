@@ -387,7 +387,9 @@ return function(H)
         }),
         "function completion input opens"
       )
-      local fn_tab = vim.fn.maparg("<Tab>", "i", false, true)
+      local fn_tab = vim.api.nvim_buf_call(fn_comp.bufnr, function()
+        return vim.fn.maparg("<Tab>", "i", false, true)
+      end)
       eq(fn_tab.buffer, 1, "a function completion registers <Tab> too")
       vim.api.nvim_buf_set_lines(fn_comp.bufnr, 0, -1, false, { "acme co" })
       vim.api.nvim_win_set_cursor(fn_comp.winid, { 1, 7 })
