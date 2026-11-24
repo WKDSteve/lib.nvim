@@ -21,6 +21,20 @@ return function(H)
   ok(why and why:find("off", 1, true) ~= nil, "mode false: says it is off")
   eq(helper.request("walk", ".", function() end), nil, "mode false: a request is not taken")
 
+  do
+    local lines = {}
+    local function say(kind)
+      return function(msg)
+        lines[#lines + 1] = kind .. " " .. msg
+      end
+    end
+    helper.health(say("ok"), say("info"), say("warn"))
+    ok(lines[1] and lines[1]:find("^info file helper: ") ~= nil, "health: default label")
+    lines = {}
+    helper.health(say("ok"), say("info"), say("warn"), "native")
+    ok(lines[1] and lines[1]:find("^info native: ") ~= nil, "health: a caller's own label")
+  end
+
   helper.configure(nil)
   helper.set_mode_provider(function()
     return "/no/such/filetree-helper"

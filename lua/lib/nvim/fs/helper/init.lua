@@ -332,19 +332,22 @@ end
 ---@param ok fun(msg: string)
 ---@param info fun(msg: string)
 ---@param warn fun(msg: string)
-function M.health(ok, info, warn)
+---@param label? string  prefix of every line (default `"file helper"`); a plugin that owns the program (filetree.nvim) passes its own
+function M.health(ok, info, warn, label)
+  label = label or "file helper"
   local s = M.state()
   if s.lost then
-    warn("file helper: the process " .. s.lost .. "; fd and Lua serve this session")
+    warn(label .. ": the process " .. s.lost .. "; fd and Lua serve this session")
   elseif s.exe then
     ok(
-      ("file helper: %s (%s)"):format(
+      ("%s: %s (%s)"):format(
+        label,
         s.running and ("running, pid " .. tostring(s.pid)) or "found, starts on first need",
         s.exe
       )
     )
   else
-    info("file helper: " .. (s.off or "off"))
+    info(label .. ": " .. (s.off or "off"))
   end
 end
 
