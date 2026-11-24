@@ -367,6 +367,54 @@ return function(H)
       assert(ok_run, err)
     end
 
+    -- A function as `completion`: candidates for the WHOLE text before the cursor
+    -- (a value list holds spaces), matched case-insensitively, prefix hits first,
+    -- and offered from column 1 of the line.
+    do
+      local real_complete = vim.fn.complete
+      local got_col, got_items
+      vim.fn.complete = function(c, items)
+        got_col, got_items = c, items
+      end
+      local seen_prefix
+      local fn_comp = assert(
+        kit.input({
+          prompt = "Account",
+          completion = function(prefix)
+            seen_prefix = prefix
+            return { "Acme Corp", "Big Acme GmbH", "Zeta", "acme labs" }
+          end,
+        }),
+        "function completion input opens"
+      )
+      local fn_tab = vim.fn.maparg("<Tab>", "i", false, true)
+      eq(fn_tab.buffer, 1, "a function completion registers <Tab> too")
+      vim.api.nvim_buf_set_lines(fn_comp.bufnr, 0, -1, false, { "acme co" })
+      vim.api.nvim_win_set_cursor(fn_comp.winid, { 1, 7 })
+      local ok_fn, err_fn = pcall(function()
+        fn_tab.callback()
+        eq(seen_prefix, "acme co", "the function gets the whole text before the cursor")
+        eq(got_col, 1, "candidates replace from the start of the line")
+        eq(
+          table.concat(got_items, "|"),
+          "Acme Corp",
+          "only candidates holding the text are offered"
+        )
+        vim.api.nvim_buf_set_lines(fn_comp.bufnr, 0, -1, false, { "acme" })
+        vim.api.nvim_win_set_cursor(fn_comp.winid, { 1, 4 })
+        fn_tab.callback()
+        eq(
+          table.concat(got_items, "|"),
+          "Acme Corp|acme labs|Big Acme GmbH",
+          "prefix matches come first, then the ones that hold it"
+        )
+      end)
+      vim.fn.complete = real_complete
+      vim.cmd("stopinsert")
+      fn_comp:close()
+      assert(ok_fn, err_fn)
+    end
+
     -- <CR>/<Esc> still submit/cancel normally (pum never opens here, so this
     -- exercises the same finish() path as plain kit.input).
     local comp_submitted

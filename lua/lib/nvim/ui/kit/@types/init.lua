@@ -197,6 +197,7 @@
 ---@field default? string
 ---@field required? boolean               # <Esc> aborts the whole form instead of skipping this field
 ---@field expand_env? boolean             # run the answer through lib.nvim.cross.fs.expand_path
+---@field completion? string|fun(prefix: string): string[]  # <Tab> completes: a getcompletion() type or a candidate function
 ---@field theme? Lib.UI.Kit.ThemeArg       # overrides opts.theme for this field
 ---@field width? integer                  # overrides opts.width for this field
 ---@field relative? "editor"|"cursor"|"win"  # overrides opts.relative for this field
@@ -226,7 +227,7 @@
 ---@field live? boolean                   # validate on every edit, not only after the field has been left
 ---@field depends_on? string|string[]     # name(s) of fields this one's validity depends on: checked again when one of them changes (if it has a value or a message to speak of)
 ---@field expand_env? boolean             # text: run the answer through lib.nvim.cross.fs.expand_path
----@field completion? string              # text: a getcompletion() type; <Tab> completes
+---@field completion? string|fun(prefix: string): string[]  # text: a getcompletion() type, or a function listing candidates for the whole text before the cursor (spaces included); <Tab> completes
 ---@field secret? boolean                 # text: mask the value as you type
 ---@field mask? string                    # placeholder char when secret = true (default "*")
 
@@ -264,7 +265,7 @@
 ---@field expand_env? boolean              # run the submitted line through lib.nvim.cross.fs.expand_path
 ---@field secret? boolean                  # mask the input as you type (vim.fn.inputsecret replacement)
 ---@field mask? string                     # placeholder char when secret = true (default "*")
----@field completion? string               # a getcompletion() type ("file", "dir", ...); <Tab> completes (vim.fn.input's completion="file" replacement)
+---@field completion? string|fun(prefix: string): string[]  # a getcompletion() type ("file", "dir", ...) or a function listing candidates for the whole text before the cursor; <Tab> completes (vim.fn.input's completion="file" replacement)
 ---@field on_back? fun(line: string)        # opt-in: <BS> on an EMPTY line, <S-Tab> and <C-p> close the prompt and call this with the line as it stood (kit.form's `back` uses it)
 ---@field buttons? Lib.UI.Kit.InputButton[]     # opt-in: a clickable row of `[ Label ]` buttons under the field (the prompt is then two lines tall)
 ---@field on_submit? fun(line: string)      # <CR>

@@ -136,6 +136,7 @@ function M.open(opts)
       width = field.width or opts.width,
       relative = field.relative or opts.relative,
       expand_env = field.expand_env,
+      completion = field.completion,
       on_back = on_back,
       buttons = buttons,
       on_submit = function(line)

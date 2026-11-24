@@ -558,12 +558,38 @@ end
 ---`lib.nvim.ui.kit.sheet`, which shares this.
 ---@param bufnr integer
 ---@param winid integer
----@param completion string  # a `getcompletion()` type, e.g. "file", "dir"
+---@param completion string|fun(prefix: string): string[]  # a `getcompletion()` type, e.g. "file", "dir"; or a function listing candidates for the WHOLE text before the cursor (spaces included)
 local function trigger_completion(bufnr, winid, completion)
   local cursor = api.nvim_win_get_cursor(winid)
   local line = api.nvim_buf_get_lines(bufnr, cursor[1] - 1, cursor[1], false)[1] or ""
   local col = cursor[2]
   local prefix = line:sub(1, col)
+  if type(completion) == "function" then
+    -- A value list (known accounts, names) is one phrase that may hold spaces: the
+    -- candidates are matched against everything before the cursor and replace it
+    -- from the start of the line, unlike a getcompletion() type's last word.
+    local ok, got = pcall(completion, prefix)
+    if not ok or type(got) ~= "table" then
+      return
+    end
+    local needle = prefix:lower()
+    local starts, inside = {}, {}
+    for _, item in ipairs(got) do
+      if type(item) == "string" and item ~= "" then
+        local at = item:lower():find(needle, 1, true)
+        if at == 1 then
+          starts[#starts + 1] = item
+        elseif at then
+          inside[#inside + 1] = item
+        end
+      end
+    end
+    vim.list_extend(starts, inside)
+    if #starts > 0 then
+      pcall(fn.complete, 1, starts)
+    end
+    return
+  end
   -- Scanned from the end: `match("%S*$")` retries the rest of a long word from
   -- every start byte, which is quadratic for one pasted line without spaces.
   local frag = prefix:reverse():match("^%S*"):reverse()

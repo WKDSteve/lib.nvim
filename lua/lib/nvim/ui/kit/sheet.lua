@@ -173,7 +173,9 @@ local function normalize(raw, index)
       or type(raw.depends_on) == "table" and raw.depends_on
       or {},
     expand_env = raw.expand_env == true,
-    completion = type(raw.completion) == "string" and raw.completion or nil,
+    completion = (type(raw.completion) == "string" or type(raw.completion) == "function")
+        and raw.completion
+      or nil,
     secret = raw.secret == true,
     mask = type(raw.mask) == "string" and raw.mask or "*",
     choices = choices,
