@@ -53,6 +53,8 @@
 ---@class Lib.ContextMenu
 ---@field setup fun(opts?: { renderer?: Lib.ContextMenu.Renderer, native_popup?: boolean })  Sets `'mousemodel' = "extend"` by default, turning off Neovim's own built-in PopUp menu; `native_popup = true` opts back into it.
 ---@field renderer fun(): Lib.ContextMenu.Renderer
+---@field set_enabled fun(value: boolean)  Enable/disable the renderer/trigger without touching the item builders (`ui.setup({ menu = false })`'s target)
+---@field is_enabled fun(): boolean  Whether the renderer/trigger are currently active -- for `:checkhealth` and tests
 ---@field entry fun(available: any, label: string, fn: function, rtxt?: string, opts?: Lib.ContextMenu.ItemOpts): Lib.ContextMenu.Item|nil
 ---@field heading fun(title: string): Lib.ContextMenu.Item
 ---@field group fun(out: Lib.ContextMenu.Item[], ...: Lib.ContextMenu.Item|nil): boolean

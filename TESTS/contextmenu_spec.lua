@@ -123,6 +123,30 @@ return function(H)
     vim.o.mousemodel = saved_mousemodel
   end
 
+  -- ---------- set_enabled: the renderer/trigger opt-out ----------
+
+  do
+    local chooser = require("lib.nvim.ui.kit.chooser")
+    contextmenu.setup({ renderer = "kit", native_popup = true })
+    eq(contextmenu.is_enabled(), true, "is_enabled: on by default")
+
+    local items = { contextmenu.entry(true, "Do X", function() end) }
+    contextmenu.set_enabled(false)
+    eq(contextmenu.is_enabled(), false, "set_enabled(false) is reported")
+    eq(contextmenu.open(items, { mouse = false }), nil, "open: renders nothing while disabled")
+    eq(chooser.is_open(), false, "open: no surface while disabled")
+    ok(
+      contextmenu.entry(true, "Still", function() end) ~= nil,
+      "builders keep working while disabled"
+    )
+
+    contextmenu.set_enabled(true)
+    local surf = contextmenu.open(items, { mouse = false })
+    ok(surf ~= nil, "open: renders again once re-enabled")
+    chooser.close()
+    vim.o.mousemodel = "popup_setpos"
+  end
+
   -- ---------- open: draws with the kit renderer ----------
 
   do
