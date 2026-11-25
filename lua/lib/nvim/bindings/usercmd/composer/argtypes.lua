@@ -14,22 +14,7 @@ local M = {}
 ---@type table<string, Lib.UserCmd.Composer.TypeDef>
 local REGISTRY = {}
 
---- Filter a candidate list down to those starting with `arg_lead`.
----@param cands string[]
----@param arg_lead string
----@return string[]
-local function prefix(cands, arg_lead)
-  if arg_lead == "" then
-    return cands
-  end
-  local out = {}
-  for _, c in ipairs(cands) do
-    if c:sub(1, #arg_lead) == arg_lead then
-      out[#out + 1] = c
-    end
-  end
-  return out
-end
+local prefix = require("lib.nvim.bindings.usercmd.prefix")
 M.prefix = prefix
 
 --- Register (or override) an argument type.

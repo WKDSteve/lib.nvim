@@ -293,6 +293,7 @@ local specs = {
   "trash_restore_spec.lua",
   "to_absolute_spec.lua",
   "normkey_spec.lua",
+  "small_helpers_spec.lua",
   "stdpath_config_root_spec.lua",
   "fs_roots_spec.lua",
   "cross_powershell_spec.lua",

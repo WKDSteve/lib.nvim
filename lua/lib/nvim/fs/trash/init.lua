@@ -33,13 +33,7 @@ local uv = vim.uv or vim.loop
 
 local M = {}
 
----@internal
----Escape `str` for embedding in a single-quoted POSIX shell argument.
----@param str string
----@return string
-local function sh_quote(str)
-  return "'" .. str:gsub("'", "'\\''") .. "'"
-end
+local sh_quote = require("lib.nvim.cross.shell_quote").single
 
 ---@internal
 ---Escape `str` for embedding in a double-quoted AppleScript string literal.
