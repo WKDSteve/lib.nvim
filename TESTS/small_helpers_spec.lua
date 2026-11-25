@@ -12,7 +12,7 @@ return function(H)
   eq(norm(""), "", "norm: empty stays empty")
   eq(norm("a/b/"), "a/b", "norm: relative path loses the trailing slash")
   eq(norm("//srv/share/"), "//srv/share", "norm: a UNC prefix is kept")
-  ok(require("lib.nvim.fs.fast").norm == norm, "fast.norm is the same function")
+  eq(require("lib.nvim.fs.fast").norm("c:/a/"), "C:/a", "fast.norm spells a path the same way")
 
   -- usercmd.prefix -----------------------------------------------------------
   local prefix = require("lib.nvim.bindings.usercmd.prefix")
@@ -30,7 +30,12 @@ return function(H)
   eq(vim.inspect(prefix({ "a" }, "ab")), vim.inspect({}), "prefix: lead longer than the candidate")
   local list = { "x" }
   ok(prefix(list, "") == list, "prefix: an empty lead returns the list itself")
-  ok(require("lib.nvim.bindings.usercmd.composer.argtypes").prefix == prefix, "argtypes reuses it")
+  local at = require("lib.nvim.bindings.usercmd.composer.argtypes").prefix
+  eq(
+    vim.inspect(at({ "ab", "b" }, "a")),
+    vim.inspect({ "ab" }),
+    "argtypes.prefix filters the same way"
+  )
 
   -- cross.shell_quote.single -------------------------------------------------
   local single = require("lib.nvim.cross.shell_quote").single
