@@ -1,3 +1,4 @@
+---@module 'lib.nvim.git.commit_ref'
 ---@brief [[
 --- lib.nvim.git.commit_ref -- turn a commit reference in text into a commit.
 ---
