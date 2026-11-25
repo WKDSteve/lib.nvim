@@ -128,6 +128,7 @@ local specs = {
   "terminal_ask_spec.lua",
   "fs_read_bounded_spec.lua",
   "frontmatter_spec.lua",
+  "view_file_spec.lua",
   "markdown_link_cursor_spec.lua",
   "window_previous_spec.lua",
   "run_argv_spec.lua",
