@@ -40,7 +40,7 @@ A task that raises counts as a failure; a second `done` call is ignored. A raisi
 
 ## Related
 
-- `lib.nvim.patterns.circuit_breaker` (stop calling after repeated failure), `lib.nvim.cross.fs.mutate` (sync retry on Windows sharing errors), `lib.nvim.async`.
+- `lib.lua.patterns.circuit_breaker` (stop calling after repeated failure), `lib.nvim.cross.fs.mutate` (sync retry on Windows sharing errors), `lib.nvim.async`.
 
 ## Tests
 

@@ -9,7 +9,7 @@ cursor**, **how do I make it re-read the disk**. A fourth one only for explorers
 (`fileops.nvim` `ops/file.lua`, `pdfport.nvim` `integrations/init.lua`, `open.nvim` `context.lua`) ask here
 instead.
 
-Namespace: `lib.nvim.explorer`, not `lib.nvim.patterns.explorer`. It is domain code with four real adapters
+Namespace: `lib.nvim.explorer`, outside the `lib.nvim.patterns` family. It is domain code with four real adapters
 built in, not a reusable pattern skeleton. It is also not `lib.nvim.tree` (a pure tree data structure) and not
 `lib.nvim.neotree` (neo-tree node internals): this module only detects, reads a path and reloads.
 
