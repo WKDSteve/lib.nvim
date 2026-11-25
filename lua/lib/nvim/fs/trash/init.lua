@@ -33,7 +33,7 @@ local uv = vim.uv or vim.loop
 
 local M = {}
 
-local sh_quote = require("lib.nvim.cross.shell_quote").single
+local sh_quote = require("lib.nvim.cross.shell_quote.single")
 
 ---@internal
 ---Escape `str` for embedding in a double-quoted AppleScript string literal.

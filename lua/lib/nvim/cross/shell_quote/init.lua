@@ -353,15 +353,6 @@ function M.word(s, kind, program)
   return posix(s, program), nil
 end
 
---- One word as a POSIX single-quoted string, always: a `'` inside becomes `'\''`. No refusals and no
---- bare words (`word` does both); for a caller that builds the line itself and checks for NUL and
---- line breaks on its own.
----@param s string
----@return string
-function M.single(s)
-  return "'" .. s:gsub("'", "'\\''") .. "'"
-end
-
 --- A command line for `argv`, every word quoted for the shell family.
 ---
 --- PowerShell needs the call operator when the program word itself is quoted
