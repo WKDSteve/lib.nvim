@@ -173,8 +173,11 @@ end
 ---@param rel_path string|nil
 ---@param first integer|nil
 ---@param last integer|nil
+---@param opts? { ref?: "branch"|"commit" } `ref = "commit"` when `branch` is a commit hash: Gitea/Forgejo
+---  (codeberg) route a hash through `/src/commit/`, `/src/branch/<hash>` is a 404 there; the other forges
+---  take a hash in the same place as a branch.
 ---@return string
-function M.build(kind, remote, branch, rel_path, first, last)
+function M.build(kind, remote, branch, rel_path, first, last, opts)
   local base = repo_base(remote)
   if not rel_path then
     return base
@@ -190,7 +193,8 @@ function M.build(kind, remote, branch, rel_path, first, last)
     return ("%s/-/blob/%s/%s%s"):format(base, enc_branch, enc_path, anchor)
   elseif kind == "codeberg" then
     -- Also the shape most self-hosted Gitea/Forgejo forks accept.
-    return ("%s/src/branch/%s/%s%s"):format(base, enc_branch, enc_path, anchor)
+    local seg = (opts and opts.ref == "commit") and "commit" or "branch"
+    return ("%s/src/%s/%s/%s%s"):format(base, seg, enc_branch, enc_path, anchor)
   end
   return ("%s/blob/%s/%s%s"):format(base, enc_branch, enc_path, anchor)
 end

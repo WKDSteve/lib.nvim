@@ -112,6 +112,24 @@ return function(H)
     "https://codeberg.org/owner/repo/src/branch/main/src/x.lua",
     "build: a codeberg file URL (different grammar: /src/branch/)"
   )
+  H.eq(
+    remote.build("codeberg", codeberg_remote, "4fbc0bbf", "src/x.lua", 3, nil, { ref = "commit" }),
+    "https://codeberg.org/owner/repo/src/commit/4fbc0bbf/src/x.lua#L3",
+    "build: a codeberg file URL at a commit hash uses /src/commit/"
+  )
+  H.eq(
+    remote.build(
+      "github",
+      { host = "github.com", owner = "o", repo = "r" },
+      "4fbc0bbf",
+      "a.lua",
+      nil,
+      nil,
+      { ref = "commit" }
+    ),
+    "https://github.com/o/r/blob/4fbc0bbf/a.lua",
+    "build: ref = commit leaves github alone"
+  )
 
   -- A tracked file or branch name can legitimately contain a space, '#' or
   -- '?' (all valid on a POSIX filesystem) -- unescaped, any of the three
