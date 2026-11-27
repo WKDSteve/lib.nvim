@@ -605,6 +605,35 @@ function Handle:_suspend_focus_close()
   end
 end
 
+---The whole log as plain text, in the order it is shown, every entry unfolded -- what
+---`<C-c>` copies. The global `<C-c>` only copies file buffers (`buftype == ""`), so this
+---view carries its own: otherwise the user has to select everything and yank it.
+---@return string[]
+function Handle:text_lines()
+  local now_ms = self.now_ms_fn()
+  local out = {}
+  local n = #self.entries
+  for i = 1, n do
+    local entry = self.entries[self.opts.order == "newest_first" and (n - i + 1) or i]
+    vim.list_extend(out, (render_entry(entry, self.opts, false, now_ms)))
+  end
+  return out
+end
+
+---Copy the whole log (`text_lines`) linewise into the system clipboard register, falling
+---back to the unnamed one when the clipboard register is not available, and say how much.
+---@return integer lines  # lines copied
+function Handle:copy_all()
+  local lines = self:text_lines()
+  local reg = "+"
+  if not pcall(vim.fn.setreg, reg, lines, "V") or vim.fn.has("clipboard") == 0 then
+    reg = '"'
+    vim.fn.setreg(reg, lines, "V")
+  end
+  self:_hint(("Copied %d line%s"):format(#lines, #lines == 1 and "" or "s"))
+  return #lines
+end
+
 ---The keys of the log: one row each, shared by the mappings and the cheatsheet so the
 ---two can never drift apart. `show` is the label in the cheatsheet (default: all keys).
 ---@internal
@@ -669,6 +698,13 @@ local KEYS = {
       if not (type(self.opts.on_unload) == "function" and self:unload_older()) then
         self:load_more("newer")
       end
+    end,
+  },
+  {
+    keys = { "<C-c>" },
+    desc = "copy the whole log (all entries unfolded) to the clipboard",
+    run = function(self)
+      self:copy_all()
     end,
   },
   {

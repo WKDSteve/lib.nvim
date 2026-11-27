@@ -159,4 +159,32 @@ return function(H)
     a:close()
     b:close()
   end
+
+  -- <C-c> copies the whole log, folded entries unfolded, in the order shown. The global
+  -- <C-c> of the config only copies file buffers, so without this key nothing was copied.
+  do
+    local handle = message_log.open({
+      now_ms = function()
+        return 0
+      end,
+      collapsed_default = true,
+      order = "newest_first",
+      entries = {
+        { time_ms = 0, content = "first\nfirst-2" },
+        { time_ms = 0, content = "second" },
+      },
+    })
+    vim.api.nvim_set_current_win(handle.surf.winid)
+    vim.fn.setreg('"', "stale")
+    vim.fn.setreg("+", "stale")
+    local map
+    vim.api.nvim_buf_call(handle.surf.bufnr, function()
+      map = vim.fn.maparg("<C-c>", "n", false, true)
+    end)
+    eq(type(map.callback), "function", "<C-c> is mapped in the log buffer")
+    map.callback()
+    local got = vim.fn.getreg(vim.fn.has("clipboard") == 1 and "+" or '"')
+    eq(got, "[0s ago] second\n[0s ago] first\nfirst-2\n", "the whole log, unfolded, newest first")
+    handle:close()
+  end
 end
