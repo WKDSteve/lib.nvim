@@ -160,6 +160,7 @@
 ---@field row? integer       # explicit placement, paired with `relative`
 ---@field col? integer
 ---@field mouse? boolean     # shorthand for `relative = "mouse"` (nvzone/menu's spelling)
+---@field zindex? integer    # default: the theme's `zindex.menu`, raised above the float it opens from (current window, `win`, the window under the mouse)
 ---@field hide_cursor? boolean          # blank the terminal cursor while open; default true
 ---@field single_click? boolean         # one left click picks, a click outside dismisses; default true
 ---@field close_on_focus_lost? boolean  # dismiss when focus moves elsewhere; default true

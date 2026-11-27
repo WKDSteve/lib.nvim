@@ -709,6 +709,36 @@ local function go_back()
   open_level(with_title(cur.opts, parent.title), parent.items, prev_stack, true)
 end
 
+--- The zindex a new menu opens on: the caller's `zindex`, or else the theme's
+--- `zindex.menu`, raised above every float the menu is opened from (the
+--- current window, `win`, and with `mouse` the window under the pointer). A
+--- menu below such a float takes the focus but cannot be seen: a snacks
+--- picker's floats sit at 52-55, above the theme's 60 only by chance.
+---@param opts Lib.UI.Kit.MenuOpts
+---@param relative string
+---@return integer
+local function menu_zindex(opts, relative)
+  if opts.zindex then
+    return opts.zindex
+  end
+  local resolved = theme.resolve(opts.theme or "menu")
+  local z = resolved.zindex and (resolved.zindex.menu or resolved.zindex.popup) or 50
+  local wins = { vim.api.nvim_get_current_win(), opts.win }
+  if relative == "mouse" then
+    wins[#wins + 1] = vim.fn.getmousepos().winid
+  end
+  for i = 1, 3 do
+    local w = wins[i]
+    if w and w ~= 0 and vim.api.nvim_win_is_valid(w) then
+      local cfg = vim.api.nvim_win_get_config(w)
+      if cfg.relative ~= "" and (cfg.zindex or 0) >= z then
+        z = cfg.zindex + 1
+      end
+    end
+  end
+  return z
+end
+
 --- Show one level of the menu. `stack` carries the ancestors, so `<BS>` and
 --- the back entry can walk up without the caller knowing about nesting.
 ---
@@ -767,6 +797,7 @@ function open_level(opts, raw_items, stack, reuse)
     anchor = opts.anchor,
     row = opts.row,
     col = opts.col,
+    zindex = menu_zindex(opts, relative),
     on_select = function(_, idx)
       local cur = current
       local it = cur and cur.items[idx]

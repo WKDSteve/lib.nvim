@@ -162,6 +162,7 @@ local specs = {
   "ui_kit_nul_spec.lua",
   "ui_kit_chip_scheme_retint_spec.lua",
   "ui_kit_ask_spec.lua",
+  "ui_kit_menu_zindex_spec.lua",
   "ui_kit_confirm_answers_spec.lua",
   "ui_kit_confirm_layout_spec.lua",
   "ui_kit_confirm_keys_spec.lua",

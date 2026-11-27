@@ -764,7 +764,7 @@ local function click_submit()
 end
 
 --- Open a chooser.
----@param opts table  # { items, on_select, multi_select?, title?, relative?, win?, anchor?, row?, col?, width?, height?, theme?, initial_index?, hide_cursor?, single_click?, close_on_focus_lost?, close_on_select?, flash_on_select?, flash_ms?, hover? }
+---@param opts table  # { items, on_select, multi_select?, title?, relative?, win?, anchor?, row?, col?, width?, height?, zindex?, theme?, initial_index?, hide_cursor?, single_click?, close_on_focus_lost?, close_on_select?, flash_on_select?, flash_ms?, hover? }
 ---@return Lib.UI.Kit.Surface|nil
 function M.open(opts)
   if not opts or type(opts.items) ~= "table" or #opts.items == 0 then
@@ -796,6 +796,8 @@ function M.open(opts)
     col = opts.col,
     width = opts.width,
     height = opts.height or #flat_lines,
+    -- nil keeps the surface's default, the theme's popup level
+    zindex = opts.zindex,
     enter = true,
     filetype = "lib-kit-chooser",
     wo = { cursorline = true },
