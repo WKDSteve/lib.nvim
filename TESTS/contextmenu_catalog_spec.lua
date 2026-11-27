@@ -83,11 +83,27 @@ return function(H)
       seen[e.id] = true
     end
     eq(bad, nil, "builtin: every entry validates")
-    eq(
-      catalog.plugins(),
-      { "filetree", "gopath", "markdown", "pickers" },
-      "builtin: plugins with entries"
-    )
+    eq(catalog.plugins(), {
+      "cascade",
+      "casedesk",
+      "color_my_ascii",
+      "dap",
+      "docmap",
+      "fileops",
+      "filetree",
+      "github_stats",
+      "gitsuite",
+      "gopath",
+      "images",
+      "lsp",
+      "markdown",
+      "media",
+      "open",
+      "pickers",
+      "rules",
+      "sandbox",
+      "spotlight",
+    }, "builtin: plugins with entries")
     eq(
       catalog.get("gopath.reveal_fm").effect,
       "external",

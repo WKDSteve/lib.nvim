@@ -30,7 +30,27 @@ local EFFECTS = {
   navigate = true,
 }
 
-local BUILTIN = { "filetree", "gopath", "markdown", "pickers" }
+local BUILTIN = {
+  "cascade",
+  "casedesk",
+  "color_my_ascii",
+  "dap",
+  "docmap",
+  "fileops",
+  "filetree",
+  "github_stats",
+  "gitsuite",
+  "gopath",
+  "images",
+  "lsp",
+  "markdown",
+  "media",
+  "open",
+  "pickers",
+  "rules",
+  "sandbox",
+  "spotlight",
+}
 
 ---@type table<string, Lib.ContextMenu.Catalog.Entry>
 local by_id = {}

@@ -7,6 +7,93 @@ change the data in `lua/lib/nvim/contextmenu/catalog/data/` and run
 Columns: **context** where it applies, **needs** what the action takes, **requires** what
 must be installed (plugins by module name, CLI tools in backticks), **effect** what it does.
 
+## cascade
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `cascade.toggle_checkbox` | Toggle checkbox | checkbox | markdown-checkbox, line | buffer | cascade, ui.contextmenu | modify |
+| `cascade.cycle_type` | Cycle list marker type | checkbox | line, buffer | buffer | cascade, ui.contextmenu | modify |
+| `cascade.cycle_type_back` | Cycle list marker type back | checkbox | line, buffer | buffer | cascade, ui.contextmenu | modify |
+| `cascade.renumber` | Renumber list | list | line, buffer | buffer | cascade, ui.contextmenu | modify |
+| `cascade.rotate_form` | Rotate list form | list | line, buffer | buffer | cascade, ui.contextmenu | modify |
+| `cascade.sort` | Sort list A-Z | list | line, buffer | buffer | cascade, ui.contextmenu | modify |
+| `cascade.reverse` | Reverse list order | list | line, buffer | buffer | cascade, ui.contextmenu | modify |
+| `cascade.strip_checkboxes` | Strip checkboxes | checkbox-bulk | selection, line | buffer | cascade, ui.contextmenu | modify |
+
+## casedesk
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `casedesk.toggle` | Auf-/zuklappen | fold | line, buffer | buffer | casedesk, ui.contextmenu | view |
+| `casedesk.open_all` | Alle Einträge aufklappen | fold | line, buffer | buffer | casedesk, ui.contextmenu | view |
+| `casedesk.close_all` | Alles zuklappen | fold | line, buffer | buffer | casedesk, ui.contextmenu | view |
+| `casedesk.mode` | Seitenquelltext: nächster Modus | fold | line, buffer | buffer | casedesk, ui.contextmenu | view |
+| `casedesk.next_error` | Nächster Fehler | navigate | line, buffer | buffer | casedesk, ui.contextmenu | navigate |
+| `casedesk.original` | Original an dieser Zeile | navigate | line, buffer | buffer | casedesk, ui.contextmenu | open |
+| `casedesk.errors` | Fehler in die Quickfix | navigate | line, buffer | buffer | casedesk, ui.contextmenu | open |
+| `casedesk.entries` | Eintrag suchen (Picker) | navigate | line, buffer | buffer | casedesk, ui.contextmenu | navigate |
+| `casedesk.known_case` | Bekannte Meldungen im Fall | navigate | line, buffer | buffer | casedesk, ui.contextmenu | view |
+| `casedesk.mark` | Eintrag für Diff markieren | compare | line, buffer | buffer | casedesk, ui.contextmenu | view |
+| `casedesk.diff` | Markierte Einträge vergleichen | compare | line, buffer | buffer | casedesk, ui.contextmenu | view |
+| `casedesk.spotlight` | Token als Spotlight | compare | selection, line | buffer | casedesk, ui.contextmenu | view |
+| `casedesk.spotlight_qf` | Spotlight-Treffer in die Quickfix | compare | line, buffer | buffer | casedesk, ui.contextmenu | open |
+| `casedesk.task` | Eintrag als Folge-Task des Falls | compare | line, buffer | buffer | casedesk, ui.contextmenu | modify |
+| `casedesk.timeline` | Zeitstrahl erzeugen | output | line, buffer | buffer | casedesk, ui.contextmenu | view |
+| `casedesk.range` | Zeitraum eingrenzen | output | line, buffer | buffer | casedesk, ui.contextmenu | view |
+| `casedesk.live` | Live im Browser (mdview) | output | line, buffer | buffer | casedesk, ui.contextmenu | external |
+| `casedesk.md_case` | Als Markdown in den Fall (Research/) | output | line, buffer | buffer | casedesk, ui.contextmenu | modify |
+| `casedesk.md_temp` | Als Markdown in eine Temp-Datei | output | line, buffer | buffer | casedesk, ui.contextmenu | modify |
+
+## color_my_ascii
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `color_my_ascii.toggle` | Toggle ASCII highlighting | highlight | line, buffer | buffer | color_my_ascii, ui.contextmenu | view |
+| `color_my_ascii.scheme` | Switch color scheme | highlight | line, buffer | buffer | color_my_ascii, ui.contextmenu | view |
+| `color_my_ascii.char_info` | Highlight info for character under cursor | highlight | line, buffer | buffer | color_my_ascii, ui.contextmenu | view |
+| `color_my_ascii.fence_yank` | Yank fence content | fence | line, buffer | buffer | color_my_ascii, ui.contextmenu | copy |
+| `color_my_ascii.fence_split` | Open fence in split | fence | line, buffer | buffer | color_my_ascii, ui.contextmenu | open |
+| `color_my_ascii.fence_run` | Run fence content | fence | line, buffer | buffer | color_my_ascii, ui.contextmenu | external |
+| `color_my_ascii.fence_format` | Format fence | fence-edit | line, buffer | buffer | color_my_ascii, ui.contextmenu | modify |
+| `color_my_ascii.fence_align` | Straighten box-drawing edges (align) | fence-edit | line, buffer | buffer | color_my_ascii, ui.contextmenu | modify |
+| `color_my_ascii.fence_unwrap` | Unwrap fence under cursor | fence-edit | line, buffer | buffer | color_my_ascii, ui.contextmenu | modify |
+| `color_my_ascii.fence_wrap` | Wrap line in a fence | fence-new | line, selection | buffer | color_my_ascii, ui.contextmenu | modify |
+
+## dap
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `dap.continue` | Continue | run | line, buffer | buffer | wkddap, ui.contextmenu | external |
+| `dap.step_over` | Step Over | run | line, buffer | buffer | wkddap, ui.contextmenu | navigate |
+| `dap.step_into` | Step Into | run | line, buffer | buffer | wkddap, ui.contextmenu | navigate |
+| `dap.step_out` | Step Out | run | line, buffer | buffer | wkddap, ui.contextmenu | navigate |
+| `dap.terminate` | Terminate | run | line, buffer | buffer | wkddap, ui.contextmenu | external |
+| `dap.restart` | Restart | run | line, buffer | buffer | wkddap, ui.contextmenu | external |
+| `dap.toggle_breakpoint` | Toggle Breakpoint | breakpoints | line, buffer | buffer, line | wkddap, ui.contextmenu | modify |
+| `dap.conditional_breakpoint` | Conditional Breakpoint… | breakpoints | line, buffer | buffer, line | wkddap, ui.contextmenu | modify |
+| `dap.log_point` | Log Point… | breakpoints | line, buffer | buffer, line | wkddap, ui.contextmenu | modify |
+| `dap.list_breakpoints` | List Breakpoints | breakpoints | line, buffer | buffer | wkddap, ui.contextmenu | view |
+| `dap.toggle_ui` | Toggle DAP UI | ui | line, buffer | buffer | wkddap, ui.contextmenu | view |
+| `dap.eval` | Evaluate Expression / Selection | ui | selection, line | text | wkddap, ui.contextmenu | view |
+
+## docmap
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `docmap.browse_actions` | DocBrowse actions | browse | list, buffer | buffer | docmap, ui.contextmenu | view |
+
+## fileops
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `fileops.rename` | Rename file… | file | file, buffer | path, buffer | fileops, ui.contextmenu | modify |
+| `fileops.duplicate` | Duplicate file… | file | file, buffer | path, buffer | fileops, ui.contextmenu | modify |
+| `fileops.delete` | Delete file | file | file, buffer | path, buffer | fileops, ui.contextmenu | modify |
+| `fileops.copy_path` | Copy path | info | file, buffer | path, buffer | fileops, ui.contextmenu | copy |
+| `fileops.info` | Show file info | info | file, buffer | path, buffer | fileops, ui.contextmenu | view |
+| `fileops.next` | Next file in directory | navigate | file, buffer | buffer | fileops, ui.contextmenu | navigate |
+| `fileops.prev` | Previous file in directory | navigate | file, buffer | buffer | fileops, ui.contextmenu | navigate |
+
 ## filetree
 
 | id | label | group | context | needs | requires | effect |
@@ -45,6 +132,46 @@ must be installed (plugins by module name, CLI tools in backticks), **effect** w
 | `filetree.window_close` | Close filetree | window | buffer, tree-node | - | filetree | navigate |
 | `filetree.tree_actions` | <action of the own tree> | actions | tree-node, file | node | filetree | modify |
 
+## github_stats
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `github_stats.show_details` | Show details | repo | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | view |
+| `github_stats.cycle_sort` | Cycle sort | view | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | view |
+| `github_stats.cycle_range` | Cycle time range | view | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | view |
+| `github_stats.custom_range` | Custom time range… | view | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | view |
+| `github_stats.max_range` | Maximum time range | view | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | view |
+| `github_stats.refresh` | Refresh dashboard | refresh | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | view |
+| `github_stats.refresh_all` | Force-refresh all repositories | refresh | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | external |
+| `github_stats.refresh_selected` | Force-refresh selected repository | refresh | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | external |
+| `github_stats.export_selected` | Export selected… | export | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | copy |
+
+## gitsuite
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `gitsuite.open` | Open | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | open |
+| `gitsuite.push` | Push | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.pull` | Pull | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.fetch` | Fetch | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.status` | Status | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | view |
+| `gitsuite.lazygit` | Lazygit | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `lazygit` | external |
+| `gitsuite.reread` | Re-read | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | view |
+| `gitsuite.mark` | Mark / Unmark | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | modify |
+| `gitsuite.yank_path` | Yank path | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | copy |
+| `gitsuite.remove` | Remove from page | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | modify |
+| `gitsuite.marked_push` | Push (marked) | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.marked_pull` | Pull (marked) | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.marked_fetch` | Fetch (marked) | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.marked_clear` | Clear marks | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | view |
+| `gitsuite.fetch_all` | Fetch all | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.pull_all` | Pull all… | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.push_all` | Push all | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.update_all` | Update all | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.sync_pending` | Sync pending | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.sync_all` | Sync all | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |
+| `gitsuite.export` | Export… | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | copy |
+
 ## gopath
 
 | id | label | group | context | needs | requires | effect |
@@ -52,6 +179,34 @@ must be installed (plugins by module name, CLI tools in backticks), **effect** w
 | `gopath.open` | Open | paths | path-under-cursor, selection | text | gopath, ui.contextmenu | open |
 | `gopath.reveal_fm` | Reveal in File Manager | paths | path-under-cursor, selection | text | gopath, ui.contextmenu | external |
 | `gopath.reveal_filetree` | Reveal in filetree.nvim | paths | path-under-cursor, selection | text | gopath, ui.contextmenu, filetree | open |
+
+## images
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `images.show` | Show image | view | image, file | path | images, ui.contextmenu | view |
+| `images.hover` | Show image under cursor | view | line, buffer | buffer | images, ui.contextmenu | view |
+| `images.gallery` | Gallery (every image in the buffer) | view | buffer | buffer | images, ui.contextmenu | view |
+| `images.next` | Next image | view | buffer | buffer | images, ui.contextmenu | navigate |
+| `images.prev` | Previous image | view | buffer | buffer | images, ui.contextmenu | navigate |
+| `images.paste` | Paste image from clipboard | capture | buffer | buffer | images, ui.contextmenu | modify |
+| `images.screenshot` | Take a screenshot | capture | buffer | buffer | images, ui.contextmenu | external |
+| `images.info` | Show image info | info | image, file | path | images, ui.contextmenu | view |
+| `images.ocr` | Read text (OCR) | process | image, file | path | images, ui.contextmenu, `tesseract` | view |
+| `images.redact` | Redact (black out areas) | process | image, file | path | images, ui.contextmenu, `magick` | modify |
+| `images.export_pdf` | Export as PDF | process | image, file | path | images, ui.contextmenu | modify |
+| `images.scale` | Scale copy… | process | image, file | path | images, ui.contextmenu, `magick` | modify |
+| `images.optimise` | Optimise copy | process | image, file | path | images, ui.contextmenu, `magick` | modify |
+| `images.convert` | Convert copy… | process | image, file | path | images, ui.contextmenu, `magick` | modify |
+| `images.zen` | Zen view | process | image, file | path | images, ui.contextmenu | view |
+| `images.replace_clipboard` | Replace with clipboard image | process | image, file | path | images, ui.contextmenu | modify |
+| `images.compare` | Compare two images… | process | image, file | path | images, ui.contextmenu | view |
+
+## lsp
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `lsp.keymap_actions` | LSP actions | lsp | line, buffer, selection | buffer | lsp, ui.contextmenu | navigate |
 
 ## markdown
 
@@ -64,6 +219,22 @@ must be installed (plugins by module name, CLI tools in backticks), **effect** w
 | `markdown.checkbox_set` | Checkbox: <state> | checkbox | markdown-checkbox, line | buffer | markdown | modify |
 | `markdown.toc` | Insert / Refresh TOC | document | markdown-doc, buffer | buffer | markdown | modify |
 | `markdown.sync_refs` | Sync References | document | markdown-doc, buffer | buffer | markdown | modify |
+
+## media
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `media.kind_actions` | Media actions | media | dashboard-row, file | path | media, lib.nvim.contextmenu | modify |
+
+## open
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `open.open` | Open | open | path-under-cursor, selection | text | open, ui.contextmenu | external |
+| `open.browser` | Open in Browser | open | path-under-cursor, selection | text | open, ui.contextmenu | external |
+| `open.reveal_fm` | Reveal in File Manager | open | path-under-cursor, selection | text | open, ui.contextmenu | external |
+| `open.terminal` | Open in Terminal | open | path-under-cursor, selection | text | open, ui.contextmenu | external |
+| `open.list_links` | List Links Here | links | buffer | buffer | open, ui.contextmenu | view |
 
 ## pickers
 
@@ -83,3 +254,31 @@ must be installed (plugins by module name, CLI tools in backticks), **effect** w
 | `pickers.list_copy` | Copy all entries | list | preview, list | items | pickers, snacks | copy |
 | `pickers.list_quickfix` | Send all entries to quickfix | list | preview, list | items | pickers, snacks | modify |
 | `pickers.list_buffer` | Open all entries in a new buffer | list | preview, list | items | pickers, snacks | open |
+
+## rules
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `rules.accept` | Accept | proposal | list, line | buffer | rules, lib.nvim.contextmenu | modify |
+| `rules.waive` | Waive | proposal | list, line | buffer | rules, lib.nvim.contextmenu | modify |
+| `rules.discard` | Discard | proposal | list, line | buffer | rules, lib.nvim.contextmenu | modify |
+| `rules.open_finding` | Open finding | proposal | list, line | buffer | rules, lib.nvim.contextmenu | open |
+
+## sandbox
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `sandbox.list_actions` | List-view actions | list | list, line | item | sandbox, ui.contextmenu | modify |
+
+## spotlight
+
+| id | label | group | context | needs | requires | effect |
+|---|---|---|---|---|---|---|
+| `spotlight.toggle_here` | Spotlight this occurrence only | spotlight | line, buffer | buffer | spotlight, ui.contextmenu | view |
+| `spotlight.toggle` | Spotlight every occurrence | spotlight | line, buffer | buffer | spotlight, ui.contextmenu | view |
+| `spotlight.next` | Next occurrence | spotlight | line, buffer | buffer | spotlight, ui.contextmenu | navigate |
+| `spotlight.prev` | Previous occurrence | spotlight | line, buffer | buffer | spotlight, ui.contextmenu | navigate |
+| `spotlight.toggle_line` | Toggle whole-line rendering | options | line, buffer | buffer | spotlight, ui.contextmenu | modify |
+| `spotlight.to_quickfix` | Send matches to quickfix | options | line, buffer | buffer | spotlight, ui.contextmenu | open |
+| `spotlight.list` | Open spotlight list | manage | list, buffer | buffer | spotlight, ui.contextmenu | view |
+| `spotlight.clear` | Clear all spotlights | manage | line, buffer | buffer | spotlight, ui.contextmenu | modify |
