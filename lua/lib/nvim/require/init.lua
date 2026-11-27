@@ -158,5 +158,84 @@ function M.lazy(module_name)
   end
 end
 
+---@param path string
+---@param kind "file"|"directory"
+---@return boolean
+local function stat_is(path, kind)
+  local uv = vim.uv or vim.loop
+  local ok, st = pcall(uv.fs_stat, path)
+  return ok and st ~= nil and st.type == kind
+end
+
+---Whether `dir` ships the module at `path` (`lua/<path>.lua` or `lua/<path>/init.lua`).
+---@param dir string
+---@param path string  the module name with `/` for `.`
+---@return boolean
+local function dir_has_module(dir, path)
+  -- A nested module (`ui/contextmenu`) needs `lua/<top>/`: one stat rules most plugins out.
+  local top = path:match("^[^/]+")
+  if top ~= path and not stat_is(dir .. "/lua/" .. top, "directory") then
+    return false
+  end
+  local base = dir .. "/lua/" .. path
+  return stat_is(base .. ".lua", "file") or stat_is(base .. "/init.lua", "file")
+end
+
+---Whether the module of a plugin is installed, asked without loading it where possible.
+---
+---Under lazy.nvim a bare `require` of a plugin that is not loaded yet loads it, `config` and
+---all, so asking "is it there?" that way loads every plugin it is asked about. The order:
+---  1. `package.loaded[mod]` -- already loaded.
+---  2. lazy.nvim's registry, only if lazy.nvim itself is loaded (`package.loaded`, it is never
+---     required from here): the plugin listed as `opts.repo` with an existing directory, or any
+---     listed plugin whose directory ships `lua/<mod>`; not one with `cond = false`. An unloaded
+---     plugin stays unloaded.
+---  3. `runtimepath`: `lua/<mod>.lua` or `lua/<mod>/init.lua` (other plugin managers, dev
+---     checkouts, everything lazy.nvim has loaded).
+---  4. `require` last, for what only a loader knows (`package.preload`, `package.path`).
+---@param mod string  the plugin's main module (`filetree`, `ui.contextmenu`)
+---@param opts? { repo?: string }  `repo`: the name lazy.nvim lists the plugin under (`filetree.nvim`)
+---@return boolean
+function M.installed(mod, opts)
+  if type(mod) ~= "string" or mod == "" then
+    return false
+  end
+  if package.loaded[mod] ~= nil then
+    return true
+  end
+  local path = mod:gsub("%.", "/")
+  local cfg = package.loaded["lazy.core.config"]
+  if type(cfg) == "table" and type(cfg.plugins) == "table" then
+    local repo = opts and opts.repo
+    local named = repo and cfg.plugins[repo]
+    if
+      type(named) == "table"
+      and type(named.dir) == "string"
+      and not (type(named._) == "table" and named._.cond == false)
+      and stat_is(named.dir, "directory")
+    then
+      return true
+    end
+    for _, plugin in pairs(cfg.plugins) do
+      if
+        type(plugin) == "table"
+        and type(plugin.dir) == "string"
+        -- `cond = false`: listed, never loaded
+        and not (type(plugin._) == "table" and plugin._.cond == false)
+        and dir_has_module(plugin.dir, path)
+      then
+        return true
+      end
+    end
+  end
+  if
+    #vim.api.nvim_get_runtime_file("lua/" .. path .. ".lua", false) > 0
+    or #vim.api.nvim_get_runtime_file("lua/" .. path .. "/init.lua", false) > 0
+  then
+    return true
+  end
+  return (pcall(require, mod))
+end
+
 ---@type Lib.Require
 return M

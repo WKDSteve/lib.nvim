@@ -279,6 +279,7 @@ local specs = {
   "contextmenu_catalog_spec.lua",
   "contextmenu_catalog_drift_spec.lua",
   "crossfeature_catalog_spec.lua",
+  "require_installed_spec.lua",
   "is_subpath_spec.lua",
   "same_path_spec.lua",
   "fs_listing_spec.lua",

@@ -193,7 +193,8 @@ function M.is_private(e)
   return (a ~= nil and a.visibility == "private") or (b ~= nil and b.visibility == "private")
 end
 
----Whether one side is installed: a plugin when its main module `require`s (a repo the data does
+---Whether one side is installed: a plugin when its main module is installed
+---(`lib.nvim.require.installed`, asked without loading it under lazy.nvim; a repo the data does
 ---not know counts as a plugin whose module is its name), an app when its command is executable
 ---(the native apps install a command of their own name).
 ---@param name string
@@ -207,7 +208,7 @@ function M.installed(name, memo)
   local ok
   if r == nil or r.kind == "plugin" then
     local mod = (r and r.module) or name
-    ok = package.loaded[mod] ~= nil or (pcall(require, mod))
+    ok = require("lib.nvim.require").installed(mod, { repo = r and r.repo })
   else
     ok = vim.fn.executable(r.name) == 1
   end

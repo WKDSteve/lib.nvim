@@ -43,7 +43,9 @@ cf.register({ from = "myplugin", to = "images", kind = "optional", status = "pre
   text = "myplugin previews pictures with images.nvim." })   -- at runtime; id defaults to from>to
 ```
 
-A plugin counts as installed when its main module (`repo(name).module`, else the name) `require`s;
+A plugin counts as installed when its main module (`repo(name).module`, else the name) is there,
+asked with `lib.nvim.require.installed` (lazy.nvim's registry under the repo name, without loading
+the plugin);
 an app when a command of its name is executable (the native apps install one).
 
 ## Where the data comes from

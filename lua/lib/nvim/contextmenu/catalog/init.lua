@@ -214,11 +214,13 @@ local function nvim_at_least(min)
 end
 
 ---Whether the entry can be offered on this machine, and what is missing when not.
----A plugin counts as there when its main module `require`s; a tool when it is executable.
+---A plugin counts as there when its main module is installed (`lib.nvim.require.installed`:
+---asked without loading it under lazy.nvim); a tool when it is executable.
 ---@param e Lib.ContextMenu.Catalog.Entry|string  the entry or its id
+---@param memo? table<string, boolean>  answers per module to reuse within one query
 ---@return boolean ok
 ---@return { plugins: string[], tools: string[], nvim: string|nil } missing
-function M.available(e)
+function M.available(e, memo)
   if type(e) == "string" then
     e = M.get(e)
   end
@@ -228,7 +230,14 @@ function M.available(e)
   end
   local r = e.requires or {}
   for _, mod in ipairs(r.plugins or {}) do
-    if not pcall(require, mod) then
+    local there = memo and memo[mod]
+    if there == nil then
+      there = require("lib.nvim.require").installed(mod)
+      if memo then
+        memo[mod] = there
+      end
+    end
+    if not there then
       missing.plugins[#missing.plugins + 1] = mod
     end
   end
@@ -268,6 +277,7 @@ end
 function M.list(filter)
   filter = filter or {}
   local out = {}
+  local memo = {}
   for _, e in ipairs(M.all()) do
     local keep = (not filter.plugin or e.plugin == filter.plugin)
       and (not filter.context or has(e.context, filter.context))
@@ -289,7 +299,7 @@ function M.list(filter)
       end
     end
     if keep and filter.available then
-      keep = (M.available(e))
+      keep = (M.available(e, memo))
     end
     if keep then
       out[#out + 1] = e

@@ -30,7 +30,7 @@
 ---@field name     string   catalogue name: `images` for images.nvim (as in the context-menu catalogue), apps by repo name
 ---@field repo     string   repository name, `images.nvim`
 ---@field kind     string   "plugin", "app", "desktop", "web", "mobile", "kit", ...
----@field module?  string   plugins: the main Lua module, what `available` requires
+---@field module?  string   plugins: the main Lua module, what `installed` looks for (`lib.nvim.require.installed`)
 ---@field visibility? "private"  a private repo: never named in a published overview (public ones leave it out)
 
 ---Where the connection shows.

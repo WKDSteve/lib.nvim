@@ -2,7 +2,7 @@
 
 Safe and extended `require` utilities: a `pcall`-wrapped require, a
 directory-batch loader with lifecycle-function dispatch, and a lazy-require
-closure factory.
+closure factory, and a check whether a plugin is installed that does not load it.
 
 ## `M.safe(name)`
 
@@ -64,3 +64,26 @@ get_heavy().do_thing()
 Returns a closure that `require`s `module_name` on first call and caches the
 result for every call after that — a minimal alternative to
 `lib.lua.lazy` for a single module.
+
+## `M.installed(mod, opts)`
+
+```lua
+local there = require("lib.nvim.require").installed("filetree", { repo = "filetree.nvim" })
+```
+
+Whether a plugin's main module is installed, answered without loading the
+plugin where possible. Under lazy.nvim a plain `require` of a plugin that is
+not loaded yet loads it (its `config` included), so asking that way would load
+every plugin asked about. The order:
+
+1. `package.loaded[mod]`: already loaded.
+2. lazy.nvim's registry, only when lazy.nvim is already loaded: the plugin
+   listed as `opts.repo` with an existing directory, or any listed plugin whose
+   directory ships `lua/<mod>`. Plugins with `cond = false` do not count. The
+   plugin stays unloaded.
+3. `runtimepath`: `lua/<mod>.lua` or `lua/<mod>/init.lua` (other plugin
+   managers, dev checkouts, everything lazy.nvim has loaded).
+4. `require` last, for modules only a loader knows (`package.preload`).
+
+`lib.nvim.contextmenu.catalog.available` and `lib.nvim.crossfeature.installed`
+ask this.
