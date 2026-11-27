@@ -46,7 +46,7 @@ return {
       label = "Evaluate Expression / Selection",
       group = "ui",
       context = { "selection", "line" },
-      needs = { "text" },
+      needs = { "buffer" },
       effect = "view",
     },
   },

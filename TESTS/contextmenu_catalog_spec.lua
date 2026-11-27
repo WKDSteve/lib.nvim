@@ -104,6 +104,12 @@ return function(H)
       "sandbox",
       "spotlight",
     }, "builtin: plugins with entries")
+    -- review fixes: an export writes a file; the DAP evaluation also works on the word under the cursor
+    eq(catalog.get("github_stats.export_selected").effect, "modify", "builtin: an export modifies")
+    ok(
+      vim.tbl_contains(catalog.get("dap.eval").needs, "text") == false,
+      "builtin: dap eval needs no selected text"
+    )
     eq(
       catalog.get("gopath.reveal_fm").effect,
       "external",

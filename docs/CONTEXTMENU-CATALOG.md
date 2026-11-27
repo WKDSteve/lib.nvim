@@ -26,7 +26,7 @@ An entry of one plugin that brings in the feature of another.
 | `filetree.preview` | Preview image / PDF | filetree | images | view | - |
 | `filetree.ocr` | OCR (recognise text) | filetree | images | view | images.nvim; the OCR engine is images.nvim's own setting |
 | `filetree.image_info` | Image info | filetree | images | view | - |
-| `github_stats.export_selected` | Export selected… | github_stats | pdfport | copy | the PDF format needs pdfport.nvim |
+| `github_stats.export_selected` | Export selected… | github_stats | pdfport | modify | the PDF format needs pdfport.nvim |
 | `gitsuite.lazygit` | Lazygit | gitsuite | terminal | external | - |
 | `gopath.reveal_filetree` | Reveal in filetree.nvim | gopath | filetree | open | only for a local path the resolver confirmed to exist |
 | `pickers.goto_path` | Go to selected path (gopath) | pickers | gopath | open | single-line selection only |
@@ -98,7 +98,7 @@ An entry of one plugin that brings in the feature of another.
 | `dap.log_point` | Log Point… | breakpoints | line, buffer | buffer, line | wkddap, ui.contextmenu | modify |  |
 | `dap.list_breakpoints` | List Breakpoints | breakpoints | line, buffer | buffer | wkddap, ui.contextmenu | view |  |
 | `dap.toggle_ui` | Toggle DAP UI | ui | line, buffer | buffer | wkddap, ui.contextmenu | view |  |
-| `dap.eval` | Evaluate Expression / Selection | ui | selection, line | text | wkddap, ui.contextmenu | view |  |
+| `dap.eval` | Evaluate Expression / Selection | ui | selection, line | buffer | wkddap, ui.contextmenu | view |  |
 
 ## docmap
 
@@ -168,7 +168,7 @@ An entry of one plugin that brings in the feature of another.
 | `github_stats.refresh` | Refresh dashboard | refresh | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | view |  |
 | `github_stats.refresh_all` | Force-refresh all repositories | refresh | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | external |  |
 | `github_stats.refresh_selected` | Force-refresh selected repository | refresh | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | external |  |
-| `github_stats.export_selected` | Export selected… | export | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | copy | ⇄ pdfport |
+| `github_stats.export_selected` | Export selected… | export | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | modify | ⇄ pdfport |
 
 ## gitsuite
 

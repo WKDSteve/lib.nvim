@@ -38,7 +38,7 @@ return {
       id = "export_selected",
       label = "Export selected…",
       group = "export",
-      effect = "copy",
+      effect = "modify",
       cross = { "pdfport" },
       note = "the PDF format needs pdfport.nvim",
     },
