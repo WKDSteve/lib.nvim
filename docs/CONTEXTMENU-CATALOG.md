@@ -33,6 +33,10 @@ An entry of one plugin that brings in the feature of another.
 | `filetree.git_blame` | Show who changed the lines of the file (gitsuite.nvim) | filetree | gitsuite | view | an action of the own tree's git view (`git.blame`), on a changed file; one of the `tree_actions` |
 | `github_stats.export_selected` | Export selected… | github_stats | pdfport | modify | the PDF format needs pdfport.nvim |
 | `gitsuite.lazygit` | Lazygit | gitsuite | terminal | external | - |
+| `gitsuite.actions_diff_head` | Diff Against HEAD | gitsuite | diff | view | the diff view is diff.nvim's |
+| `gitsuite.actions_diff_last` | Diff Last Commit | gitsuite | diff | view | - |
+| `gitsuite.actions_browse_file` | Open File on Web | gitsuite | open | external | `:Git browse file`; open.nvim opens the URL, without it the group is left out |
+| `gitsuite.actions_browse_repo` | Open Repository on Web | gitsuite | open | external | `:Git browse repo` |
 | `gopath.reveal_filetree` | Reveal in filetree.nvim | gopath | filetree | open | only for a local path the resolver confirmed to exist |
 | `markdown.mdview` | Preview in mdview | markdown | mdview | external | runs `:Markdown mdview`; only with mdview.nvim (`:MDView`) and a buffer that has a file |
 | `markdown.paste_image` | Paste image | markdown | images | modify | runs `:Markdown image paste` (images.nvim pastes the clipboard image) |
@@ -207,6 +211,18 @@ An entry of one plugin that brings in the feature of another.
 | `gitsuite.sync_pending` | Sync pending | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
 | `gitsuite.sync_all` | Sync all | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
 | `gitsuite.export` | Export… | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | copy |  |
+| `gitsuite.actions_stage_hunk` | Stage Hunk | hunks | line, file | buffer | gitsuite, gitsigns, `git` | modify |  |
+| `gitsuite.actions_reset_hunk` | Reset Hunk | hunks | line, file | buffer | gitsuite, gitsigns, `git` | modify |  |
+| `gitsuite.actions_stage_buffer` | Stage Buffer | hunks | buffer, file | buffer | gitsuite, gitsigns, `git` | modify |  |
+| `gitsuite.actions_reset_buffer` | Reset Buffer | hunks | buffer, file | buffer | gitsuite, gitsigns, `git` | modify |  |
+| `gitsuite.actions_preview_hunk` | Preview Hunk | hunks | line, file | buffer | gitsuite, `git` | view |  |
+| `gitsuite.actions_blame_line` | Blame Line | blame | line, file | buffer | gitsuite, `git` | view |  |
+| `gitsuite.actions_blame_toggle` | Toggle Current Line Blame | blame | buffer, file | buffer | gitsuite, `git` | view |  |
+| `gitsuite.actions_diff_head` | Diff Against HEAD | diff | buffer, file | buffer | gitsuite, `git` | view | ⇄ diff |
+| `gitsuite.actions_diff_last` | Diff Last Commit | diff | buffer, file | buffer | gitsuite, `git` | view | ⇄ diff |
+| `gitsuite.actions_toggle_deleted` | Toggle Deleted | diff | buffer, file | buffer | gitsuite, gitsigns, `git` | view |  |
+| `gitsuite.actions_browse_file` | Open File on Web | browse | buffer, file | buffer | gitsuite, open, `git` | external | ⇄ open |
+| `gitsuite.actions_browse_repo` | Open Repository on Web | browse | buffer, file | buffer | gitsuite, open, `git` | external | ⇄ open |
 
 ## gopath
 

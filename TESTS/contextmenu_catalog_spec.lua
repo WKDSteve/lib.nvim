@@ -185,6 +185,7 @@ return function(H)
     -- feature of a plugin that does not exist.
     local KNOWN_WITHOUT_MENU = {
       ai = true,
+      diff = true,
       hover = true,
       language = true,
       mdview = true,
