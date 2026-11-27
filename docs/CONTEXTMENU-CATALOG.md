@@ -44,6 +44,8 @@ An entry of one plugin that brings in the feature of another.
 | `markdown.paste_image` | Paste image | markdown | images | modify | runs `:Markdown image paste` (images.nvim pastes the clipboard image) |
 | `pickers.goto_path` | Go to selected path (gopath) | pickers | gopath | open | single-line selection only |
 | `pickers.reveal_filetree` | Reveal in filetree | pickers | filetree | navigate | only for a row with an existing path and a set-up filetree; closes the picker first |
+| `pickers.mdview` | Preview in mdview | pickers | mdview | external | only on a Markdown file; loads it unlisted and runs mdview in it; closes the picker first |
+| `pickers.blame_line` | Blame this line (gitsuite) | pickers | gitsuite | view | `gitsuite.features.blame.for_location`, shown as a notification; the picker stays open |
 | `ui.unicode_table` | Unicode Table | ui | emojis | view | - |
 | `ui.git_actions` | Git Actions | ui | gitsuite | view | one row; picked, it opens gitsuite's own menu (`gitsuite.integrations.menu`) |
 | `ui.integration_markdown` | Markdown | ui | markdown | view | only in a Markdown buffer |
@@ -324,9 +326,12 @@ An entry of one plugin that brings in the feature of another.
 | `pickers.open_system` | Open with system app | open | preview, list, file | path | pickers, snacks | external |  |
 | `pickers.goto_path` | Go to selected path (gopath) | open | preview, selection | text | pickers, snacks, gopath | open | ⇄ gopath |
 | `pickers.reveal_filetree` | Reveal in filetree | open | list, preview | path | pickers, snacks, filetree | navigate | ⇄ filetree |
+| `pickers.mdview` | Preview in mdview | open | list, preview | path | pickers, snacks, mdview | external | ⇄ mdview |
+| `pickers.blame_line` | Blame this line (gitsuite) | git | list, preview, line | path, line | pickers, snacks, gitsuite | view | ⇄ gitsuite |
 | `pickers.copy_selection` | Copy selection | copy | preview, selection | text | pickers, snacks | copy |  |
 | `pickers.copy_path` | Copy path | copy | preview, list, file | path | pickers, snacks | copy |  |
 | `pickers.copy_path_line` | Copy path:line | copy | preview, list, file | path, line | pickers, snacks | copy |  |
+| `pickers.copy_markdown_link` | Copy Markdown link | copy | preview, list, file | path | pickers, snacks | copy |  |
 | `pickers.copy_line` | Copy this line | copy | preview, line | text | pickers, snacks | copy |  |
 | `pickers.copy_file` | Copy whole file content | copy | preview, list, file | path | pickers, snacks | copy |  |
 | `pickers.list_copy` | Copy all entries | list | preview, list | items | pickers, snacks | copy |  |

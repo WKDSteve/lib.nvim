@@ -12,7 +12,7 @@ of the cross-feature analysis of 2026-11-17 (`1`..`10`, `K-n`).
 
 21 connections with a private repo are not listed here.
 
-## Present (204)
+## Present (206)
 
 Connections that exist.
 
@@ -157,7 +157,7 @@ Connections that exist.
 | `gitsuite>ui` | gitsuite | ui | requires | The dashboard and the plugin report window of gitsuite.nvim are built on the kit of ui.nvim (`ui.kit`). | `gitsuite.nvim/lua/gitsuite/features/dashboard/view.lua` | `ui.git_actions` | - |
 | `gitsuite>filetree` | gitsuite | filetree | optional | The status relink of gitsuite.nvim uses `filetree.refs` of filetree.nvim when it is installed, and the dashboard shows a repository in the tree (`T`, "Show in Filetree" in its row menu). | `gitsuite.nvim/lua/gitsuite/features/dashboard/view.lua` | `filetree.git_diff`, `filetree.git_blame`, `gitsuite.show_in_filetree` | - |
 | `gitsuite>terminal` | gitsuite | terminal | optional | gitsuite.nvim runs lazygit through the facade of terminal.nvim (`terminal.run`) when that is new enough; its own float is the fallback. | `gitsuite.nvim/lua/gitsuite/features/ui/lazygit/facade.lua` | `gitsuite.lazygit` | - |
-| `gitsuite>pickers` | gitsuite | pickers | optional | gitsuite.nvim picks through the engines of pickers.nvim (`integrations.pickers_nvim`) when it is installed. | `gitsuite.nvim/lua/gitsuite/integrations/pickers_nvim.lua` | - | - |
+| `gitsuite>pickers` | gitsuite | pickers | optional | gitsuite.nvim picks through the engines of pickers.nvim (`integrations.pickers_nvim`) when it is installed. | `gitsuite.nvim/lua/gitsuite/integrations/pickers_nvim.lua` | `pickers.blame_line` | - |
 | `ui>emojis` | ui | emojis | optional | The menu of ui.nvim opens the unicode table of emojis.nvim (`emojis.unicode`). | `ui.nvim/lua/ui/menu/sections.lua` | `ui.unicode_table` | - |
 | `ui>gitsuite` | ui | gitsuite | optional | The right-click menu of ui.nvim has a 'Git Actions' row from gitsuite.nvim (`gitsuite.integrations.menu`). | `ui.nvim/lua/ui/menu/sections.lua` | `ui.git_actions` | - |
 | `ui>hover` | ui | hover | optional | The url slot of ui.nvim previews a link with hover.nvim when it is installed. | `ui.nvim/lua/ui/slots/kinds/url.lua` | - | - |
@@ -195,6 +195,8 @@ Connections that exist.
 | `images>filetree` | images | filetree | optional | With filetree.nvim loaded, images.nvim deletes images through the trash of the tree, which asks in its own dialog and can undo. | `images.nvim/lua/images/integrations/tree.lua` | `filetree.preview`, `filetree.ocr`, `filetree.image_info` | - |
 | `lib>filetree` | lib | filetree | requires | When the popup kit of lib.nvim creates a missing file, it reveals the new file in filetree.nvim, if filetree.nvim is loaded and set up. | `lib.nvim/lua/lib/nvim/fs/helper/init.lua` | - | - |
 | `pickers>filetree` | pickers | filetree | optional | The right-click menu of a pickers.nvim result or preview shows its file in filetree.nvim ("Reveal in filetree") when filetree.nvim is installed and set up. | `pickers.nvim/lua/pickers/preview_mouse.lua` | `filetree.from_template`, `pickers.reveal_filetree` | - |
+| `pickers>mdview` | pickers | mdview | optional | The right-click menu of a pickers.nvim result or preview opens a Markdown file in the browser preview of mdview.nvim ("Preview in mdview") when mdview.nvim is installed. | `pickers.nvim/lua/pickers/preview_mouse.lua` | `pickers.mdview` | - |
+| `pickers>gitsuite` | pickers | gitsuite | optional | The right-click menu of a pickers.nvim result or preview blames the row's line through gitsuite.nvim (`gitsuite.features.blame.for_location`) when gitsuite.nvim is installed. | `pickers.nvim/lua/pickers/preview_mouse.lua` | `pickers.blame_line` | - |
 | `ai>ai-desktop` | ai | ai-desktop | talks-to | The `ai_desktop` provider of ai.nvim sends its ask and stream requests (`/ask`, `/ask/stream`) to a local ai-desktop server. | `ai.nvim/lua/ai/providers/ai_desktop.lua` | - | - |
 | `hub-desktop>testing` | hub-desktop | testing | reads | The monitor of hub-desktop shows a light per repository, read from an export folder of testing.nvim (`testing-export/1`). | `hub-desktop/crates/hub-desktop/src/monitor.rs` | - | - |
 | `tasks>rules` | tasks | rules | reads | `import --from-rules` of tasks.nvim turns a work list of rules.nvim (`rules-work-list/1`) into tasks of an area. | `tasks.nvim/lua/tasks_nvim/rules_import.lua` | - | - |
