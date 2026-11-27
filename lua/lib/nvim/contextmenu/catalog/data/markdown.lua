@@ -45,5 +45,22 @@ return {
     },
     { id = "toc", label = "Insert / Refresh TOC", group = "document", rtxt = "<leader>toc" },
     { id = "sync_refs", label = "Sync References", group = "document" },
+    {
+      id = "mdview",
+      label = "Preview in mdview",
+      group = "document",
+      effect = "external",
+      cross = { "mdview" },
+      requires = { plugins = { "markdown", "mdview" } },
+      note = "runs `:Markdown mdview`; only with mdview.nvim (`:MDView`) and a buffer that has a file",
+    },
+    {
+      id = "paste_image",
+      label = "Paste image",
+      group = "document",
+      cross = { "images" },
+      requires = { plugins = { "markdown", "images" } },
+      note = "runs `:Markdown image paste` (images.nvim pastes the clipboard image)",
+    },
   },
 }

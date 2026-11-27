@@ -179,6 +179,34 @@ return function(H)
     )
     ok(catalog.validate(entry({ cross = {} })) ~= nil, "validate: cross is not empty")
     ok(catalog.validate(entry({ cross = { "images" } })) == nil, "validate: cross with a plugin")
+
+    -- Every `cross` name is a real plugin: one with a menu in the catalog, or one of the
+    -- fleet's plugins without a menu of its own. A typo would otherwise list a cross
+    -- feature of a plugin that does not exist.
+    local KNOWN_WITHOUT_MENU = {
+      ai = true,
+      hover = true,
+      language = true,
+      mdview = true,
+      pdfport = true,
+      tasks = true,
+      terminal = true,
+      testing = true,
+    }
+    local with_menu = {}
+    for _, e in ipairs(catalog.list()) do
+      with_menu[e.plugin] = true
+    end
+    local unknown = {}
+    for _, e in ipairs(catalog.list({ cross = true })) do
+      for _, c in ipairs(e.cross) do
+        if not (with_menu[c] or KNOWN_WITHOUT_MENU[c]) then
+          unknown[#unknown + 1] = e.id .. " -> " .. c
+        end
+      end
+    end
+    eq(table.concat(unknown, ", "), "", "cross: every name is a known plugin")
+
     local md = catalog.markdown()
     local sect = md:find("## Cross-plugin features", 1, true)
     ok(

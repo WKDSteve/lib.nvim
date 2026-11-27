@@ -22,13 +22,20 @@ An entry of one plugin that brings in the feature of another.
 | `casedesk.live` | Live im Browser (mdview) | casedesk | mdview | external | - |
 | `fileops.delete` | Delete file | fileops | filetree | modify | asks the reference engine of filetree.nvim whether orphaned assets remain |
 | `filetree.rename` | Rename (LSP refs) | filetree | markdown | modify | also rewrites the Markdown links that point at the file (markdown.nvim, when installed) |
+| `filetree.repair_link` | Repair broken link | filetree | gopath | modify | only on a symlink whose target is gone; gopath.nvim's tailsearch finds the new target, without it the repair offers delete / keep |
 | `filetree.from_template` | New from template | filetree | pickers | modify | the template picker previews through pickers.nvim; falls back to the kit picker / ui.select |
+| `filetree.mdview` | Open in mdview | filetree | mdview | external | only on a Markdown file; needs the opt-in feature `mdview_open` |
+| `filetree.spotlight` | Spotlight this name | filetree | spotlight | view | the node's basename becomes a spotlight.nvim token |
 | `filetree.preview` | Preview image / PDF | filetree | images | view | - |
 | `filetree.ocr` | OCR (recognise text) | filetree | images | view | images.nvim; the OCR engine is images.nvim's own setting |
 | `filetree.image_info` | Image info | filetree | images | view | - |
+| `filetree.git_diff` | Show the diff of the file against HEAD (gitsuite.nvim) | filetree | gitsuite | view | an action of the own tree's git view (`git.diff`), on a changed file; one of the `tree_actions` |
+| `filetree.git_blame` | Show who changed the lines of the file (gitsuite.nvim) | filetree | gitsuite | view | an action of the own tree's git view (`git.blame`), on a changed file; one of the `tree_actions` |
 | `github_stats.export_selected` | Export selected… | github_stats | pdfport | modify | the PDF format needs pdfport.nvim |
 | `gitsuite.lazygit` | Lazygit | gitsuite | terminal | external | - |
 | `gopath.reveal_filetree` | Reveal in filetree.nvim | gopath | filetree | open | only for a local path the resolver confirmed to exist |
+| `markdown.mdview` | Preview in mdview | markdown | mdview | external | runs `:Markdown mdview`; only with mdview.nvim (`:MDView`) and a buffer that has a file |
+| `markdown.paste_image` | Paste image | markdown | images | modify | runs `:Markdown image paste` (images.nvim pastes the clipboard image) |
 | `pickers.goto_path` | Go to selected path (gopath) | pickers | gopath | open | single-line selection only |
 
 ## cascade
@@ -125,6 +132,7 @@ An entry of one plugin that brings in the feature of another.
 | `filetree.create` | Create file / dir | files | tree-node, file | node | filetree | modify |  |
 | `filetree.rename` | Rename (LSP refs) | files | tree-node, file | path | filetree | modify | ⇄ markdown |
 | `filetree.batch_rename` | Batch rename | files | tree-node, file | path | filetree | modify |  |
+| `filetree.repair_link` | Repair broken link | files | tree-node, file | path | filetree | modify | ⇄ gopath |
 | `filetree.move` | Move to… | files | tree-node, file | path | filetree | modify |  |
 | `filetree.from_template` | New from template | files | tree-node, file | node | filetree | modify | ⇄ pickers |
 | `filetree.copy` | Copy | clipboard | tree-node, file | path | filetree | modify |  |
@@ -138,10 +146,12 @@ An entry of one plugin that brings in the feature of another.
 | `filetree.open_system` | Open with system app | open | tree-node, file | path | filetree | external |  |
 | `filetree.run_terminal` | Run in terminal / type path | open | tree-node, file | path | filetree | external |  |
 | `filetree.reveal_fm` | Reveal in file manager | open | tree-node, file | path | filetree | external |  |
+| `filetree.mdview` | Open in mdview | open | tree-node, file, markdown-doc | path | filetree, mdview | external | ⇄ mdview |
 | `filetree.copy_path` | Copy path… | paths | tree-node, file | path | filetree | copy |  |
 | `filetree.markdown_link` | Markdown link | paths | tree-node, file | path | filetree | copy |  |
 | `filetree.find_files` | Find files | search | tree-node, file | path | filetree | navigate |  |
 | `filetree.grep_in_dir` | Grep in dir | search | tree-node, file | path | filetree | navigate |  |
+| `filetree.spotlight` | Spotlight this name | search | tree-node, file | path | filetree, spotlight | view | ⇄ spotlight |
 | `filetree.node_info` | Node info | info | tree-node, file | path | filetree | view |  |
 | `filetree.inspect` | Inspect | info | tree-node, file | - | - | view |  |
 | `filetree.mark_toggle` | Toggle mark | marks | tree-node, file | path | filetree | view |  |
@@ -155,6 +165,8 @@ An entry of one plugin that brings in the feature of another.
 | `filetree.window_open` | Open filetree | window | buffer | buffer | filetree | open |  |
 | `filetree.window_close` | Close filetree | window | buffer, tree-node | - | filetree | navigate |  |
 | `filetree.tree_actions` | <action of the own tree> | actions | tree-node, file | node | filetree | modify |  |
+| `filetree.git_diff` | Show the diff of the file against HEAD (gitsuite.nvim) | actions | tree-node, file | path | filetree, gitsuite | view | ⇄ gitsuite |
+| `filetree.git_blame` | Show who changed the lines of the file (gitsuite.nvim) | actions | tree-node, file | path | filetree, gitsuite | view | ⇄ gitsuite |
 
 ## github_stats
 
@@ -243,6 +255,8 @@ An entry of one plugin that brings in the feature of another.
 | `markdown.checkbox_set` | Checkbox: <state> | checkbox | markdown-checkbox, line | buffer | markdown | modify |  |
 | `markdown.toc` | Insert / Refresh TOC | document | markdown-doc, buffer | buffer | markdown | modify |  |
 | `markdown.sync_refs` | Sync References | document | markdown-doc, buffer | buffer | markdown | modify |  |
+| `markdown.mdview` | Preview in mdview | document | markdown-doc, buffer | buffer | markdown, mdview | external | ⇄ mdview |
+| `markdown.paste_image` | Paste image | document | markdown-doc, buffer | buffer | markdown, images | modify | ⇄ images |
 
 ## media
 
