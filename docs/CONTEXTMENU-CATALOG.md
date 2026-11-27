@@ -131,7 +131,7 @@ An entry of one plugin that brings in the feature of another.
 
 | id | label | group | context | needs | requires | effect | cross |
 |---|---|---|---|---|---|---|---|
-| `docmap.browse_actions` | DocBrowse actions | browse | list, buffer | buffer | docmap, ui.contextmenu | view |  |
+| `docmap.browse_actions` | <DocBrowse action> | browse | list, buffer | buffer | docmap, ui.contextmenu | view |  |
 
 ## fileops
 
@@ -218,9 +218,9 @@ An entry of one plugin that brings in the feature of another.
 | `gitsuite.show_in_filetree` | Show in Filetree | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, filetree, `git` | navigate | ⇄ filetree |
 | `gitsuite.yank_path` | Yank path | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | copy |  |
 | `gitsuite.remove` | Remove from page | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | modify |  |
-| `gitsuite.marked_push` | Push (marked) | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
-| `gitsuite.marked_pull` | Pull (marked) | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
-| `gitsuite.marked_fetch` | Fetch (marked) | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
+| `gitsuite.marked_push` | Push | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
+| `gitsuite.marked_pull` | Pull | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
+| `gitsuite.marked_fetch` | Fetch | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
 | `gitsuite.marked_clear` | Clear marks | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | view |  |
 | `gitsuite.fetch_all` | Fetch all | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
 | `gitsuite.pull_all` | Pull all… | dashboard | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
@@ -281,7 +281,7 @@ An entry of one plugin that brings in the feature of another.
 
 | id | label | group | context | needs | requires | effect | cross |
 |---|---|---|---|---|---|---|---|
-| `lsp.keymap_actions` | LSP actions | lsp | line, buffer, selection | buffer | lsp, ui.contextmenu | navigate |  |
+| `lsp.keymap_actions` | <LSP keymap action> | lsp | line, buffer, selection | buffer | lsp, ui.contextmenu | navigate |  |
 
 ## markdown
 
@@ -301,7 +301,7 @@ An entry of one plugin that brings in the feature of another.
 
 | id | label | group | context | needs | requires | effect | cross |
 |---|---|---|---|---|---|---|---|
-| `media.kind_actions` | Media actions | media | dashboard-row, file | path | media, lib.nvim.contextmenu | modify |  |
+| `media.kind_actions` | <media action> | media | dashboard-row, file | path | media, lib.nvim.contextmenu | modify |  |
 
 ## open
 
@@ -346,7 +346,7 @@ An entry of one plugin that brings in the feature of another.
 
 | id | label | group | context | needs | requires | effect | cross |
 |---|---|---|---|---|---|---|---|
-| `sandbox.list_actions` | List-view actions | list | list, line | item | sandbox, ui.contextmenu | modify |  |
+| `sandbox.list_actions` | <list-view action> | list | list, line | item | sandbox, ui.contextmenu | modify |  |
 
 ## spotlight
 

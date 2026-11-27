@@ -15,7 +15,7 @@ return {
   entries = {
     {
       id = "keymap_actions",
-      label = "LSP actions",
+      label = "<LSP keymap action>",
       group = "lsp",
       note = "dynamic: one fly-out per keymap group, one entry per registered LSP keymap (label = its description, key shown); keymaps whose `requires` module is missing are left out",
     },

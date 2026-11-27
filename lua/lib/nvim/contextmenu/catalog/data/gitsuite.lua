@@ -71,7 +71,7 @@ return {
     { id = "remove", label = "Remove from page", group = "repo", rtxt = "x" },
     {
       id = "marked_push",
-      label = "Push (marked)",
+      label = "Push",
       group = "marked",
       effect = "external",
       rtxt = "p",
@@ -79,14 +79,14 @@ return {
     },
     {
       id = "marked_pull",
-      label = "Pull (marked)",
+      label = "Pull",
       group = "marked",
       rtxt = "P",
       effect = "external",
     },
     {
       id = "marked_fetch",
-      label = "Fetch (marked)",
+      label = "Fetch",
       group = "marked",
       rtxt = "f",
       effect = "external",

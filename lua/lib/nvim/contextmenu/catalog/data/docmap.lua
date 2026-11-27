@@ -15,7 +15,7 @@ return {
   entries = {
     {
       id = "browse_actions",
-      label = "DocBrowse actions",
+      label = "<DocBrowse action>",
       group = "browse",
       effect = "view",
       note = "dynamic: one entry per browse key (label = its description, key shown); keys with `disabled`, `where = detail` or another mode are left out",

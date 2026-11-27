@@ -16,7 +16,7 @@ return {
   entries = {
     {
       id = "kind_actions",
-      label = "Media actions",
+      label = "<media action>",
       group = "media",
       note = "dynamic: from `media.hub.actions` by the kind of the row(s); see that module for the list",
     },

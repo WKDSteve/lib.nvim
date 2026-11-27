@@ -15,7 +15,7 @@ return {
   entries = {
     {
       id = "list_actions",
-      label = "List-view actions",
+      label = "<list-view action>",
       group = "list",
       note = "dynamic: one entry per key of the list view; entries that need an item are hidden when the cursor is not on a row",
     },
