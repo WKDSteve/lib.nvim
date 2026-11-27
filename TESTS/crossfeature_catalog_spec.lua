@@ -221,7 +221,7 @@ return function(H)
       eq(
         on_disk:gsub("\n+$", ""),
         fresh,
-        "overview: in sync with the data (run scripts/gen-crossfeature-catalog.lua)"
+        "overview: in sync with the data (run scripts/gen-crossfeature-catalog.lua or gen-contextmenu-catalog.lua)"
       )
     end
   end
