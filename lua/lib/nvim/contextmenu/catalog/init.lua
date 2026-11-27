@@ -89,6 +89,19 @@ function M.validate(e)
   if e.needs ~= nil and type(e.needs) ~= "table" then
     return "needs must be a list"
   end
+  if e.cross ~= nil then
+    if type(e.cross) ~= "table" or #e.cross == 0 then
+      return "cross must be a non-empty list of plugin names"
+    end
+    for _, c in ipairs(e.cross) do
+      if type(c) ~= "string" or c == "" then
+        return "cross must hold plugin names"
+      end
+      if c == e.plugin then
+        return "cross must name another plugin than the owner"
+      end
+    end
+  end
   local r = e.requires
   if r ~= nil then
     if type(r) ~= "table" then
@@ -247,7 +260,9 @@ end
 ---   effect     what it does
 ---   provides   inputs the caller can supply: only entries whose `needs` are all in there
 ---   available  true: only entries usable on this machine (plugins, tools, Neovim)
----@param filter? { plugin?: string, context?: string, group?: string, effect?: string, provides?: string[], available?: boolean }
+---   cross      true: only cross-plugin features (`cross` set); a plugin name: only those that
+---              bring in that plugin's feature
+---@param filter? { plugin?: string, context?: string, group?: string, effect?: string, provides?: string[], available?: boolean, cross?: boolean|string }
 ---@return Lib.ContextMenu.Catalog.Entry[]
 function M.list(filter)
   filter = filter or {}
@@ -257,6 +272,13 @@ function M.list(filter)
       and (not filter.context or has(e.context, filter.context))
       and (not filter.group or e.group == filter.group)
       and (not filter.effect or e.effect == filter.effect)
+    if keep and filter.cross then
+      if type(filter.cross) == "string" then
+        keep = has(e.cross, filter.cross)
+      else
+        keep = e.cross ~= nil
+      end
+    end
     if keep and filter.provides then
       for _, need in ipairs(e.needs or {}) do
         if not has(filter.provides, need) then
@@ -325,24 +347,49 @@ function M.markdown()
     "`nvim -n -i NONE --headless -u NONE -l scripts/gen-contextmenu-catalog.lua`.",
     "",
     "Columns: **context** where it applies, **needs** what the action takes, **requires** what",
-    "must be installed (plugins by module name, CLI tools in backticks), **effect** what it does.",
+    "must be installed (plugins by module name, CLI tools in backticks), **effect** what it does,",
+    "**cross** the other plugins whose feature the entry brings in (a cross-plugin feature, marked",
+    "with `⇄`; all of them are also listed together in the first section).",
     "",
   }
+  local cross = M.list({ cross = true })
+  lines[#lines + 1] = "## Cross-plugin features"
+  lines[#lines + 1] = ""
+  if #cross == 0 then
+    lines[#lines + 1] = "None yet."
+  else
+    lines[#lines + 1] = "An entry of one plugin that brings in the feature of another."
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = "| id | label | owner | brings in | effect | note |"
+    lines[#lines + 1] = "|---|---|---|---|---|---|"
+    for _, e in ipairs(cross) do
+      lines[#lines + 1] = ("| `%s` | %s | %s | %s | %s | %s |"):format(
+        e.id,
+        (e.label:gsub("|", "\\|")),
+        e.plugin,
+        join(e.cross),
+        e.effect,
+        ((e.note or "-"):gsub("|", "\\|"))
+      )
+    end
+  end
+  lines[#lines + 1] = ""
   for _, plugin in ipairs(M.plugins()) do
     lines[#lines + 1] = "## " .. plugin
     lines[#lines + 1] = ""
-    lines[#lines + 1] = "| id | label | group | context | needs | requires | effect |"
-    lines[#lines + 1] = "|---|---|---|---|---|---|---|"
+    lines[#lines + 1] = "| id | label | group | context | needs | requires | effect | cross |"
+    lines[#lines + 1] = "|---|---|---|---|---|---|---|---|"
     for _, e in ipairs(M.list({ plugin = plugin })) do
       -- a `|` inside a cell would start a new column
-      lines[#lines + 1] = ("| `%s` | %s | %s | %s | %s | %s | %s |"):format(
+      lines[#lines + 1] = ("| `%s` | %s | %s | %s | %s | %s | %s | %s |"):format(
         e.id,
         (e.label:gsub("|", "\\|")),
         e.group,
         join(e.context),
         join(e.needs),
         requires_text(e.requires),
-        e.effect
+        e.effect,
+        e.cross and ("⇄ " .. table.concat(e.cross, ", ")) or ""
       )
     end
     lines[#lines + 1] = ""

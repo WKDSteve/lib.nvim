@@ -200,6 +200,10 @@ catalog.list({ provides = { "path", "line" }, available = true })
 catalog.list({ plugin = "filetree", group = "open" })
 catalog.list({ context = "selection" })
 
+-- cross-plugin features: entries that bring in the feature of another plugin (`cross = { "images" }`)
+catalog.list({ cross = true })        -- all of them
+catalog.list({ cross = "images" })    -- those that use images.nvim
+
 local ok, missing = catalog.available("gopath.reveal_filetree")  -- missing.plugins / .tools / .nvim
 
 -- a plugin adds (or replaces, by id) its own entries at runtime
@@ -211,8 +215,10 @@ catalog.register({
 ```
 
 A missing plugin, tool or Neovim version only hides the entry from `available = true` listings,
-nothing raises. The built-in rows live in `catalog/data/<plugin>.lua` (filetree, gopath,
-markdown, pickers); the overview of all of them is
+nothing raises. `cross` names the other plugins an entry brings in; it marks the entry, it does
+not hide it (use `requires.plugins` for that). The overview lists the cross-plugin features in
+their own first section and marks them with `⇄` in the plugin tables. The built-in rows live in
+`catalog/data/<plugin>.lua` (one file per plugin); the overview of all of them is
 [`docs/CONTEXTMENU-CATALOG.md`](../../../../docs/CONTEXTMENU-CATALOG.md), generated with
 `nvim -n -i NONE --headless -u NONE -l scripts/gen-contextmenu-catalog.lua` (a spec fails when it
 is out of date). The other plugins are added in the follow-up audit.

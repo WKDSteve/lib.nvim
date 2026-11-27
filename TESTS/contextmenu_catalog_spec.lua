@@ -158,6 +158,29 @@ return function(H)
     ok(contains(catalog.list({ group = "marks" }), "filetree.mark_toggle"), "list: by group")
     ok(contains(catalog.list({ effect = "copy" }), "pickers.copy_path"), "list: by effect")
 
+    -- cross-plugin features
+    local cross = catalog.list({ cross = true })
+    ok(contains(cross, "gopath.reveal_filetree"), "cross: a bridging entry is listed")
+    ok(not contains(cross, "filetree.rename"), "cross: an own-feature entry is not")
+    local via_images = catalog.list({ cross = "images" })
+    ok(
+      contains(via_images, "filetree.ocr") and not contains(via_images, "gopath.reveal_filetree"),
+      "cross: filtered by the plugin it brings in"
+    )
+    ok(
+      catalog.validate(entry({ cross = { "demo" } })) ~= nil,
+      "validate: cross must not name the owner"
+    )
+    ok(catalog.validate(entry({ cross = {} })) ~= nil, "validate: cross is not empty")
+    ok(catalog.validate(entry({ cross = { "images" } })) == nil, "validate: cross with a plugin")
+    local md = catalog.markdown()
+    local sect = md:find("## Cross-plugin features", 1, true)
+    ok(
+      sect ~= nil and sect < md:find("## cascade", 1, true),
+      "markdown: the cross-plugin section comes first"
+    )
+    ok(md:find("⇄ images", 1, true) ~= nil, "markdown: the plugin table marks cross entries")
+
     local path_only = catalog.list({ provides = { "path" } })
     ok(contains(path_only, "filetree.rename"), "provides: an entry that needs only a path")
     ok(not contains(path_only, "pickers.copy_path_line"), "provides: needs a line too, left out")

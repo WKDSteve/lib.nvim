@@ -23,6 +23,7 @@ return {
       group = "open",
       context = { "preview", "selection" },
       needs = { "text" },
+      cross = { "gopath" },
       requires = { plugins = { "pickers", "snacks", "gopath" } },
       note = "single-line selection only",
     },

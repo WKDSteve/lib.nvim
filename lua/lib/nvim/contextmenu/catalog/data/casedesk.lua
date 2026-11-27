@@ -20,8 +20,19 @@ return {
     { id = "next_error", label = "Nächster Fehler", group = "navigate", effect = "navigate" },
     { id = "original", label = "Original an dieser Zeile", group = "navigate", effect = "open" },
     { id = "errors", label = "Fehler in die Quickfix", group = "navigate", effect = "open" },
-    { id = "entries", label = "Eintrag suchen (Picker)", group = "navigate", effect = "navigate" },
-    { id = "known_case", label = "Bekannte Meldungen im Fall", group = "navigate" },
+    {
+      id = "entries",
+      label = "Eintrag suchen (Picker)",
+      group = "navigate",
+      effect = "navigate",
+      cross = { "pickers" },
+    },
+    {
+      id = "known_case",
+      label = "Bekannte Meldungen im Fall",
+      group = "navigate",
+      cross = { "pickers" },
+    },
     { id = "mark", label = "Eintrag für Diff markieren", group = "compare" },
     { id = "diff", label = "Markierte Einträge vergleichen", group = "compare" },
     {
@@ -32,6 +43,7 @@ return {
     },
     {
       id = "spotlight_qf",
+      cross = { "spotlight" },
       label = "Spotlight-Treffer in die Quickfix",
       group = "compare",
       effect = "open",
@@ -44,7 +56,13 @@ return {
     },
     { id = "timeline", label = "Zeitstrahl erzeugen", group = "output" },
     { id = "range", label = "Zeitraum eingrenzen", group = "output" },
-    { id = "live", label = "Live im Browser (mdview)", group = "output", effect = "external" },
+    {
+      id = "live",
+      label = "Live im Browser (mdview)",
+      group = "output",
+      effect = "external",
+      cross = { "mdview" },
+    },
     {
       id = "md_case",
       label = "Als Markdown in den Fall (Research/)",

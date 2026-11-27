@@ -29,6 +29,7 @@ return {
       id = "reveal_filetree",
       label = "Reveal in filetree.nvim",
       group = "paths",
+      cross = { "filetree" },
       requires = { plugins = { "gopath", "ui.contextmenu", "filetree" } },
       note = "only for a local path the resolver confirmed to exist",
     },

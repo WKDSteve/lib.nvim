@@ -53,6 +53,7 @@
 ---@field effect    Lib.ContextMenu.Catalog.Effect
 ---@field needs?    Lib.ContextMenu.Catalog.Input[]     inputs the action takes
 ---@field requires? Lib.ContextMenu.Catalog.Requires
+---@field cross?    string[]                            CROSS-PLUGIN FEATURE: the other plugins whose feature this entry brings in (never the owner)
 ---@field rtxt?     string                              the key shown next to the label, when the action has one
 ---@field source?   string                              the module that builds the real entry
 ---@field note?     string                              what is not obvious
