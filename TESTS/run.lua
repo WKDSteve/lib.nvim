@@ -276,6 +276,7 @@ local specs = {
   "deps_pip_spec.lua",
   "deps_files_probe_spec.lua",
   "contextmenu_spec.lua",
+  "contextmenu_catalog_spec.lua",
   "is_subpath_spec.lua",
   "same_path_spec.lua",
   "fs_listing_spec.lua",

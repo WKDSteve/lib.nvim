@@ -182,3 +182,37 @@ the parent, while the kit **drills down** in place, with `<BS>` walking back
 up. A single-instance chooser is what gives the kit its themed selection and
 its one-window lifecycle; opening a second one to imitate the fly-out would
 trade that away for the visual.
+
+## Catalogue of entries (`lib.nvim.contextmenu.catalog`)
+
+Before building a new menu, look up what the ecosystem already offers. The catalogue is one
+structured list of every menu action a plugin provides, as metadata only (the actions stay in
+their plugins): label, owning plugin, `group`, `context` (where it applies: tree node, file,
+selection, path under the cursor, line, list, preview, ...), `needs` (inputs the action takes:
+path, line, text, item, items, ...), `requires` (plugins by module name, CLI tools, Neovim
+version) and `effect` (open, copy, modify, external, view, navigate).
+
+```lua
+local catalog = require("lib.nvim.contextmenu.catalog")
+
+-- everything usable with a path and a line, on this machine
+catalog.list({ provides = { "path", "line" }, available = true })
+catalog.list({ plugin = "filetree", group = "open" })
+catalog.list({ context = "selection" })
+
+local ok, missing = catalog.available("gopath.reveal_filetree")  -- missing.plugins / .tools / .nvim
+
+-- a plugin adds (or replaces, by id) its own entries at runtime
+catalog.register({
+  id = "myplugin.do_thing", plugin = "myplugin", label = "Do the thing", group = "edit",
+  context = { "file" }, effect = "modify", needs = { "path" },
+  requires = { tools = { "rg" } },
+})
+```
+
+A missing plugin, tool or Neovim version only hides the entry from `available = true` listings,
+nothing raises. The built-in rows live in `catalog/data/<plugin>.lua` (filetree, gopath,
+markdown, pickers); the overview of all of them is
+[`docs/CONTEXTMENU-CATALOG.md`](../../../../docs/CONTEXTMENU-CATALOG.md), generated with
+`nvim -n -i NONE --headless -u NONE -l scripts/gen-contextmenu-catalog.lua` (a spec fails when it
+is out of date). The other plugins are added in the follow-up audit.

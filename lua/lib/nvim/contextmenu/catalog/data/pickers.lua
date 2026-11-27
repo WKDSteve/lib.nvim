@@ -1,0 +1,79 @@
+---@module 'lib.nvim.contextmenu.catalog.data.pickers'
+---Entries of `pickers.preview_mouse`: right click in the preview or the result list of a
+---snacks picker. Built from the picker's current item; `needs` says what the item has to give.
+---@type Lib.ContextMenu.Catalog.Block
+return {
+  plugin = "pickers",
+  source = "pickers.preview_mouse",
+  defaults = {
+    context = { "preview", "list", "file" },
+    needs = { "path" },
+    requires = { plugins = { "pickers", "snacks" } },
+    effect = "open",
+  },
+  entries = {
+    { id = "open_here", label = "Open here", group = "open", needs = { "path", "line" } },
+    { id = "open_split", label = "Open in split", group = "open", needs = { "path", "line" } },
+    { id = "open_vsplit", label = "Open in vsplit", group = "open", needs = { "path", "line" } },
+    { id = "open_tab", label = "Open in new tab", group = "open", needs = { "path", "line" } },
+    { id = "open_system", label = "Open with system app", group = "open", effect = "external" },
+    {
+      id = "goto_path",
+      label = "Go to selected path (gopath)",
+      group = "open",
+      context = { "preview", "selection" },
+      needs = { "text" },
+      requires = { plugins = { "pickers", "snacks", "gopath" } },
+      note = "single-line selection only",
+    },
+    {
+      id = "copy_selection",
+      label = "Copy selection",
+      group = "copy",
+      context = { "preview", "selection" },
+      needs = { "text" },
+      effect = "copy",
+    },
+    { id = "copy_path", label = "Copy path", group = "copy", effect = "copy" },
+    {
+      id = "copy_path_line",
+      label = "Copy path:line",
+      group = "copy",
+      needs = { "path", "line" },
+      effect = "copy",
+    },
+    {
+      id = "copy_line",
+      label = "Copy this line",
+      group = "copy",
+      context = { "preview", "line" },
+      needs = { "text" },
+      effect = "copy",
+    },
+    { id = "copy_file", label = "Copy whole file content", group = "copy", effect = "copy" },
+    {
+      id = "list_copy",
+      label = "Copy all entries",
+      group = "list",
+      context = { "preview", "list" },
+      needs = { "items" },
+      effect = "copy",
+    },
+    {
+      id = "list_quickfix",
+      label = "Send all entries to quickfix",
+      group = "list",
+      context = { "preview", "list" },
+      needs = { "items" },
+      effect = "modify",
+    },
+    {
+      id = "list_buffer",
+      label = "Open all entries in a new buffer",
+      group = "list",
+      context = { "preview", "list" },
+      needs = { "items" },
+      effect = "open",
+    },
+  },
+}

@@ -1,0 +1,66 @@
+---@meta
+---@module 'lib.nvim.contextmenu.catalog.@types'
+
+---Where an entry can make sense: what the click is on.
+---@alias Lib.ContextMenu.Catalog.Context
+---| "tree-node"          a node of a file tree
+---| "file"               a file (path known)
+---| "dir"                a directory
+---| "selection"          selected text (visual mode)
+---| "path-under-cursor"  a path, URL or module name the cursor/selection resolves to
+---| "line"               one line of a buffer or a preview
+---| "buffer"             the whole buffer
+---| "list"               a list of entries (picker result list, quickfix)
+---| "preview"            the preview window of a picker
+---| "image"              an image or PDF
+---| "markdown-heading"   a Markdown heading line
+---| "markdown-checkbox"  a Markdown checkbox line
+---| "markdown-doc"       a Markdown document
+---| "git-repo"           a repository
+---| "dashboard-row"      a row of a dashboard
+
+---What the action needs from the caller, to be able to run at all.
+---@alias Lib.ContextMenu.Catalog.Input
+---| "path"        an absolute file or directory path
+---| "line"        a line number in that path
+---| "text"        a piece of text (selection or line)
+---| "item"        one picker/list item
+---| "items"       all items of a list
+---| "buffer"      a buffer number
+---| "node"        a node of the owning plugin's own tree/view
+
+---@alias Lib.ContextMenu.Catalog.Effect
+---| "open"      shows a file/place in the editor
+---| "copy"      puts something on a register or the clipboard
+---| "modify"    changes files, buffers or settings
+---| "external"  starts another program (file manager, system opener)
+---| "view"      only shows information
+---| "navigate"  moves the cursor or the focus
+
+---What must be there for the entry to be offered. A missing item hides the entry
+---(like `contextmenu.entry(available, ...)`), it never raises.
+---@class Lib.ContextMenu.Catalog.Requires
+---@field plugins? string[]  Lua module names that must `require` (the plugin's main module)
+---@field tools?   string[]  executables that must be on PATH
+---@field nvim?    string    minimum Neovim version, "0.10"
+
+---@class Lib.ContextMenu.Catalog.Entry
+---@field id        string                              unique, `<plugin>.<action>`
+---@field plugin    string                              the owning plugin, `filetree`
+---@field label     string                              the text of the menu entry
+---@field group     string                              menu group: open, copy, edit, list, info, view, ...
+---@field context   Lib.ContextMenu.Catalog.Context[]   where it applies (at least one)
+---@field effect    Lib.ContextMenu.Catalog.Effect
+---@field needs?    Lib.ContextMenu.Catalog.Input[]     inputs the action takes
+---@field requires? Lib.ContextMenu.Catalog.Requires
+---@field rtxt?     string                              the key shown next to the label, when the action has one
+---@field source?   string                              the module that builds the real entry
+---@field note?     string                              what is not obvious
+---@field desc?     string                              one sentence: what the action does
+
+---One plugin's block of the built-in data (`catalog/data/<plugin>.lua`).
+---@class Lib.ContextMenu.Catalog.Block
+---@field plugin    string
+---@field source?   string                              default `source` of its entries
+---@field defaults? table                               merged into every entry (`requires`, `context`, `effect`, ...)
+---@field entries   table[]                             entries without `plugin` (taken from the block)
