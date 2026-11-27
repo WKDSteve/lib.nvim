@@ -98,6 +98,14 @@ return function(H)
       "filetree.integrations.menu",
       "builtin: source comes from the block"
     )
+    eq(
+      #(catalog.get("filetree.inspect").requires.plugins or {}),
+      0,
+      "builtin: `requires = {}` is not merged with the block's requires"
+    )
+    ok(catalog.get("filetree.tree_actions") ~= nil, "builtin: the dynamic tree actions are listed")
+    catalog.register(entry({ id = "demo.pipe", label = "A | B" }))
+    ok(catalog.markdown():find("A \\| B", 1, true) ~= nil, "markdown: a pipe in a label is escaped")
     catalog.register(entry({ id = "pickers.open_here", plugin = "pickers", label = "Mine" }))
     eq(
       catalog.get("pickers.open_here").label,

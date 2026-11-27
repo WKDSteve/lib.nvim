@@ -105,12 +105,14 @@ function M.register(entries)
 end
 
 ---Expand a built-in block: `defaults` and the block's `plugin`/`source` go into every entry.
+---A field of the entry replaces the default as a whole (a shallow merge): `requires = {}` means
+---"requires nothing", it must not be merged with the block's `requires`.
 ---@param block Lib.ContextMenu.Catalog.Block
 ---@return Lib.ContextMenu.Catalog.Entry[]
 function M.expand(block)
   local out = {}
   for _, raw in ipairs(block.entries) do
-    local e = vim.tbl_deep_extend("force", {}, block.defaults or {}, raw)
+    local e = vim.tbl_extend("force", {}, block.defaults or {}, raw)
     e.plugin = block.plugin
     e.source = e.source or block.source
     e.id = block.plugin .. "." .. raw.id
@@ -312,9 +314,10 @@ function M.markdown()
     lines[#lines + 1] = "| id | label | group | context | needs | requires | effect |"
     lines[#lines + 1] = "|---|---|---|---|---|---|---|"
     for _, e in ipairs(M.list({ plugin = plugin })) do
+      -- a `|` inside a cell would start a new column
       lines[#lines + 1] = ("| `%s` | %s | %s | %s | %s | %s | %s |"):format(
         e.id,
-        e.label,
+        (e.label:gsub("|", "\\|")),
         e.group,
         join(e.context),
         join(e.needs),

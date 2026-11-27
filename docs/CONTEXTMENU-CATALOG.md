@@ -32,7 +32,7 @@ must be installed (plugins by module name, CLI tools in backticks), **effect** w
 | `filetree.find_files` | Find files | search | tree-node, file | path | filetree | navigate |
 | `filetree.grep_in_dir` | Grep in dir | search | tree-node, file | path | filetree | navigate |
 | `filetree.node_info` | Node info | info | tree-node, file | path | filetree | view |
-| `filetree.inspect` | Inspect | info | tree-node, file | - | filetree | view |
+| `filetree.inspect` | Inspect | info | tree-node, file | - | - | view |
 | `filetree.mark_toggle` | Toggle mark | marks | tree-node, file | path | filetree | view |
 | `filetree.mark_all` | Mark all visible | marks | tree-node, file | path | filetree | view |
 | `filetree.unmark_all` | Unmark all visible | marks | tree-node, file | path | filetree | view |
@@ -43,6 +43,7 @@ must be installed (plugins by module name, CLI tools in backticks), **effect** w
 | `filetree.image_info` | Image info | media | tree-node, image | path | filetree, images | view |
 | `filetree.window_open` | Open filetree | window | buffer | buffer | filetree | open |
 | `filetree.window_close` | Close filetree | window | buffer, tree-node | - | filetree | navigate |
+| `filetree.tree_actions` | <action of the own tree> | actions | tree-node, file | node | filetree | modify |
 
 ## gopath
 

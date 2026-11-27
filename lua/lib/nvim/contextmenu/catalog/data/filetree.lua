@@ -168,5 +168,13 @@ return {
       context = { "buffer", "tree-node" },
       needs = {},
     },
+    {
+      id = "tree_actions",
+      label = "<action of the own tree>",
+      group = "actions",
+      effect = "modify",
+      needs = { "node" },
+      note = "`action_entries(view)`: one entry per applicable action of the own tree that is not a feature key; built at click time",
+    },
   },
 }
