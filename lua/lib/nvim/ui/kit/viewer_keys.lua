@@ -40,6 +40,7 @@ local M = {}
 ---@field help_label? string                             # its winbar legend text (default "Keys")
 ---@field help_desc? string                              # its cheatsheet row (default "Show this help")
 ---@field heading? string                                # cheatsheet heading, `%s` is the title (default "%s keys")
+---@field copy_all? boolean                               # `<C-c>` copies the whole text to the clipboard (default true; false: the caller binds `<C-c>` itself)
 
 ---The help key and the texts of a legend and a cheatsheet. Every field is optional.
 ---@class Lib.UI.Kit.KeysHelpOpts

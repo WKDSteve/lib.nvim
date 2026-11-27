@@ -33,6 +33,29 @@ local function to_lines(message)
   return vim.split(message, "\n", { plain = true })
 end
 
+---`<C-c>` in a read-only panel: the whole text into the system clipboard register (the
+---unnamed one when there is no clipboard), and a note saying how much. The editor-wide `<C-c>`
+---of a config copies file buffers only (a `nofile` panel is a picker as far as it can tell),
+---so without this every panel made its reader select all and yank by hand.
+---@param bufnr integer
+---@return nil
+local function map_copy_all(bufnr)
+  vim.keymap.set("n", "<C-c>", function()
+    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    local reg = "+"
+    if vim.fn.has("clipboard") == 0 or not pcall(vim.fn.setreg, reg, lines, "V") then
+      reg = '"'
+      vim.fn.setreg(reg, lines, "V")
+    end
+    vim.notify(("Copied %d line%s"):format(#lines, #lines == 1 and "" or "s"), vim.log.levels.INFO)
+  end, {
+    buffer = bufnr,
+    nowait = true,
+    silent = true,
+    desc = "lib.nvim.ui.kit.viewer: copy the whole text",
+  })
+end
+
 ---Open a read-only info panel.
 ---@param opts Lib.UI.Kit.ViewerOpts
 ---@return Lib.UI.Kit.Surface|nil
@@ -54,6 +77,10 @@ function M.open(opts)
 
   if not surf then
     return nil
+  end
+
+  if opts.copy_all ~= false then
+    map_copy_all(surf.bufnr)
   end
 
   -- Dismiss as soon as the user's attention moves elsewhere. Opt-out via

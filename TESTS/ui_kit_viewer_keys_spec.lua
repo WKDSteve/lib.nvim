@@ -36,4 +36,36 @@ return function(H)
   for _, token in ipairs({ "ok", "warn", "info", "dim" }) do
     ok(hl[token] ~= nil, "the theme has the status token " .. token)
   end
+
+  -- <C-c> in any kit.viewer copies the whole text: the editor-wide <C-c> only copies file
+  -- buffers, so a nofile panel used to copy nothing. `copy_all = false` leaves the key to the caller.
+  do
+    local notes, orig = {}, vim.notify
+    vim.notify = function(msg)
+      notes[#notes + 1] = msg
+    end
+    local surf = kit.viewer({ lines = { "alpha", "beta" }, title = "t" })
+    local map
+    vim.api.nvim_buf_call(surf.bufnr, function()
+      map = vim.fn.maparg("<C-c>", "n", false, true)
+    end)
+    eq(type(map.callback), "function", "a viewer maps <C-c>")
+    vim.fn.setreg('"', "stale")
+    vim.fn.setreg("+", "stale")
+    map.callback()
+    vim.notify = orig
+    eq(
+      vim.fn.getreg(vim.fn.has("clipboard") == 1 and "+" or '"'),
+      "alpha\nbeta\n",
+      "the whole text, linewise"
+    )
+    eq(notes[#notes], "Copied 2 lines", "and it says so")
+    surf:close()
+    local own = kit.viewer({ lines = { "x" }, title = "t", copy_all = false })
+    vim.api.nvim_buf_call(own.bufnr, function()
+      map = vim.fn.maparg("<C-c>", "n", false, true)
+    end)
+    eq(map.buffer ~= 1, true, "copy_all = false binds nothing")
+    own:close()
+  end
 end
