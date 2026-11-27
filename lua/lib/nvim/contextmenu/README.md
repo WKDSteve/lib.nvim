@@ -221,4 +221,23 @@ their own first section and marks them with `⇄` in the plugin tables. The buil
 `catalog/data/<plugin>.lua` (one file per plugin); the overview of all of them is
 [`docs/CONTEXTMENU-CATALOG.md`](../../../../docs/CONTEXTMENU-CATALOG.md), generated with
 `nvim -n -i NONE --headless -u NONE -l scripts/gen-contextmenu-catalog.lua` (a spec fails when it
-is out of date). The other plugins are added in the follow-up audit.
+is out of date).
+
+### Keeping the catalogue true to the code
+
+`lib.nvim.contextmenu.catalog.drift` compares every row with the checkout of its plugin next to
+lib.nvim (`<repos>/<plugin>.nvim`), reading files only: the module in `source` must exist, and
+the label must occur in one of the plugin's Lua files (or in a plugin named in `cross`, where a
+fly-out takes its label from). A label naming several states (`Mark / Unmark`) or a fly-out with
+its items (`Copy path ▸ Absolute / Relative`) is looked for part by part; a placeholder in angle
+brackets (`<state>`, `<LSP keymap action>`) stands for labels built at click time and is skipped.
+
+```sh
+nvim -n -i NONE --headless -u NONE -l scripts/check-contextmenu-catalog.lua [repos-dir]
+```
+
+prints each row without a counterpart and exits 1. The same check runs in
+`TESTS/contextmenu_catalog_drift_spec.lua` whenever the plugin checkouts are there (skipped in CI,
+where they are not): renaming or removing a menu entry in a plugin turns lib.nvim's suite red
+until the catalogue row follows. The check finds a label that vanished, not one that was added:
+a new entry in a plugin still needs its row here.
