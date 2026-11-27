@@ -34,6 +34,7 @@ An entry of one plugin that brings in the feature of another.
 | `filetree.git_blame` | Show who changed the lines of the file (gitsuite.nvim) | filetree | gitsuite | view | an action of the own tree's git view (`git.blame`), on a changed file; one of the `tree_actions` |
 | `github_stats.export_selected` | Export selected… | github_stats | pdfport | modify | the PDF format needs pdfport.nvim |
 | `gitsuite.lazygit` | Lazygit | gitsuite | terminal | external | - |
+| `gitsuite.show_in_filetree` | Show in Filetree | gitsuite | filetree | navigate | reveals the repository in filetree.nvim; only with nothing marked and filetree set up |
 | `gitsuite.actions_diff_head` | Diff Against HEAD | gitsuite | diff | view | the diff view is diff.nvim's |
 | `gitsuite.actions_diff_last` | Diff Last Commit | gitsuite | diff | view | - |
 | `gitsuite.actions_browse_file` | Open File on Web | gitsuite | open | external | `:Git browse file`; open.nvim opens the URL, without it the group is left out |
@@ -42,6 +43,7 @@ An entry of one plugin that brings in the feature of another.
 | `markdown.mdview` | Preview in mdview | markdown | mdview | external | runs `:Markdown mdview`; only with mdview.nvim (`:MDView`) and a buffer that has a file |
 | `markdown.paste_image` | Paste image | markdown | images | modify | runs `:Markdown image paste` (images.nvim pastes the clipboard image) |
 | `pickers.goto_path` | Go to selected path (gopath) | pickers | gopath | open | single-line selection only |
+| `pickers.reveal_filetree` | Reveal in filetree | pickers | filetree | navigate | only for a row with an existing path and a set-up filetree; closes the picker first |
 | `ui.unicode_table` | Unicode Table | ui | emojis | view | - |
 | `ui.git_actions` | Git Actions | ui | gitsuite | view | one row; picked, it opens gitsuite's own menu (`gitsuite.integrations.menu`) |
 | `ui.integration_markdown` | Markdown | ui | markdown | view | only in a Markdown buffer |
@@ -213,6 +215,7 @@ An entry of one plugin that brings in the feature of another.
 | `gitsuite.lazygit` | Lazygit | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `lazygit` | external | ⇄ terminal |
 | `gitsuite.reread` | Re-read | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | view |  |
 | `gitsuite.mark` | Mark / Unmark | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | modify |  |
+| `gitsuite.show_in_filetree` | Show in Filetree | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, filetree, `git` | navigate | ⇄ filetree |
 | `gitsuite.yank_path` | Yank path | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | copy |  |
 | `gitsuite.remove` | Remove from page | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | modify |  |
 | `gitsuite.marked_push` | Push (marked) | marked | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
@@ -236,6 +239,11 @@ An entry of one plugin that brings in the feature of another.
 | `gitsuite.actions_diff_head` | Diff Against HEAD | diff | buffer, file | buffer | gitsuite, `git` | view | ⇄ diff |
 | `gitsuite.actions_diff_last` | Diff Last Commit | diff | buffer, file | buffer | gitsuite, `git` | view | ⇄ diff |
 | `gitsuite.actions_toggle_deleted` | Toggle Deleted | diff | buffer, file | buffer | gitsuite, gitsigns, `git` | view |  |
+| `gitsuite.actions_conflict_ours` | Keep Ours | conflict | line, file | buffer | gitsuite, `git` | modify |  |
+| `gitsuite.actions_conflict_theirs` | Keep Theirs | conflict | line, file | buffer | gitsuite, `git` | modify |  |
+| `gitsuite.actions_conflict_both` | Keep Both | conflict | line, file | buffer | gitsuite, `git` | modify |  |
+| `gitsuite.actions_conflict_none` | Keep None | conflict | line, file | buffer | gitsuite, `git` | modify |  |
+| `gitsuite.actions_conflict_next` | Next Conflict | conflict | buffer, file | buffer | gitsuite, `git` | navigate |  |
 | `gitsuite.actions_browse_file` | Open File on Web | browse | buffer, file | buffer | gitsuite, open, `git` | external | ⇄ open |
 | `gitsuite.actions_browse_repo` | Open Repository on Web | browse | buffer, file | buffer | gitsuite, open, `git` | external | ⇄ open |
 
@@ -315,6 +323,7 @@ An entry of one plugin that brings in the feature of another.
 | `pickers.open_tab` | Open in new tab | open | preview, list, file | path, line | pickers, snacks | open |  |
 | `pickers.open_system` | Open with system app | open | preview, list, file | path | pickers, snacks | external |  |
 | `pickers.goto_path` | Go to selected path (gopath) | open | preview, selection | text | pickers, snacks, gopath | open | ⇄ gopath |
+| `pickers.reveal_filetree` | Reveal in filetree | open | list, preview | path | pickers, snacks, filetree | navigate | ⇄ filetree |
 | `pickers.copy_selection` | Copy selection | copy | preview, selection | text | pickers, snacks | copy |  |
 | `pickers.copy_path` | Copy path | copy | preview, list, file | path | pickers, snacks | copy |  |
 | `pickers.copy_path_line` | Copy path:line | copy | preview, list, file | path, line | pickers, snacks | copy |  |

@@ -28,6 +28,17 @@ return {
       note = "single-line selection only",
     },
     {
+      id = "reveal_filetree",
+      label = "Reveal in filetree",
+      group = "open",
+      effect = "navigate",
+      context = { "list", "preview" },
+      needs = { "path" },
+      cross = { "filetree" },
+      requires = { plugins = { "pickers", "snacks", "filetree" } },
+      note = "only for a row with an existing path and a set-up filetree; closes the picker first",
+    },
+    {
       id = "copy_selection",
       label = "Copy selection",
       group = "copy",
