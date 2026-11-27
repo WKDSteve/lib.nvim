@@ -29,6 +29,15 @@ return {
       cross = { "gopath" },
       note = "only on a symlink whose target is gone; gopath.nvim's tailsearch finds the new target, without it the repair offers delete / keep",
     },
+    {
+      id = "create_pdf",
+      label = "Create PDF",
+      group = "files",
+      rtxt = "gP",
+      cross = { "pdfport" },
+      requires = { plugins = { "filetree", "pdfport" } },
+      note = "the node or the marked nodes, one PDF per file; needs the opt-in feature `pdf_create`, asks first",
+    },
     { id = "move", label = "Move to…", group = "files", rtxt = "M" },
     {
       id = "from_template",

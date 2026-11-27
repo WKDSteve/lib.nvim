@@ -23,6 +23,7 @@ An entry of one plugin that brings in the feature of another.
 | `fileops.delete` | Delete file | fileops | filetree | modify | asks the reference engine of filetree.nvim whether orphaned assets remain |
 | `filetree.rename` | Rename (LSP refs) | filetree | markdown | modify | also rewrites the Markdown links that point at the file (markdown.nvim, when installed) |
 | `filetree.repair_link` | Repair broken link | filetree | gopath | modify | only on a symlink whose target is gone; gopath.nvim's tailsearch finds the new target, without it the repair offers delete / keep |
+| `filetree.create_pdf` | Create PDF | filetree | pdfport | modify | the node or the marked nodes, one PDF per file; needs the opt-in feature `pdf_create`, asks first |
 | `filetree.from_template` | New from template | filetree | pickers | modify | the template picker previews through pickers.nvim; falls back to the kit picker / ui.select |
 | `filetree.mdview` | Open in mdview | filetree | mdview | external | only on a Markdown file; needs the opt-in feature `mdview_open` |
 | `filetree.spotlight` | Spotlight this name | filetree | spotlight | view | the node's basename becomes a spotlight.nvim token |
@@ -150,6 +151,7 @@ An entry of one plugin that brings in the feature of another.
 | `filetree.rename` | Rename (LSP refs) | files | tree-node, file | path | filetree | modify | ⇄ markdown |
 | `filetree.batch_rename` | Batch rename | files | tree-node, file | path | filetree | modify |  |
 | `filetree.repair_link` | Repair broken link | files | tree-node, file | path | filetree | modify | ⇄ gopath |
+| `filetree.create_pdf` | Create PDF | files | tree-node, file | path | filetree, pdfport | modify | ⇄ pdfport |
 | `filetree.move` | Move to… | files | tree-node, file | path | filetree | modify |  |
 | `filetree.from_template` | New from template | files | tree-node, file | node | filetree | modify | ⇄ pickers |
 | `filetree.copy` | Copy | clipboard | tree-node, file | path | filetree | modify |  |
