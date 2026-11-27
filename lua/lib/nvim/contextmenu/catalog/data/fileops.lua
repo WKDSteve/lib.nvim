@@ -19,7 +19,14 @@ return {
       group = "file",
       desc = "Runs `:File duplicate`.",
     },
-    { id = "delete", label = "Delete file", group = "file", desc = "Runs `:File delete`." },
+    {
+      id = "delete",
+      label = "Delete file",
+      group = "file",
+      cross = { "filetree" },
+      desc = "Runs `:File delete`.",
+      note = "asks the reference engine of filetree.nvim whether orphaned assets remain",
+    },
     {
       id = "copy_path",
       label = "Copy path",

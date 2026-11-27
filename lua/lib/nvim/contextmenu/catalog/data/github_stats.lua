@@ -34,6 +34,13 @@ return {
       effect = "external",
       note = "calls the GitHub API",
     },
-    { id = "export_selected", label = "Export selected…", group = "export", effect = "copy" },
+    {
+      id = "export_selected",
+      label = "Export selected…",
+      group = "export",
+      effect = "copy",
+      cross = { "pdfport" },
+      note = "the PDF format needs pdfport.nvim",
+    },
   },
 }

@@ -52,6 +52,7 @@ return {
       id = "task",
       label = "Eintrag als Folge-Task des Falls",
       group = "compare",
+      cross = { "tasks" },
       effect = "modify",
     },
     { id = "timeline", label = "Zeitstrahl erzeugen", group = "output" },

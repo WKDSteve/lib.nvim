@@ -161,7 +161,7 @@ return function(H)
     -- cross-plugin features
     local cross = catalog.list({ cross = true })
     ok(contains(cross, "gopath.reveal_filetree"), "cross: a bridging entry is listed")
-    ok(not contains(cross, "filetree.rename"), "cross: an own-feature entry is not")
+    ok(not contains(cross, "filetree.copy"), "cross: an own-feature entry is not")
     local via_images = catalog.list({ cross = "images" })
     ok(
       contains(via_images, "filetree.ocr") and not contains(via_images, "gopath.reveal_filetree"),

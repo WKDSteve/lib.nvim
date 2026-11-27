@@ -23,6 +23,7 @@ return {
       id = "lazygit",
       label = "Lazygit",
       group = "repo",
+      cross = { "terminal" },
       rtxt = "L",
       effect = "external",
       requires = { plugins = { "gitsuite", "lib.nvim.contextmenu" }, tools = { "lazygit" } },

@@ -18,9 +18,16 @@ An entry of one plugin that brings in the feature of another.
 | `casedesk.entries` | Eintrag suchen (Picker) | casedesk | pickers | navigate | - |
 | `casedesk.known_case` | Bekannte Meldungen im Fall | casedesk | pickers | view | - |
 | `casedesk.spotlight_qf` | Spotlight-Treffer in die Quickfix | casedesk | spotlight | open | - |
+| `casedesk.task` | Eintrag als Folge-Task des Falls | casedesk | tasks | modify | - |
 | `casedesk.live` | Live im Browser (mdview) | casedesk | mdview | external | - |
+| `fileops.delete` | Delete file | fileops | filetree | modify | asks the reference engine of filetree.nvim whether orphaned assets remain |
+| `filetree.rename` | Rename (LSP refs) | filetree | markdown | modify | also rewrites the Markdown links that point at the file (markdown.nvim, when installed) |
+| `filetree.from_template` | New from template | filetree | pickers | modify | the template picker previews through pickers.nvim; falls back to the kit picker / ui.select |
+| `filetree.preview` | Preview image / PDF | filetree | images | view | - |
 | `filetree.ocr` | OCR (recognise text) | filetree | images | view | images.nvim; the OCR engine is images.nvim's own setting |
 | `filetree.image_info` | Image info | filetree | images | view | - |
+| `github_stats.export_selected` | Export selected… | github_stats | pdfport | copy | the PDF format needs pdfport.nvim |
+| `gitsuite.lazygit` | Lazygit | gitsuite | terminal | external | - |
 | `gopath.reveal_filetree` | Reveal in filetree.nvim | gopath | filetree | open | only for a local path the resolver confirmed to exist |
 | `pickers.goto_path` | Go to selected path (gopath) | pickers | gopath | open | single-line selection only |
 
@@ -54,7 +61,7 @@ An entry of one plugin that brings in the feature of another.
 | `casedesk.diff` | Markierte Einträge vergleichen | compare | line, buffer | buffer | casedesk, ui.contextmenu | view |  |
 | `casedesk.spotlight` | Token als Spotlight | compare | selection, line | buffer | casedesk, ui.contextmenu | view |  |
 | `casedesk.spotlight_qf` | Spotlight-Treffer in die Quickfix | compare | line, buffer | buffer | casedesk, ui.contextmenu | open | ⇄ spotlight |
-| `casedesk.task` | Eintrag als Folge-Task des Falls | compare | line, buffer | buffer | casedesk, ui.contextmenu | modify |  |
+| `casedesk.task` | Eintrag als Folge-Task des Falls | compare | line, buffer | buffer | casedesk, ui.contextmenu | modify | ⇄ tasks |
 | `casedesk.timeline` | Zeitstrahl erzeugen | output | line, buffer | buffer | casedesk, ui.contextmenu | view |  |
 | `casedesk.range` | Zeitraum eingrenzen | output | line, buffer | buffer | casedesk, ui.contextmenu | view |  |
 | `casedesk.live` | Live im Browser (mdview) | output | line, buffer | buffer | casedesk, ui.contextmenu | external | ⇄ mdview |
@@ -105,7 +112,7 @@ An entry of one plugin that brings in the feature of another.
 |---|---|---|---|---|---|---|---|
 | `fileops.rename` | Rename file… | file | file, buffer | path, buffer | fileops, ui.contextmenu | modify |  |
 | `fileops.duplicate` | Duplicate file… | file | file, buffer | path, buffer | fileops, ui.contextmenu | modify |  |
-| `fileops.delete` | Delete file | file | file, buffer | path, buffer | fileops, ui.contextmenu | modify |  |
+| `fileops.delete` | Delete file | file | file, buffer | path, buffer | fileops, ui.contextmenu | modify | ⇄ filetree |
 | `fileops.copy_path` | Copy path | info | file, buffer | path, buffer | fileops, ui.contextmenu | copy |  |
 | `fileops.info` | Show file info | info | file, buffer | path, buffer | fileops, ui.contextmenu | view |  |
 | `fileops.next` | Next file in directory | navigate | file, buffer | buffer | fileops, ui.contextmenu | navigate |  |
@@ -116,10 +123,10 @@ An entry of one plugin that brings in the feature of another.
 | id | label | group | context | needs | requires | effect | cross |
 |---|---|---|---|---|---|---|---|
 | `filetree.create` | Create file / dir | files | tree-node, file | node | filetree | modify |  |
-| `filetree.rename` | Rename (LSP refs) | files | tree-node, file | path | filetree | modify |  |
+| `filetree.rename` | Rename (LSP refs) | files | tree-node, file | path | filetree | modify | ⇄ markdown |
 | `filetree.batch_rename` | Batch rename | files | tree-node, file | path | filetree | modify |  |
 | `filetree.move` | Move to… | files | tree-node, file | path | filetree | modify |  |
-| `filetree.from_template` | New from template | files | tree-node, file | node | filetree | modify |  |
+| `filetree.from_template` | New from template | files | tree-node, file | node | filetree | modify | ⇄ pickers |
 | `filetree.copy` | Copy | clipboard | tree-node, file | path | filetree | modify |  |
 | `filetree.cut` | Cut | clipboard | tree-node, file | path | filetree | modify |  |
 | `filetree.paste` | Paste | clipboard | tree-node, file | node | filetree | modify |  |
@@ -142,7 +149,7 @@ An entry of one plugin that brings in the feature of another.
 | `filetree.unmark_all` | Unmark all visible | marks | tree-node, file | path | filetree | view |  |
 | `filetree.marks_clear` | Clear marks | marks | tree-node, file | path | filetree | view |  |
 | `filetree.marks_show` | Show marked nodes | marks | tree-node, file | path | filetree | view |  |
-| `filetree.preview` | Preview image / PDF | media | tree-node, image | path | filetree | view |  |
+| `filetree.preview` | Preview image / PDF | media | tree-node, image | path | filetree | view | ⇄ images |
 | `filetree.ocr` | OCR (recognise text) | media | tree-node, image | path | filetree, images | view | ⇄ images |
 | `filetree.image_info` | Image info | media | tree-node, image | path | filetree, images | view | ⇄ images |
 | `filetree.window_open` | Open filetree | window | buffer | buffer | filetree | open |  |
@@ -161,7 +168,7 @@ An entry of one plugin that brings in the feature of another.
 | `github_stats.refresh` | Refresh dashboard | refresh | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | view |  |
 | `github_stats.refresh_all` | Force-refresh all repositories | refresh | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | external |  |
 | `github_stats.refresh_selected` | Force-refresh selected repository | refresh | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | external |  |
-| `github_stats.export_selected` | Export selected… | export | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | copy |  |
+| `github_stats.export_selected` | Export selected… | export | dashboard-row, buffer | buffer | github_stats, ui.contextmenu | copy | ⇄ pdfport |
 
 ## gitsuite
 
@@ -172,7 +179,7 @@ An entry of one plugin that brings in the feature of another.
 | `gitsuite.pull` | Pull | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
 | `gitsuite.fetch` | Fetch | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | external |  |
 | `gitsuite.status` | Status | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | view |  |
-| `gitsuite.lazygit` | Lazygit | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `lazygit` | external |  |
+| `gitsuite.lazygit` | Lazygit | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `lazygit` | external | ⇄ terminal |
 | `gitsuite.reread` | Re-read | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | view |  |
 | `gitsuite.mark` | Mark / Unmark | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | modify |  |
 | `gitsuite.yank_path` | Yank path | repo | dashboard-row, git-repo | buffer | gitsuite, lib.nvim.contextmenu, `git` | copy |  |
