@@ -50,6 +50,7 @@ local BUILTIN = {
   "rules",
   "sandbox",
   "spotlight",
+  "ui",
 }
 
 ---@type table<string, Lib.ContextMenu.Catalog.Entry>

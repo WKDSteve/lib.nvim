@@ -41,6 +41,19 @@ An entry of one plugin that brings in the feature of another.
 | `markdown.mdview` | Preview in mdview | markdown | mdview | external | runs `:Markdown mdview`; only with mdview.nvim (`:MDView`) and a buffer that has a file |
 | `markdown.paste_image` | Paste image | markdown | images | modify | runs `:Markdown image paste` (images.nvim pastes the clipboard image) |
 | `pickers.goto_path` | Go to selected path (gopath) | pickers | gopath | open | single-line selection only |
+| `ui.unicode_table` | Unicode Table | ui | emojis | view | - |
+| `ui.git_actions` | Git Actions | ui | gitsuite | view | one row; picked, it opens gitsuite's own menu (`gitsuite.integrations.menu`) |
+| `ui.integration_markdown` | Markdown | ui | markdown | view | only in a Markdown buffer |
+| `ui.integration_open` | Open | ui | open | view | fly-out with the plugin's own entries (its `submenu()`) |
+| `ui.integration_dap` | Debug | ui | dap | view | one row from a static label; dap.nvim is loaded only when it is picked |
+| `ui.integration_cascade` | Cascade | ui | cascade | view | fly-out with the plugin's own entries (its `submenu()`) |
+| `ui.integration_fileops` | File | ui | fileops | view | fly-out with the plugin's own entries (its `submenu()`) |
+| `ui.integration_images` | Images | ui | images | view | fly-out with the plugin's own entries (its `submenu()`) |
+| `ui.integration_spotlight` | Spotlight | ui | spotlight | view | fly-out with the plugin's own entries (its `submenu()`) |
+| `ui.integration_color_my_ascii` | Color My ASCII | ui | color_my_ascii | view | only in a Markdown buffer |
+| `ui.integration_lsp` | LSP | ui | lsp | view | fly-out with the plugin's own entries (its `submenu()`) |
+| `ui.integration_gopath` | Paths | ui | gopath | view | fly-out with the plugin's own entries (its `submenu()`) |
+| `ui.filetree_window` | Open filetree / Close filetree | ui | filetree | open | filetree's `window_entry()`: reveals this file in the tree, or closes it |
 
 ## cascade
 
@@ -336,3 +349,56 @@ An entry of one plugin that brings in the feature of another.
 | `spotlight.to_quickfix` | Send matches to quickfix | options | line, buffer | buffer | spotlight, ui.contextmenu | open |  |
 | `spotlight.list` | Open spotlight list | manage | list, buffer | buffer | spotlight, ui.contextmenu | view |  |
 | `spotlight.clear` | Clear all spotlights | manage | line, buffer | buffer | spotlight, ui.contextmenu | modify |  |
+
+## ui
+
+| id | label | group | context | needs | requires | effect | cross |
+|---|---|---|---|---|---|---|---|
+| `ui.format` | Format Buffer | code | buffer | buffer | ui | modify |  |
+| `ui.code_actions` | Code Actions | code | buffer | buffer | ui | modify |  |
+| `ui.inspect` | Inspect | code | buffer | buffer | ui | view |  |
+| `ui.copy_all` | Copy All (Buffer) | clipboard | buffer | buffer | ui | copy |  |
+| `ui.copy_marked` | Copy Marked/Selected | clipboard | selection, buffer | text | ui | copy |  |
+| `ui.paste` | Paste Content | clipboard | buffer | buffer | ui | modify |  |
+| `ui.save` | Save | file | buffer | buffer | ui | modify |  |
+| `ui.save_all` | Save All | file | buffer | - | ui | modify |  |
+| `ui.delete_marked` | Delete Marked/Selected | delete | selection, buffer | text | ui | modify |  |
+| `ui.delete_all` | Delete All (Clear Buffer) | delete | buffer | buffer | ui | modify |  |
+| `ui.delete_file` | Delete File | delete | buffer, file | path | ui | modify |  |
+| `ui.terminal` | Open in terminal | tools | buffer | buffer | ui | external |  |
+| `ui.color_picker` | Color Picker | tools | buffer | buffer | ui | view |  |
+| `ui.unicode_table` | Unicode Table | tools | buffer | buffer | ui, emojis.unicode | view | ⇄ emojis |
+| `ui.git_actions` | Git Actions | tools | buffer | buffer | ui, gitsuite | view | ⇄ gitsuite |
+| `ui.integration_markdown` | Markdown | integrations | buffer | buffer | ui, markdown | view | ⇄ markdown |
+| `ui.integration_open` | Open | integrations | buffer | buffer | ui, open | view | ⇄ open |
+| `ui.integration_dap` | Debug | integrations | buffer | buffer | ui, dap | view | ⇄ dap |
+| `ui.integration_cascade` | Cascade | integrations | buffer | buffer | ui, cascade | view | ⇄ cascade |
+| `ui.integration_fileops` | File | integrations | buffer | buffer | ui, fileops | view | ⇄ fileops |
+| `ui.integration_images` | Images | integrations | buffer | buffer | ui, images | view | ⇄ images |
+| `ui.integration_spotlight` | Spotlight | integrations | buffer | buffer | ui, spotlight | view | ⇄ spotlight |
+| `ui.integration_color_my_ascii` | Color My ASCII | integrations | buffer | buffer | ui, color_my_ascii | view | ⇄ color_my_ascii |
+| `ui.integration_lsp` | LSP | integrations | buffer | buffer | ui, lsp | view | ⇄ lsp |
+| `ui.integration_gopath` | Paths | integrations | buffer | buffer | ui, gopath | view | ⇄ gopath |
+| `ui.filetree_window` | Open filetree / Close filetree | integrations | buffer | buffer | ui, filetree | open | ⇄ filetree |
+| `ui.extra` | <your own row> | extra | buffer | buffer | ui | modify |  |
+| `ui.statusline_remove` | Remove <module> | statusline | statusline-module | - | ui | modify |  |
+| `ui.statusline_add` | Add module ▸ <module> | statusline | statusline-module | - | ui | modify |  |
+| `ui.statusline_save_layout` | Save current layout | statusline | statusline-module | - | ui | modify |  |
+| `ui.statusline_clear_layout` | Clear saved layout | statusline | statusline-module | - | ui | modify |  |
+| `ui.tab_save` | Save | tab | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_pin` | Pin / Unpin | tab | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_close` | Close | tab | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_close_others` | Close others | close | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_close_left` | Close to the left | close | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_close_right` | Close to the right | close | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_close_saved` | Close saved | close | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_move_to` | Move to position… | move | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_move_left` | Move left | move | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_move_right` | Move right | move | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_move_start` | Move to start | move | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_move_end` | Move to end | move | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_copy_path` | Copy path ▸ Absolute / Relative / File name | buffer | tabline-chip | path | ui | copy |  |
+| `ui.tab_split` | Open in split | buffer | tabline-chip | buffer | ui | open |  |
+| `ui.tab_vsplit` | Open in vertical split | buffer | tabline-chip | buffer | ui | open |  |
+| `ui.tab_new_tabpage` | Move to new tab page | buffer | tabline-chip | buffer | ui | modify |  |
+| `ui.tab_reopen` | Reopen closed tab ▸ <file> | buffer | tabline-chip | - | ui | open |  |

@@ -18,6 +18,8 @@
 ---| "markdown-doc"       a Markdown document
 ---| "git-repo"           a repository
 ---| "dashboard-row"      a row of a dashboard
+---| "tabline-chip"       a buffer chip in the tab bar
+---| "statusline-module"  a module of the statusline
 
 ---What the action needs from the caller, to be able to run at all.
 ---@alias Lib.ContextMenu.Catalog.Input

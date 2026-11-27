@@ -103,6 +103,7 @@ return function(H)
       "rules",
       "sandbox",
       "spotlight",
+      "ui",
     }, "builtin: plugins with entries")
     -- review fixes: an export writes a file; the DAP evaluation also works on the word under the cursor
     eq(catalog.get("github_stats.export_selected").effect, "modify", "builtin: an export modifies")
@@ -186,6 +187,7 @@ return function(H)
     local KNOWN_WITHOUT_MENU = {
       ai = true,
       diff = true,
+      emojis = true,
       hover = true,
       language = true,
       mdview = true,
