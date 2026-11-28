@@ -647,15 +647,36 @@ local function status_argv(opts, bin)
 end
 
 ---@internal
+--- The reason of a failed git call: the first non-empty line git wrote to
+--- stderr (`fatal: not a git repository ...`, `fatal: no such path 'x.md' in
+--- HEAD`; a spawn failure puts its own reason there too), else `fallback`.
+---@param stderr string|nil
+---@param fallback string
+---@return string
+local function git_error(stderr, fallback)
+  if type(stderr) == "string" then
+    for line in stderr:gmatch("[^\r\n]+") do
+      local text = vim.trim(line)
+      if text ~= "" then
+        return text
+      end
+    end
+  end
+  return fallback
+end
+
+---@internal
 ---@param ok boolean
 ---@param out any
+---@param stderr string|nil git's stderr, for the reason of a failure
 ---@return Lib.Git.StatusMap|nil map
 ---@return string|nil err
-local function status_result(ok, out)
+local function status_result(ok, out, stderr)
   if not ok or type(out) ~= "string" then
-    -- On a failed call `out` is usually empty (git writes its complaint to
-    -- stderr), but a spawn failure (git not on $PATH) puts the reason there.
-    return nil, (type(out) == "string" and vim.trim(out) ~= "") and out or "git status failed"
+    -- git writes its complaint to stderr; a runner without a separate stderr
+    -- (the legacy fallback) leaves it in `out`.
+    local fallback = (type(out) == "string" and vim.trim(out) ~= "") and out or "git status failed"
+    return nil, git_error(stderr, fallback)
   end
   return M.parse_status(out), nil
 end
@@ -672,7 +693,10 @@ end
 ---@return string|nil err
 function M.status_porcelain(opts, git_cmd)
   local argv = status_argv(opts, git_cmd or "git")
-  return status_result(require("lib.nvim.cross.run_argv").run_blocking_captured(argv))
+  -- `run_blocking_result`: only it hands back git's stderr (bounded), the
+  -- reason a failed status reports.
+  local res = require("lib.nvim.cross.run_argv").run_blocking_result(argv)
+  return status_result(res.ok, res.stdout, res.stderr)
 end
 
 --- Async counterpart to `status_porcelain` -- for a tree refresh that fires on
@@ -683,8 +707,10 @@ end
 ---@return { stop: fun() } handle Kills the underlying job; harmless to call after it has finished.
 function M.status_porcelain_async(opts, on_done, git_cmd)
   local argv = status_argv(opts, git_cmd or "git")
-  return run_out_async(argv, function(ok, out)
-    on_done(status_result(ok, out))
+  -- `run_sync_async`, not `run_out_async`: the latter keeps stderr only for a
+  -- spawn failure, and a failed status's reason is git's own stderr.
+  return run_sync_async(argv, function(ok, out, _, stderr)
+    on_done(status_result(ok, out, stderr))
   end)
 end
 
@@ -2144,23 +2170,6 @@ local function blame_argv(path, opts, bin)
 end
 
 ---@internal
---- The reason of a failed `git blame`: the first line git wrote to stderr
---- (`fatal: no such path 'x.md' in HEAD`), else the generic "git blame failed".
----@param stderr string|nil
----@return string
-local function blame_error(stderr)
-  if type(stderr) == "string" then
-    for line in stderr:gmatch("[^\r\n]+") do
-      local text = vim.trim(line)
-      if text ~= "" then
-        return text
-      end
-    end
-  end
-  return "git blame failed"
-end
-
----@internal
 ---@param ok boolean
 ---@param out string
 ---@param stderr string|nil git's stderr, for the reason of a failure
@@ -2168,7 +2177,7 @@ end
 ---@return string|nil err
 local function blame_result(ok, out, stderr)
   if not ok then
-    return nil, blame_error(stderr)
+    return nil, git_error(stderr, "git blame failed")
   end
   if type(out) ~= "string" or vim.trim(out) == "" then
     return {}, nil

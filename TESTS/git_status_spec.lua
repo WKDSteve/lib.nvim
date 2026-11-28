@@ -368,7 +368,11 @@ return function(H)
   -- ── failure shape ────────────────────────────────────────────────────
   local none, err = git.status_porcelain({ dir = not_repo })
   H.eq(none, nil, "status_porcelain: outside a repo is nil, not an empty map")
-  H.ok(type(err) == "string" and #err > 0, "status_porcelain: ...and says why")
+  H.ok(
+    type(err) == "string" and #err > 0 and err ~= "git status failed",
+    "status_porcelain: ...and says why with git's reason, not the generic text, got "
+      .. tostring(err)
+  )
   local ok_call, gone = pcall(git.status_porcelain, { dir = not_repo .. "-gone" })
   H.ok(ok_call and gone == nil, "status_porcelain: a nonexistent directory does not raise")
 
@@ -412,7 +416,10 @@ return function(H)
       "status_porcelain_async: on_done fires on failure too"
     )
     H.eq(amap, nil, "status_porcelain_async: outside a repo is nil")
-    H.ok(type(aerr) == "string" and #aerr > 0, "status_porcelain_async: ...with an error string")
+    H.ok(
+      type(aerr) == "string" and #aerr > 0 and aerr ~= "git status failed",
+      "status_porcelain_async: ...with git's reason, not the generic text, got " .. tostring(aerr)
+    )
   end
 
   do
