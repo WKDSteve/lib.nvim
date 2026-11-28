@@ -4,22 +4,19 @@
 --- (lib.nvim.ui.kit.chooser), so it inherits themed selection and the same
 --- navigation (j/k/arrows, <CR>, <Esc>/q).
 ---
---- It accepts two item shapes, because it doubles as the native renderer for
---- `lib.nvim.contextmenu` (see that module's `renderer` option):
+--- It accepts two item shapes, because it is the renderer behind
+--- `lib.nvim.contextmenu`:
 ---
 --- - the kit's own `{ label = "Do X", action = fn }`, and
---- - nvzone/menu's `{ name = "Do X", cmd = fn, rtxt = "<leader>x", hl = … }`,
+--- - context-menu entries `{ name = "Do X", cmd = fn, rtxt = "<leader>x", hl = … }`,
 ---   including `{ name = "separator" }` dividers and nested fly-outs
----   (`{ name = "Git", items = { … } }`, or `items = "gitsigns"` for one of
----   nvzone/menu's own `menus.*` tables).
+---   (`{ name = "Git", items = { … } }`).
 ---
 --- Nesting is a **drill-down**, not a side-by-side fly-out: picking a nested
 --- entry replaces the current list with its children (the chooser is a single
 --- active instance). Every level below the top opens with a `Back` entry, and
 --- `<BS>` does the same thing from the keyboard — a menu reached by
---- <RightMouse> has to be leavable with the mouse too. That drill-down is the
---- one behavioural difference from nvzone/menu, which opens the child in a
---- second window beside the parent.
+--- <RightMouse> has to be leavable with the mouse too.
 ---
 --- # Layout
 ---
@@ -84,10 +81,7 @@ local ICON_GAP = 1
 local MARKER_GAP = 2
 
 --- Columns of empty space at each edge of a row, so labels and `rtxt` hints
---- don't sit flush against the border. nvzone/menu spends the same budget
---- differently -- one leading space plus an `item_gap` of 5 added to the
---- window width -- but the effect it is after is this one: air around the
---- text. Since the menu passes its own width (see `open_level`), the padding
+--- don't sit flush against the border: air around the text. Since the menu passes its own width (see `open_level`), the padding
 --- has to be part of the row, not slack left over in the window.
 local PAD = " "
 
@@ -167,8 +161,7 @@ local function rtxt_of(it)
   return tostring(it.rtxt)
 end
 
---- Resolve an item's nested children, following nvzone/menu's `items = "name"`
---- indirection into `menus.<name>`. Returns nil when the item is a leaf.
+--- Resolve an item's nested children. Returns nil when the item is a leaf.
 ---@internal
 ---@param it any
 ---@return Lib.UI.Kit.MenuItem[]|nil
@@ -177,21 +170,14 @@ local function children_of(it)
     return nil
   end
   local items = it.items
-  if type(items) == "string" then
-    local ok, mod = pcall(require, "menus." .. items)
-    if not ok or type(mod) ~= "table" then
-      return nil
-    end
-    items = mod
-  end
   if type(items) == "table" and #items > 0 then
     return items
   end
   return nil
 end
 
---- Resolve an item's leaf action, normalizing nvzone/menu's Ex-command
---- strings into callables.
+--- Resolve an item's leaf action, normalizing Ex-command strings (`cmd =
+--- "write"`) into callables.
 ---@internal
 ---@param it any
 ---@return fun()|nil
@@ -211,7 +197,7 @@ local function action_of(it)
   return nil
 end
 
---- Whether the item is nvzone/menu's divider.
+--- Whether the item is a `{ name = "separator" }` divider.
 ---@internal
 ---@param it any
 ---@return boolean
@@ -555,7 +541,7 @@ end
 ---
 --- Indented, and one column short of the right edge: a divider running border
 --- to border reads as a second border rather than as a grouping inside one
---- menu. Same shape nvzone/menu draws.
+--- menu.
 ---@internal
 ---@param width integer  # full window width
 ---@param glyphs table
@@ -761,7 +747,7 @@ function open_level(opts, raw_items, stack, reuse)
     return nil
   end
 
-  -- `mouse = true` is nvzone/menu's spelling for "anchor at the pointer";
+  -- `mouse = true` is the context-menu spelling for "anchor at the pointer";
   -- Neovim's own `relative = "mouse"` does exactly that, so it needs no
   -- coordinate arithmetic here. Passing `win` only makes sense against
   -- `relative = "win"`, so it implies that value when `relative` itself is

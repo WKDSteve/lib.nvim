@@ -3,12 +3,8 @@
 -- guards LuaLS asks for below would hide the very failure it exists to report.
 ---@diagnostic disable: need-check-nil
 -- TESTS/contextmenu_spec.lua — lib.nvim.contextmenu: entry/group/submenu
--- (pure data builders), renderer selection, and bind_buffer's
--- soft-dependency degradation.
---
--- nvzone/menu is not installed in the test environment, so every path here
--- resolves to the kit renderer — which is the point: what these assert is
--- exactly what has to keep holding once nvzone/menu is dropped.
+-- (pure data builders), the kit as the only renderer, and bind_buffer's
+-- wiring.
 
 return function(H)
   local eq = H.eq
@@ -78,21 +74,78 @@ return function(H)
     eq(sub.items, items, "submenu: items passed through")
   end
 
-  -- ---------- renderer selection ----------
+  -- ---------- renderer: the kit, always ----------
 
   do
-    eq(contextmenu.renderer(), "auto", "renderer: defaults to auto")
+    local warnings = {}
+    local orig_notify = vim.notify
+    vim.notify = function(msg, level)
+      if level == vim.log.levels.WARN then
+        warnings[#warnings + 1] = msg
+      end
+    end
 
-    contextmenu.setup({ renderer = "kit" })
-    eq(contextmenu.renderer(), "kit", "renderer: setup narrows it")
+    eq(contextmenu.renderer(), "kit", "renderer: the kit by default")
 
-    contextmenu.setup({})
-    eq(contextmenu.renderer(), "kit", "renderer: setup without the key leaves it alone")
+    contextmenu.setup({ renderer = "kit", native_popup = true })
+    eq(#warnings, 0, 'renderer: setup with "kit" says nothing')
 
-    -- The invalid value is the case under test.
+    -- A value left in a user's config by an older release is the case under
+    -- test: no error, one warning, and the kit still draws.
     ---@diagnostic disable-next-line: assign-type-mismatch
-    contextmenu.setup({ renderer = "nonsense" })
-    eq(contextmenu.renderer(), "kit", "renderer: an unknown value is rejected, not applied")
+    local setup_ok = pcall(contextmenu.setup, { renderer = "auto", native_popup = true })
+    ok(setup_ok, "renderer: an old value does not raise")
+    eq(contextmenu.renderer(), "kit", "renderer: an old value leaves the kit in charge")
+    eq(#warnings, 1, "renderer: an old value warns once")
+    ok(tostring(warnings[1]):find("auto", 1, true) ~= nil, "renderer: the warning names the value")
+
+    ---@diagnostic disable-next-line: assign-type-mismatch
+    contextmenu.setup({ renderer = "nonsense", native_popup = true })
+    eq(#warnings, 1, "renderer: the warning is not repeated in the same session")
+    eq(contextmenu.renderer(), "kit", "renderer: an unknown value is not applied")
+
+    vim.notify = orig_notify
+  end
+
+  -- ---------- open: an installed third-party `menu` module is not used ----------
+
+  do
+    local chooser = require("lib.nvim.ui.kit.chooser")
+    local foreign_opened = false
+    local menus_required = false
+    package.loaded["menu"] = {
+      open = function()
+        foreign_opened = true
+      end,
+    }
+    package.preload["menus.legacy"] = function()
+      menus_required = true
+      return { { name = "Legacy", cmd = function() end } }
+    end
+
+    local surf = contextmenu.open({ { name = "Only", cmd = function() end } }, { mouse = false })
+    ok(surf ~= nil and chooser.is_open(), "open: the kit draws even with a `menu` module loaded")
+    eq(foreign_opened, false, "open: a loaded `menu` module is never called")
+    chooser.close()
+
+    -- A string is no menu: the `menus.<name>` lookup is gone.
+    ---@diagnostic disable-next-line: param-type-mismatch
+    local str_ok, str_ret = pcall(contextmenu.open, "legacy")
+    ok(str_ok, "open: a string does not raise")
+    eq(str_ret, nil, "open: a string opens nothing")
+    eq(menus_required, false, "open: a string never requires `menus.<name>`")
+
+    -- Nor does a nested `items = "<name>"` reach for `menus.<name>`: it is a leaf.
+    local nested = contextmenu.open({
+      { name = "Leaf", cmd = function() end },
+      { name = "Nested", items = "legacy" },
+    }, { mouse = false })
+    ok(nested ~= nil, "open: a menu with a string `items` still opens")
+    eq(menus_required, false, "open: a nested string `items` never requires `menus.<name>`")
+    chooser.close()
+
+    package.loaded["menu"] = nil
+    package.preload["menus.legacy"] = nil
   end
 
   -- ---------- native_popup: off by default, opt-out not opt-in ----------
@@ -300,7 +353,7 @@ return function(H)
     ok(not chooser.is_open(), "open: the menu closes after a leaf action")
   end
 
-  -- ---------- bind_buffer: soft dependency, no nvzone/menu required ----------
+  -- ---------- bind_buffer: wiring ----------
 
   do
     local chooser = require("lib.nvim.ui.kit.chooser")
@@ -313,8 +366,6 @@ return function(H)
       return {}
     end, { desc = "test menu" })
 
-    -- Triggering the keymap must not error even though "menu" (nvzone/menu)
-    -- is not installed in the test environment — the kit renderer takes over.
     local mapped = vim.fn.maparg("<RightMouse>", "n", false, true)
     ok(
       type(mapped) == "table" and mapped.buffer == 1,
@@ -323,10 +374,10 @@ return function(H)
     eq(mapped.desc, "test menu", "bind_buffer: keymap desc passed through")
 
     local call_ok = pcall(mapped.callback)
-    ok(call_ok, "bind_buffer: triggering without nvzone/menu installed doesn't error")
+    ok(call_ok, "bind_buffer: triggering the mapping doesn't error")
     -- Items are now collected before any renderer is reached — the provider
     -- decides whether there is a menu at all, and an empty list opens none.
-    eq(get_items_called, true, "bind_buffer: get_items is called regardless of nvzone/menu")
+    eq(get_items_called, true, "bind_buffer: get_items is called on the trigger")
     ok(not chooser.is_open(), "bind_buffer: an empty item list opens nothing")
 
     vim.cmd("bwipeout! " .. buf)
@@ -520,6 +571,6 @@ return function(H)
   -- Leave the module as the rest of the suite (and any host) expects it.
   -- `native_popup = true`: setup() now disables the native PopUp menu by
   -- default, which the rest of the shared test session did not ask for.
-  contextmenu.setup({ renderer = "auto", native_popup = true })
+  contextmenu.setup({ native_popup = true })
   vim.o.mousemodel = "popup_setpos"
 end

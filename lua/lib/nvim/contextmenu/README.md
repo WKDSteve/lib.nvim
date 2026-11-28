@@ -8,24 +8,15 @@
 > The ecosystem's consumer plugins keep requiring `ui.contextmenu`; code that
 > cannot depend on `ui.nvim` requires `lib.nvim.contextmenu` directly.
 
-Building blocks for [nvzone/menu](https://github.com/nvzone/menu)-shaped
-context-menu entries: a self-gating item builder (`entry`/`group`/`submenu`),
-a renderer (`open`), and a mouse-trigger binder (`bind_buffer`).
+Building blocks for context-menu entries: a self-gating item builder
+(`entry`/`group`/`submenu`), a renderer (`open`), and a mouse-trigger binder
+(`bind_buffer`).
 
-Two renderers draw the same item tables:
-
-| `renderer` | draws with | notes |
-|---|---|---|
-| `"auto"` (default) | nvzone/menu if installed, else the kit | nothing changes for an existing setup |
-| `"nvzone"` | [nvzone/menu](https://github.com/nvzone/menu) | side-by-side fly-outs; falls back to the kit (one notify) when not installed |
-| `"kit"` | `lib.nvim.ui.kit.menu` | no third-party dependency, kit theming, drill-down fly-outs |
-
-```lua
-require("lib.nvim.contextmenu").setup({ renderer = "kit" })
-```
-
-The dependency stays soft either way: `menu` is only `require()`d when a menu
-actually opens, and a missing install degrades to the kit, never to an error.
+The menu is drawn by the kit (`lib.nvim.ui.kit.menu`): no third-party
+dependency, kit theming, drill-down fly-outs. Nothing is `require()`d until a
+menu actually opens. `setup({ renderer = "kit" })` is still accepted; any
+other `renderer` value (left over from an older release) is not an error,
+it warns once and the kit draws the menu.
 
 ### `native_popup`
 
@@ -101,8 +92,7 @@ contextmenu.bind_buffer(bufnr, items_mod.items, {
 
 **"Contributes only"** — the plugin's actions apply to ordinary
 filetype-scoped or condition-scoped buffers it doesn't own. It ships only
-`integrations/menu.lua` (`items`/`submenu`), with **no trigger code and no
-`nvzone/menu` dependency at all** — a host (typically the user's own
+`integrations/menu.lua` (`items`/`submenu`), with **no trigger code at all** — a host (typically the user's own
 RightMouse dispatcher) composes `submenu(...)` into its own menu when the
 relevant condition holds. Live reference: `markdown.nvim`
 (`lua/markdown/integrations/menu.lua`, composed by the user's
@@ -113,13 +103,13 @@ relevant condition holds. Live reference: `markdown.nvim`
 ```lua
 local contextmenu = require("lib.nvim.contextmenu")
 
-contextmenu.setup({ renderer = "auto", native_popup = false })  -- renderer: "auto"|"kit"|"nvzone"; native_popup: true keeps Neovim's own PopUp menu (default: off)
-contextmenu.renderer()                         -- the configured value
+contextmenu.setup({ native_popup = false })   -- native_popup: true keeps Neovim's own PopUp menu (default: off)
+contextmenu.renderer()                         -- always "kit"
 contextmenu.entry(available, label, fn, rtxt, opts)  -- {name,rtxt,cmd,icon,hl} or nil; opts = { icon, icon_hl, hl }
 contextmenu.heading(title)                     -- group heading marker; pass it first to `group`
 contextmenu.group(out, entry, entry, nil, entry)  -- varargs; appends non-nil items, separator between groups
 contextmenu.submenu(label, items, opts)        -- {name=label, items=items} or nil if items is empty
-contextmenu.open(items, opts)                  -- draw with the active renderer; `items` may be a "menus.<name>" string
+contextmenu.open(items, opts)                  -- draw with the kit menu; returns its surface (nil when disabled/empty)
 contextmenu.bind_buffer(bufnr, get_items, opts) -- buffer-local <RightMouse>, opens via `open`
 ```
 
@@ -133,11 +123,10 @@ See `@types/init.lua` for full field documentation (`Lib.ContextMenu.Item`,
   defined length in Lua), silently dropping later entries whenever an
   earlier one in the same group gates off. Varargs don't have that problem —
   `select('#', ...)` counts every position, nil or not.
-- `entry`/`group`/`submenu` never touch `nvzone/menu` — they build a plain
-  data structure. Only `bind_buffer` (and, for "contributes only" plugins, the
-  host composing the menu) ever calls `require("menu")`, so a plugin can call
-  `entry`/`group`/`submenu` unconditionally regardless of whether nvzone/menu
-  is installed.
+- `entry`/`group`/`submenu` never touch a renderer — they build a plain
+  data structure, so a plugin can call them unconditionally. Only `open`
+  (reached through `bind_buffer`, or by the host composing the menu for
+  "contributes only" plugins) loads the kit menu.
 - `heading` is a marker passed **into** `group`, not a `title` parameter on
   it, so gating reaches it: a section whose every entry is unavailable drops
   its title along with itself, rather than leaving a heading standing over
@@ -147,41 +136,25 @@ See `@types/init.lua` for full field documentation (`Lib.ContextMenu.Item`,
   defaults to `"box"`; `"header"` and `"plain"` are the quieter variants). A
   menu that names no section keeps the divider look it always had — which is
   why grouping cost the existing consumers nothing.
-- `bind_buffer` resolves the renderer at trigger time, not at bind time — safe
-  to call from a plugin's setup path regardless of what is installed.
-- Consumers never call a renderer themselves. `entry`/`group`/`submenu` build
-  plain data; `open` is the single place either renderer is reached from.
-  That is what makes the renderer swappable at all — the two live consumers
-  (`filetree.nvim`, `github_stats.nvim`) needed no change for the kit
-  renderer to exist.
+- `bind_buffer` loads the kit menu at trigger time, not at bind time — safe
+  to call from a plugin's setup path.
+- Consumers never call the renderer themselves. `entry`/`group`/`submenu`
+  build plain data; `open` is the single place the kit menu is reached from.
 
-### The kit renderer, and a claim that was wrong
+### The kit renderer
 
-An earlier version of this file argued that `lib.nvim.ui.kit.menu` was **not
-a fit**, because it is cursor-anchored and "doesn't give nvzone/menu's
-`{ mouse = true }` pointer positioning that `<RightMouse>` needs". That was
-wrong on the fact it rested on: `relative = "mouse"` is a plain
-`nvim_open_win` value, and the kit's surface has always passed `relative`
-straight through. Nothing had to be computed; the option simply had not been
-tried. What the kit renderer genuinely needed was smaller and elsewhere —
-separators the cursor steps over (a `selectable = false` rich item in
-`ui.kit.chooser`), a right-aligned `rtxt` column, and nesting.
+The kit menu anchors at the pointer with `relative = "mouse"` (a plain
+`nvim_open_win` value the kit surface passes straight through), steps over
+separators (a `selectable = false` rich item in `ui.kit.chooser`), draws a
+right-aligned `rtxt` column, and nests. Rows carry a pad column at each
+edge, dividers are indented and stop short of the right edge, the block
+cursor is hidden while the menu is open, a single left click picks, and a
+click or focus change elsewhere dismisses it. A menu that should stand out
+more belongs in a kit preset, not in `ui.kit.menu`.
 
-The visual gap that was left after the swap closed later, and only one item
-of it was refused. Rows carry a pad column at each edge, dividers are
-indented and stop short of the right edge, the block cursor is hidden while
-the menu is open, a single left click picks, and a click or focus change
-elsewhere dismisses it. What was **not** copied is nvzone/menu's darker
-window background: that is a base46 group, so taking it would tie the menu
-to NvChad. A menu that should stand out more belongs in a kit preset, not in
-`ui.kit.menu`.
-
-One real behavioural difference remains, and it is a design choice rather
-than a gap: nvzone/menu opens a nested fly-out in a **second window** beside
-the parent, while the kit **drills down** in place, with `<BS>` walking back
-up. A single-instance chooser is what gives the kit its themed selection and
-its one-window lifecycle; opening a second one to imitate the fly-out would
-trade that away for the visual.
+A nested entry **drills down** in place, with `<BS>` walking back up, rather
+than opening a second window beside the parent. A single-instance chooser is
+what gives the kit its themed selection and its one-window lifecycle.
 
 ## Catalogue of entries (`lib.nvim.contextmenu.catalog`)
 

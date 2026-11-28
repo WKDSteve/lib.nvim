@@ -1,12 +1,11 @@
-*lib.nvim-contextmenu.txt*    nvzone/menu context-menu item builder + binder
+*lib.nvim-contextmenu.txt*    Context-menu item builder, renderer + binder
 
 lib.nvim.contextmenu                                  *lib.nvim-contextmenu*
 
-Building blocks for nvzone/menu-shaped context-menu entries: a self-gating
-item builder (entry/group/submenu) plus a mouse-trigger binder
-(bind_buffer). Soft dependency throughout — `menu` (nvzone/menu) is only
-require()d when a bound trigger actually fires, and a missing install
-degrades to a single session-wide notify, never an error.
+Building blocks for context-menu entries: a self-gating item builder
+(entry/group/submenu), a renderer (open) and a mouse-trigger binder
+(bind_buffer). The menu is drawn by the kit (lib.nvim.ui.kit.menu), which is
+only require()d when a menu actually opens. No third-party plugin is needed.
 
 ==============================================================================
 CONTENTS                                     *lib.nvim-contextmenu-contents*
@@ -40,8 +39,7 @@ lua/filetree/features/ui/context_menu/init.lua). >lua
 <
 "Contributes only" — the plugin's actions apply to ordinary filetype- or
 condition-scoped buffers it doesn't own. It ships only
-integrations/menu.lua (items/submenu), with NO trigger code and NO
-nvzone/menu dependency at all — a host (typically the user's own RightMouse
+integrations/menu.lua (items/submenu), with NO trigger code at all — a host (typically the user's own RightMouse
 dispatcher) composes submenu(...) into its own menu when the relevant
 condition holds. Live reference: markdown.nvim
 (lua/markdown/integrations/menu.lua, composed by the user's
@@ -70,8 +68,8 @@ Returns ~
 group({out}, {...})                             *lib.nvim-contextmenu-group*
 
 Append every non-nil argument to `out`, preceded by a separator when `out`
-already holds entries and at least one argument survives. Mirrors
-nvzone/menu's `{ name = "separator" }` convention.
+already holds entries and at least one argument survives (the
+`{ name = "separator" }` entry the kit menu draws as a divider).
 
 Takes varargs, not a table: a table literal like `{ entry(...), nil,
 entry(...) }` loses everything past the first gap under ipairs/# (a table
@@ -104,17 +102,30 @@ Returns ~
 ------------------------------------------------------------------------------
 bind_buffer({bufnr}, {get_items}, {opts})  *lib.nvim-contextmenu-bind_buffer*
 
-Bind a mouse trigger on `bufnr` that opens get_items() via nvzone/menu.
-`menu` is soft-required at trigger time, not at bind time — safe to call
-unconditionally from a plugin's setup path even when nvzone/menu isn't
-installed; the keymap becomes an inert no-op (one notify per session) until
-it is.
+Bind a mouse trigger on `bufnr` that opens get_items() with open(). The kit
+menu is loaded at trigger time, not at bind time — safe to call
+unconditionally from a plugin's setup path.
 
 Parameters ~
     bufnr       integer
     get_items   fun():table[]
     opts        table?   { keymap?, modes?, mouse?, desc? }, see
                           |lib.nvim-contextmenu-types|
+
+------------------------------------------------------------------------------
+open({items}, {opts})                           *lib.nvim-contextmenu-open*
+
+Draw `items` (a built item list) with lib.nvim.ui.kit.menu. Returns the kit
+surface (`surf:on_close(cb)` tells a caller when the menu closes), or nil
+when the menu is disabled (set_enabled(false)) or `items` is empty.
+
+------------------------------------------------------------------------------
+setup({opts})                                  *lib.nvim-contextmenu-setup*
+
+Sets 'mousemodel' to "extend" (turns off Neovim's own PopUp menu) unless
+`native_popup = true`. `renderer = "kit"` is accepted; any other `renderer`
+value, left over from an older release, warns once and the kit draws the
+menu anyway. renderer() always returns "kit".
 
 ==============================================================================
 3. TYPES                                        *lib.nvim-contextmenu-types*
@@ -124,19 +135,13 @@ Lib.ContextMenu.Item ~
     cmd     function|string?   Leaf action: callback, or an Ex command string
     items   table?             Nested fly-out entries (mutually exclusive with cmd)
     rtxt    string?            Right-aligned hint text
-    hl      string?            Optional highlight group override (nvzone/menu)
+    hl      string?            Highlight group for the label
 
 Lib.ContextMenu.BindOpts ~
     keymap   string?    Trigger key (default "<RightMouse>")
     modes    string[]?  Modes to bind in (default {"n", "v"})
-    mouse    boolean?   Pass {mouse = true} to menu.open (default true)
+    mouse    boolean?   Anchor the menu at the mouse pointer (default true)
     desc     string?    Keymap description (default "Context menu")
-
-Not a fit for lib.nvim.ui.kit.menu (lua/lib/nvim/ui/kit/menu.lua): that
-component is cursor-anchored (relative = "cursor"), not mouse-anchored — it
-doesn't give nvzone/menu's {mouse = true} pointer positioning that
-<RightMouse> needs. Use ui.kit.menu for keyboard-triggered action lists,
-contextmenu for anything meant to open at the mouse pointer.
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

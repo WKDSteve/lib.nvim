@@ -49,7 +49,7 @@ end, { desc = "Open the LSP action menu" })
 
 -- ---------------------------------------------------------------------------
 -- The same component also renders `lib.nvim.contextmenu` item tables, which
--- is how a right-click menu gets drawn without nvzone/menu installed. That
+-- is how a right-click menu gets drawn. That
 -- shape spells things differently (`name`/`cmd` instead of `label`/`action`)
 -- and adds three things the plain shape has no use for: `{ name =
 -- "separator" }` dividers, a right-aligned `rtxt` hint column, and nesting.

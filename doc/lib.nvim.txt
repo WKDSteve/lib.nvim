@@ -255,9 +255,9 @@ Neovim adapters.
                            lock neo-tree's own fs_watch leaks on rename/
                            delete; drive release() from cross.fs.mutate's
                            on_retry hook, see lua/lib/nvim/neotree/watch/README.md)
-    lib.nvim.contextmenu   nvzone/menu context-menu item builder (entry/
-                           group/submenu, self-gating) + mouse-trigger binder
-                           (bind_buffer, soft dependency) |lib.nvim-contextmenu|
+    lib.nvim.contextmenu   context-menu item builder (entry/
+                           group/submenu, self-gating), kit renderer (open)
+                           + mouse-trigger binder (bind_buffer) |lib.nvim-contextmenu|
     lib.nvim.async         coroutine async/await over libuv (await/run/wrap),
                            Semaphore + Condvar + LatestWins (a "newest
                            request wins" token gate for overlapping async
@@ -360,7 +360,7 @@ Modules with dedicated `:help` documentation. Jump to one via its tag, or
     lib.nvim.cross.run.env  spawn environment: complete PATH + session vars |lib.nvim-spawn-env|
     lib.nvim.async       coroutine async/await over libuv      |lib.nvim-async|
     lib.lua.strings.width  display-width (column) arithmetic  |lib.nvim-strings_width|
-    lib.nvim.contextmenu  nvzone/menu item builder + mouse-trigger binder |lib.nvim-contextmenu|
+    lib.nvim.contextmenu  context-menu item builder + mouse-trigger binder |lib.nvim-contextmenu|
     lib.lua.patterns / lib.nvim.patterns  design pattern collection (GoF + modern) |lib.nvim-patterns|
 
 Every other module documents itself in a `README.md` next to its source; see

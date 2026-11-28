@@ -1,15 +1,11 @@
 ---@module 'lib.nvim.contextmenu'
---- Building blocks for nvzone/menu-shaped context-menu entries: a
---- self-gating item builder (`entry`/`group`/`submenu`), a renderer
---- (`open`), and a mouse-trigger binder (`bind_buffer`).
+--- Building blocks for context-menu entries: a self-gating item builder
+--- (`entry`/`group`/`submenu`), a renderer (`open`), and a mouse-trigger
+--- binder (`bind_buffer`).
 ---
---- Two renderers draw the same item tables, chosen by `setup{ renderer = … }`:
---- `"nvzone"` (nvzone/menu, the original) and `"kit"`
---- (`lib.nvim.ui.kit.menu`, no third-party dependency and themed by the kit).
---- The default `"auto"` prefers nvzone/menu when it is installed and falls
---- back to the kit, so nothing changes for an existing setup. Either way the
---- dependency is soft: `menu` is only `require()`d when a menu actually
---- opens, and a missing install degrades to the kit, never to an error.
+--- The menu is drawn by the kit (`lib.nvim.ui.kit.menu`): no third-party
+--- dependency, themed like every other kit surface. Nothing is `require()`d
+--- until a menu actually opens.
 ---
 --- `setup{...}` also turns off Neovim's OWN built-in right-click menu
 --- (`:h popup-menu`) by default, which pops up under the editor's default
@@ -53,10 +49,6 @@ local notify = require("lib.nvim.notify").create("[lib.nvim.contextmenu]")
 
 local M = {}
 
---- Active renderer choice. `"auto"` resolves per call (see `resolve_renderer`).
----@type "auto"|"kit"|"nvzone"
-local renderer = "auto"
-
 --- Whether `M.open`/`M.bind_buffer` actually render/trigger anything --
 --- `ui.setup({ menu = false })`'s target. `false` means the menu never
 --- RENDERS, not that it is installed-but-silent: the item builders
@@ -82,32 +74,32 @@ function M.is_enabled()
 end
 
 ---@internal
---- Say once per session that the explicitly requested nvzone/menu isn't
---- installed and the kit is drawing instead.
-local _warned_nvzone = false
-local function warn_nvzone_missing_once()
-  if _warned_nvzone then
+--- Say once per session that a `renderer` other than `"kit"` was asked for
+--- and the kit draws anyway. A value left in a user's config from an older
+--- release (`"auto"`, or a renderer that no longer exists) must not stop the
+--- setup, only be pointed out.
+local _warned_renderer = false
+local function warn_renderer_once(r)
+  if _warned_renderer then
     return
   end
-  _warned_nvzone = true
-  notify.info("nvzone/menu not installed — rendering the context menu with lib.nvim.ui.kit.menu")
+  _warned_renderer = true
+  notify.warn(
+    ("contextmenu: renderer %q is not available — the kit (lib.nvim.ui.kit.menu) draws the menu; drop the option"):format(
+      tostring(r)
+    )
+  )
 end
 
---- Pick the renderer, and (by default) suppress Neovim's built-in
+--- Check the renderer option, and (by default) suppress Neovim's built-in
 --- right-click menu. Call once, from the host's setup path.
----@param opts? { renderer?: "auto"|"kit"|"nvzone", native_popup?: boolean }
+---@param opts? { renderer?: Lib.ContextMenu.Renderer, native_popup?: boolean }
 function M.setup(opts)
   opts = opts or {}
 
   local r = opts.renderer
-  if r ~= nil then
-    if r ~= "auto" and r ~= "kit" and r ~= "nvzone" then
-      notify.error(
-        ("contextmenu: unknown renderer %q — keeping %q"):format(tostring(r), renderer)
-      )
-    else
-      renderer = r
-    end
+  if r ~= nil and r ~= "kit" then
+    warn_renderer_once(r)
   end
 
   if opts.native_popup ~= true then
@@ -122,31 +114,9 @@ function M.setup(opts)
   end
 end
 
---- The configured renderer, as set (still `"auto"` if never narrowed).
----@return "auto"|"kit"|"nvzone"
+--- The renderer that draws the menu: always `"kit"`.
+---@return Lib.ContextMenu.Renderer
 function M.renderer()
-  return renderer
-end
-
----@internal
---- Resolve `"auto"` against what is actually installed: nvzone/menu when
---- present (it is the incumbent, and its fly-outs open side by side), the
---- kit otherwise.
----@return "kit"|"nvzone", table|nil nvzone_module
-local function resolve_renderer()
-  if renderer == "kit" then
-    return "kit"
-  end
-  local ok, menu = pcall(require, "menu")
-  if ok and type(menu) == "table" and type(menu.open) == "function" then
-    return "nvzone", menu
-  end
-  if renderer == "nvzone" then
-    -- An explicit choice that can't be honoured is worth saying out loud
-    -- once; falling back silently would look like the menu simply ignored
-    -- half its entries.
-    warn_nvzone_missing_once()
-  end
   return "kit"
 end
 
@@ -195,8 +165,8 @@ function M.heading(title)
 end
 
 --- Append every non-nil argument to `out`, preceded by a separator when
---- `out` already holds entries and at least one argument survives. Mirrors
---- nvzone/menu's `{ name = "separator" }` convention.
+--- `out` already holds entries and at least one argument survives (the
+--- `{ name = "separator" }` entry the kit menu draws as a divider).
 ---
 --- Takes varargs, not a table: a table literal like `{ entry(...), nil,
 --- entry(...) }` loses everything past the first gap under `ipairs`/`#`
@@ -268,20 +238,17 @@ function M.submenu(label, items, opts)
   }
 end
 
---- Open a menu with the active renderer. `items` is either a built item list
---- or, for nvzone/menu compatibility, the name of one of its `menus.*`
---- tables (`"default"`, `"gitsigns"`, …) — the kit renderer resolves that
---- name the same way nvzone/menu does.
+--- Open a menu with the kit renderer. `items` is a built item list.
 ---
---- This is the single place either renderer is reached from: callers build
---- items with `entry`/`group`/`submenu` and never `require("menu")`
---- themselves, which is what makes the renderer swappable at all.
+--- This is the single place the renderer is reached from: callers build
+--- items with `entry`/`group`/`submenu` and never touch the kit menu
+--- themselves.
 ---
---- Returns the kit renderer's surface handle (`nil` for nvzone/menu, which
---- exposes no equivalent) -- a caller that needs to know when the menu
---- closes (to clear a highlight it set for the duration, say) can
+--- Returns the kit surface handle -- a caller that needs to know when the
+--- menu closes (to clear a highlight it set for the duration, say) can
 --- `surf:on_close(cb)` on it; one that does not can just ignore the return.
----@param items Lib.ContextMenu.Item[]|string
+--- Returns nil when the menu is disabled or `items` is empty.
+---@param items Lib.ContextMenu.Item[]
 ---@param opts? Lib.ContextMenu.OpenOpts
 ---@return Lib.UI.Kit.Surface|nil
 function M.open(items, opts)
@@ -292,22 +259,6 @@ function M.open(items, opts)
   opts = opts or {}
   local mouse = opts.mouse ~= false
 
-  local which, menu = resolve_renderer()
-  if which == "nvzone" and menu then
-    -- nvzone/menu resolves a string name itself and takes `mouse` in opts.
-    -- It has no `win`/`anchor`/explicit `row`/`col` equivalent to forward.
-    menu.open(items, { mouse = mouse })
-    return nil
-  end
-
-  if type(items) == "string" then
-    local ok, mod = pcall(require, "menus." .. items)
-    if not ok or type(mod) ~= "table" then
-      notify.error(("contextmenu: no menu named %q"):format(items))
-      return nil
-    end
-    items = mod
-  end
   if type(items) ~= "table" or #items == 0 then
     return nil
   end
@@ -328,9 +279,9 @@ function M.open(items, opts)
   })
 end
 
---- Bind a mouse trigger on `bufnr` that opens `get_items()` with the active
+--- Bind a mouse trigger on `bufnr` that opens `get_items()` with the kit
 --- renderer. Nothing is required at bind time, so this is safe to call
---- unconditionally from a plugin's setup path; the renderer is resolved when
+--- unconditionally from a plugin's setup path; the kit menu is loaded when
 --- the trigger fires.
 ---@param bufnr integer
 ---@param get_items Lib.ContextMenu.ItemsProvider

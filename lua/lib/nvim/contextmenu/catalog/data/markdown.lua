@@ -1,6 +1,6 @@
 ---@module 'lib.nvim.contextmenu.catalog.data.markdown'
 ---Entries of `markdown.integrations.menu`: "contributes only", for a Markdown buffer. The
----host renders them (nvzone/menu shape), the actions stay in markdown.nvim.
+---host renders them (context-menu entries), the actions stay in markdown.nvim.
 ---@type Lib.ContextMenu.Catalog.Block
 return {
   plugin = "markdown",

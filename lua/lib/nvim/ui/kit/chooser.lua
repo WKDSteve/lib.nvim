@@ -787,7 +787,7 @@ function M.open(opts)
     title = opts.title,
     relative = opts.relative or "cursor",
     -- Explicit placement, for an anchor the surface can't derive on its own
-    -- (`relative = "mouse"` with nvzone/menu's row/col offsets, say, or
+    -- (`relative = "mouse"` with row/col offsets, say, or
     -- `relative = "win"` to sit beside another window rather than at the
     -- pointer -- see `win`/`anchor` below).
     win = opts.win,
