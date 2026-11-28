@@ -1,6 +1,7 @@
 ---@module 'lib.nvim.contextmenu.catalog.data.pickers'
 ---Entries of `pickers.preview_mouse`: right click in the preview or the result list of a
----snacks picker. Built from the picker's current item; `needs` says what the item has to give.
+---snacks or telescope picker, or the builtin preview of fzf-lua (no list entries there).
+---Built from the picker's current item; `needs` says what the item has to give.
 ---@type Lib.ContextMenu.Catalog.Block
 return {
   plugin = "pickers",
@@ -8,7 +9,7 @@ return {
   defaults = {
     context = { "preview", "list", "file" },
     needs = { "path" },
-    requires = { plugins = { "pickers", "snacks" } },
+    requires = { plugins = { "pickers" } },
     effect = "open",
   },
   entries = {
@@ -24,7 +25,7 @@ return {
       context = { "preview", "selection" },
       needs = { "text" },
       cross = { "gopath" },
-      requires = { plugins = { "pickers", "snacks", "gopath" } },
+      requires = { plugins = { "pickers", "gopath" } },
       note = "single-line selection only",
     },
     {
@@ -35,7 +36,7 @@ return {
       context = { "list", "preview" },
       needs = { "path" },
       cross = { "filetree" },
-      requires = { plugins = { "pickers", "snacks", "filetree" } },
+      requires = { plugins = { "pickers", "filetree" } },
       note = "only for a row with an existing path and a set-up filetree; closes the picker first",
     },
     {
@@ -46,7 +47,7 @@ return {
       context = { "list", "preview" },
       needs = { "path" },
       cross = { "mdview" },
-      requires = { plugins = { "pickers", "snacks", "mdview" } },
+      requires = { plugins = { "pickers", "mdview" } },
       note = "only on a Markdown file; loads it unlisted and runs mdview in it; closes the picker first",
     },
     {
@@ -57,7 +58,7 @@ return {
       context = { "list", "preview", "line" },
       needs = { "path", "line" },
       cross = { "gitsuite" },
-      requires = { plugins = { "pickers", "snacks", "gitsuite" } },
+      requires = { plugins = { "pickers", "gitsuite" } },
       note = "`gitsuite.features.blame.for_location`, shown as a notification; the picker stays open",
     },
     {

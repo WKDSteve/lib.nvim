@@ -319,24 +319,24 @@ An entry of one plugin that brings in the feature of another.
 
 | id | label | group | context | needs | requires | effect | cross |
 |---|---|---|---|---|---|---|---|
-| `pickers.open_here` | Open here | open | preview, list, file | path, line | pickers, snacks | open |  |
-| `pickers.open_split` | Open in split | open | preview, list, file | path, line | pickers, snacks | open |  |
-| `pickers.open_vsplit` | Open in vsplit | open | preview, list, file | path, line | pickers, snacks | open |  |
-| `pickers.open_tab` | Open in new tab | open | preview, list, file | path, line | pickers, snacks | open |  |
-| `pickers.open_system` | Open with system app | open | preview, list, file | path | pickers, snacks | external |  |
-| `pickers.goto_path` | Go to selected path (gopath) | open | preview, selection | text | pickers, snacks, gopath | open | ⇄ gopath |
-| `pickers.reveal_filetree` | Reveal in filetree | open | list, preview | path | pickers, snacks, filetree | navigate | ⇄ filetree |
-| `pickers.mdview` | Preview in mdview | open | list, preview | path | pickers, snacks, mdview | external | ⇄ mdview |
-| `pickers.blame_line` | Blame this line (gitsuite) | git | list, preview, line | path, line | pickers, snacks, gitsuite | view | ⇄ gitsuite |
-| `pickers.copy_selection` | Copy selection | copy | preview, selection | text | pickers, snacks | copy |  |
-| `pickers.copy_path` | Copy path | copy | preview, list, file | path | pickers, snacks | copy |  |
-| `pickers.copy_path_line` | Copy path:line | copy | preview, list, file | path, line | pickers, snacks | copy |  |
-| `pickers.copy_markdown_link` | Copy Markdown link | copy | preview, list, file | path | pickers, snacks | copy |  |
-| `pickers.copy_line` | Copy this line | copy | preview, line | text | pickers, snacks | copy |  |
-| `pickers.copy_file` | Copy whole file content | copy | preview, list, file | path | pickers, snacks | copy |  |
-| `pickers.list_copy` | Copy all entries | list | preview, list | items | pickers, snacks | copy |  |
-| `pickers.list_quickfix` | Send all entries to quickfix | list | preview, list | items | pickers, snacks | modify |  |
-| `pickers.list_buffer` | Open all entries in a new buffer | list | preview, list | items | pickers, snacks | open |  |
+| `pickers.open_here` | Open here | open | preview, list, file | path, line | pickers | open |  |
+| `pickers.open_split` | Open in split | open | preview, list, file | path, line | pickers | open |  |
+| `pickers.open_vsplit` | Open in vsplit | open | preview, list, file | path, line | pickers | open |  |
+| `pickers.open_tab` | Open in new tab | open | preview, list, file | path, line | pickers | open |  |
+| `pickers.open_system` | Open with system app | open | preview, list, file | path | pickers | external |  |
+| `pickers.goto_path` | Go to selected path (gopath) | open | preview, selection | text | pickers, gopath | open | ⇄ gopath |
+| `pickers.reveal_filetree` | Reveal in filetree | open | list, preview | path | pickers, filetree | navigate | ⇄ filetree |
+| `pickers.mdview` | Preview in mdview | open | list, preview | path | pickers, mdview | external | ⇄ mdview |
+| `pickers.blame_line` | Blame this line (gitsuite) | git | list, preview, line | path, line | pickers, gitsuite | view | ⇄ gitsuite |
+| `pickers.copy_selection` | Copy selection | copy | preview, selection | text | pickers | copy |  |
+| `pickers.copy_path` | Copy path | copy | preview, list, file | path | pickers | copy |  |
+| `pickers.copy_path_line` | Copy path:line | copy | preview, list, file | path, line | pickers | copy |  |
+| `pickers.copy_markdown_link` | Copy Markdown link | copy | preview, list, file | path | pickers | copy |  |
+| `pickers.copy_line` | Copy this line | copy | preview, line | text | pickers | copy |  |
+| `pickers.copy_file` | Copy whole file content | copy | preview, list, file | path | pickers | copy |  |
+| `pickers.list_copy` | Copy all entries | list | preview, list | items | pickers | copy |  |
+| `pickers.list_quickfix` | Send all entries to quickfix | list | preview, list | items | pickers | modify |  |
+| `pickers.list_buffer` | Open all entries in a new buffer | list | preview, list | items | pickers | open |  |
 
 ## rules
 
