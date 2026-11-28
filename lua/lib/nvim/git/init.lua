@@ -2144,13 +2144,31 @@ local function blame_argv(path, opts, bin)
 end
 
 ---@internal
+--- The reason of a failed `git blame`: the first line git wrote to stderr
+--- (`fatal: no such path 'x.md' in HEAD`), else the generic "git blame failed".
+---@param stderr string|nil
+---@return string
+local function blame_error(stderr)
+  if type(stderr) == "string" then
+    for line in stderr:gmatch("[^\r\n]+") do
+      local text = vim.trim(line)
+      if text ~= "" then
+        return text
+      end
+    end
+  end
+  return "git blame failed"
+end
+
+---@internal
 ---@param ok boolean
 ---@param out string
+---@param stderr string|nil git's stderr, for the reason of a failure
 ---@return Lib.Git.BlameEntry[]|nil entries
 ---@return string|nil err
-local function blame_result(ok, out)
+local function blame_result(ok, out, stderr)
   if not ok then
-    return nil, (type(out) == "string" and vim.trim(out) ~= "") and out or "git blame failed"
+    return nil, blame_error(stderr)
   end
   if type(out) ~= "string" or vim.trim(out) == "" then
     return {}, nil
@@ -2172,8 +2190,10 @@ end
 function M.blame_porcelain(path, opts, git_cmd)
   opts = opts or {}
   local argv = blame_argv(path, opts, git_cmd or "git")
-  local ok, out = require("lib.nvim.cross.run_argv").run_blocking_captured(argv)
-  return blame_result(ok, out)
+  -- `run_blocking_result`, not `run_blocking_captured`: only it hands back git's
+  -- stderr (bounded), the reason a failed blame reports.
+  local res = require("lib.nvim.cross.run_argv").run_blocking_result(argv)
+  return blame_result(res.ok, res.stdout, res.stderr)
 end
 
 --- Async counterpart to `blame_porcelain` -- LUA-15: prefer this over the
@@ -2190,8 +2210,10 @@ end
 function M.blame_porcelain_async(path, opts, on_done, git_cmd)
   opts = opts or {}
   local argv = blame_argv(path, opts, git_cmd or "git")
-  return run_out_async(argv, function(ok, out)
-    on_done(blame_result(ok, out))
+  -- `run_sync_async`, not `run_out_async`: the latter keeps stderr only for a
+  -- spawn failure, and a failed blame's reason is git's own stderr.
+  return run_sync_async(argv, function(ok, stdout, _, stderr)
+    on_done(blame_result(ok, stdout, stderr))
   end)
 end
 

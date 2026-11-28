@@ -192,6 +192,29 @@ return function(H)
   local no_blame, err = git.blame_porcelain("__lib_nvim_blame_spec_scratch.md", { dir = root })
   H.eq(no_blame, nil, "git.blame_porcelain: an untracked file is a real failure, not an empty list")
   H.ok(type(err) == "string" and #err > 0, "git.blame_porcelain: ...and says why")
+  H.ok(
+    type(err) == "string" and err:find("__lib_nvim_blame_spec_scratch.md", 1, true) ~= nil,
+    "git.blame_porcelain: ...in git's own words (its stderr names the path), got " .. tostring(err)
+  )
+  do
+    local done, a_entries, a_err = false, nil, nil
+    git.blame_porcelain_async(
+      "__lib_nvim_blame_spec_scratch.md",
+      { dir = root },
+      function(e, cb_err)
+        done, a_entries, a_err = true, e, cb_err
+      end
+    )
+    vim.wait(30000, function()
+      return done
+    end)
+    H.eq(a_entries, nil, "git.blame_porcelain_async: an untracked file is a real failure")
+    H.ok(
+      type(a_err) == "string" and a_err:find("__lib_nvim_blame_spec_scratch.md", 1, true) ~= nil,
+      "git.blame_porcelain_async: ...in git's own words (its stderr names the path), got "
+        .. tostring(a_err)
+    )
+  end
   vim.fn.delete(untracked)
 
   -- Outside any repo entirely: same failure shape, not a raise.
@@ -255,6 +278,11 @@ return function(H)
     H.ok(
       type(async_err) == "string" and #async_err > 0,
       "git.blame_porcelain_async: ...and says why"
+    )
+    H.ok(
+      type(async_err) == "string" and async_err ~= "git blame failed",
+      "git.blame_porcelain_async: ...with git's reason, not the generic text, got "
+        .. tostring(async_err)
     )
   end
 end
