@@ -661,6 +661,7 @@ function Client.restart(self)
 end
 
 ---Create (or fetch, by id) a client. Nothing starts until the first request.
+--- testing-perf: conditional: a factory: the server starts at the client's first request
 ---@param opts Lib.Mcp.Opts
 ---@return Lib.Mcp.Client
 function M.client(opts)

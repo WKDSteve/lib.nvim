@@ -162,6 +162,7 @@ local function refuse(key, what)
   error(("contract.doc.new: %s must be %s"):format(key, what), 3) -- 3: the caller of `new`
 end
 
+--- testing-perf: conditional: a factory: git runs when the doc is read
 ---@param cfg Lib.Contract.DocConfig
 ---@return Lib.Contract.Doc
 function M.new(cfg)

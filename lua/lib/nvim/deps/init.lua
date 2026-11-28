@@ -48,6 +48,7 @@ end
 ---module's purpose and `deps.require_tool(...)` is how it reads at the call
 ---site. `require("lib.nvim.deps.require_tool")` still reaches `message`
 ---and `reset`.
+--- testing-perf: conditional: only when the tool is missing and `silent` is not set
 ---@param plugin_name string
 ---@param bin string
 ---@param opts? Lib.Deps.RequireTool.Opts

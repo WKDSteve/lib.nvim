@@ -100,6 +100,7 @@ end
 --- `vim.fn.jobstart` to log their duration (and a traceback for slow calls).
 --- Idempotent: calling `start()` while already active is a no-op that
 --- returns the existing log path.
+--- testing-perf: conditional: installs wrappers; the starts that pass through them are other callers'
 ---@param opts? Lib.System.ProcTrace.StartOptions
 ---@return Lib.System.ProcTrace.Result
 function M.start(opts)

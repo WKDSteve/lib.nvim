@@ -469,6 +469,7 @@ end
 ---`vim.system(argv, env.apply({ cwd = … }))` shape; the input table is not
 ---mutated. An `env` already present in `spawn_opts` is used as the base, so
 ---caller-supplied variables survive.
+--- testing-perf: conditional: only with `login_shell = true` (never on Windows)
 ---@param spawn_opts? table
 ---@param opts? Lib.Cross.Run.Env.Opts
 ---@return table

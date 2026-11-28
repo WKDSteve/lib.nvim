@@ -226,6 +226,7 @@ end
 ---   keymap tap's recording of raw and lazy.nvim bindings.
 --- - `:LibKeymapRuntime [defaults|duplicates]` -- Neovim's defaults that were
 ---   overridden or removed, or one action on several keys.
+--- testing-perf: conditional: creates commands; `:LibKeymapRuntime defaults` starts the probe editor
 ---@param name string|nil  # Default `LibKeymapConflicts`.
 ---@param runtime_name string|nil  # Default `LibKeymapRuntime`.
 ---@return nil

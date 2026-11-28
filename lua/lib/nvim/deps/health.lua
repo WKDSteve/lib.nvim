@@ -75,6 +75,7 @@ end
 ---Report availability directly from a parsed spec's `tools` list (see
 ---`lib.nvim.deps.spec.load`/`parse_markdown`/`parse_json`), reusing each
 ---tool's declared `why` as the health-report hint.
+--- testing-perf: conditional: only for a tool with a `python_module`
 ---@param tools Lib.Deps.Tool[]
 function M.from_tools(tools)
   local entries = {} ---@type Lib.Deps.HealthEntry[]

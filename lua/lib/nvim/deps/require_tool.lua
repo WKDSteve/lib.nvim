@@ -221,6 +221,7 @@ end
 ---`opts.silent` suppresses the report while still answering the question —
 ---for a caller that wants the alternatives-aware lookup but has its own
 ---error path, e.g. one collecting several failures into a single summary.
+--- testing-perf: conditional: only when the tool is missing and `silent` is not set
 ---@param plugin_name string plugin the tool is declared by, e.g. "language.nvim"
 ---@param bin string canonical binary name, matching the spec's `bin`
 ---@param opts? { silent?: boolean, throttle_ms?: integer, manager?: Lib.Deps.Manager }
