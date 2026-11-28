@@ -15,7 +15,7 @@
 
 ---Options for `require("lib.nvim.contextmenu").bind_buffer(bufnr, get_items, opts)`.
 ---@class Lib.ContextMenu.BindOpts
----@field keymap? string     Trigger key (default `"<RightMouse>"`)
+---@field keymap? string|string[]  Trigger key(s), bound as given (default: `RIGHT_CLICKS`, every right click from single to quadruple)
 ---@field modes? string[]    Modes to bind in (default `{ "n", "v" }`)
 ---@field mouse? boolean     Pass `{ mouse = true }` to `menu.open` (default `true`)
 ---@field desc? string       Keymap description (default `"Context menu"`)
@@ -61,3 +61,4 @@
 ---@field submenu fun(label: string, items: Lib.ContextMenu.Item[], opts?: Lib.ContextMenu.ItemOpts): Lib.ContextMenu.Item|nil
 ---@field open fun(items: Lib.ContextMenu.Item[], opts?: Lib.ContextMenu.OpenOpts): Lib.UI.Kit.Surface|nil  Returns the kit surface (nil when disabled or `items` is empty)
 ---@field bind_buffer fun(bufnr: integer, get_items: Lib.ContextMenu.ItemsProvider, opts?: Lib.ContextMenu.BindOpts)
+---@field RIGHT_CLICKS string[]  `<RightMouse>`, `<2-RightMouse>`, `<3-RightMouse>`, `<4-RightMouse>`: a quick second click on one cell arrives as a double click

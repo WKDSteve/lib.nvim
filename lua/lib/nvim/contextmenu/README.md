@@ -110,7 +110,7 @@ contextmenu.heading(title)                     -- group heading marker; pass it 
 contextmenu.group(out, entry, entry, nil, entry)  -- varargs; appends non-nil items, separator between groups
 contextmenu.submenu(label, items, opts)        -- {name=label, items=items} or nil if items is empty
 contextmenu.open(items, opts)                  -- draw with the kit menu; returns its surface (nil when disabled/empty)
-contextmenu.bind_buffer(bufnr, get_items, opts) -- buffer-local <RightMouse>, opens via `open`
+contextmenu.bind_buffer(bufnr, get_items, opts) -- buffer-local right clicks (`RIGHT_CLICKS`: single to quadruple), opens via `open`
 ```
 
 See `@types/init.lua` for full field documentation (`Lib.ContextMenu.Item`,

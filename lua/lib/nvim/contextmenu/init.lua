@@ -279,20 +279,36 @@ function M.open(items, opts)
   })
 end
 
+--- Every right click a context menu answers: single, double, triple and
+--- quadruple (Neovim counts quick clicks on one cell up to four). The default
+--- trigger of `bind_buffer`; a host binding its own `<RightMouse>` maps these.
+---@type string[]
+M.RIGHT_CLICKS = { "<RightMouse>", "<2-RightMouse>", "<3-RightMouse>", "<4-RightMouse>" }
+
 --- Bind a mouse trigger on `bufnr` that opens `get_items()` with the kit
 --- renderer. Nothing is required at bind time, so this is safe to call
 --- unconditionally from a plugin's setup path; the kit menu is loaded when
 --- the trigger fires.
+---
+--- Without `opts.keymap` it binds every right click: `<RightMouse>` and the
+--- double, triple and quadruple click. Neovim reports a second click on the
+--- same cell within 'mousetime' (right click, `<Esc>`, right click again) as
+--- `<2-RightMouse>`; bound to `<RightMouse>` alone, that one went to Neovim
+--- (extend a selection, or its own PopUp menu) and the menu did not open. A
+--- given `opts.keymap` (one key or a list) is bound exactly as given.
 ---@param bufnr integer
 ---@param get_items Lib.ContextMenu.ItemsProvider
----@param opts? { keymap?: string, modes?: string[], mouse?: boolean, desc?: string }
+---@param opts? { keymap?: string|string[], modes?: string[], mouse?: boolean, desc?: string }
 function M.bind_buffer(bufnr, get_items, opts)
   opts = opts or {}
-  local keymap = opts.keymap or "<RightMouse>"
+  local keymaps = opts.keymap or M.RIGHT_CLICKS
+  if type(keymaps) == "string" then
+    keymaps = { keymaps }
+  end
   local modes = opts.modes or { "n", "v" }
   local mouse = opts.mouse ~= false
 
-  vim.keymap.set(modes, keymap, function()
+  local function trigger()
     -- `get_items` is supplied by another plugin; a raised error here must
     -- not turn a right-click into a raw traceback (ERR-01).
     local ok, items = pcall(get_items)
@@ -314,11 +330,15 @@ function M.bind_buffer(bufnr, get_items, opts)
     end
 
     M.open(items, { mouse = mouse })
-  end, {
-    buffer = bufnr,
-    silent = true,
-    desc = opts.desc or "Context menu",
-  })
+  end
+
+  for _, lhs in ipairs(keymaps) do
+    vim.keymap.set(modes, lhs, trigger, {
+      buffer = bufnr,
+      silent = true,
+      desc = opts.desc or "Context menu",
+    })
+  end
 end
 
 ---@type Lib.ContextMenu

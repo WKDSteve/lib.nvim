@@ -138,7 +138,10 @@ Lib.ContextMenu.Item ~
     hl      string?            Highlight group for the label
 
 Lib.ContextMenu.BindOpts ~
-    keymap   string?    Trigger key (default "<RightMouse>")
+    keymap   string|string[]?  Trigger key(s), bound as given (default
+                        RIGHT_CLICKS: "<RightMouse>" and the double,
+                        triple and quadruple right click -- a quick second
+                        click on one cell arrives as "<2-RightMouse>")
     modes    string[]?  Modes to bind in (default {"n", "v"})
     mouse    boolean?   Anchor the menu at the mouse pointer (default true)
     desc     string?    Keymap description (default "Context menu")

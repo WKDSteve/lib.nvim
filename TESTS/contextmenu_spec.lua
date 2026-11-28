@@ -366,6 +366,19 @@ return function(H)
       return {}
     end, { desc = "test menu" })
 
+    -- A quick second right click on the same cell arrives as <2-RightMouse>
+    -- (right click, <Esc>, right click again): the default trigger binds it too,
+    -- or Neovim would take it itself and the menu would not open.
+    for _, lhs in ipairs({ "<2-RightMouse>", "<3-RightMouse>", "<4-RightMouse>" }) do
+      for _, mode in ipairs({ "n", "v" }) do
+        local m = vim.fn.maparg(lhs, mode, false, true)
+        ok(
+          type(m) == "table" and m.buffer == 1 and m.desc == "test menu",
+          ("bind_buffer: the default trigger binds %s in mode %s"):format(lhs, mode)
+        )
+      end
+    end
+
     local mapped = vim.fn.maparg("<RightMouse>", "n", false, true)
     ok(
       type(mapped) == "table" and mapped.buffer == 1,
@@ -380,6 +393,34 @@ return function(H)
     eq(get_items_called, true, "bind_buffer: get_items is called on the trigger")
     ok(not chooser.is_open(), "bind_buffer: an empty item list opens nothing")
 
+    vim.cmd("bwipeout! " .. buf)
+  end
+
+  do
+    -- A given keymap is bound exactly as given: one key, or a list of keys.
+    vim.cmd("enew")
+    local buf = vim.api.nvim_get_current_buf()
+    contextmenu.bind_buffer(buf, function()
+      return {}
+    end, { keymap = "<F7>", desc = "own key" })
+    eq(
+      vim.fn.maparg("<F7>", "n", false, true).desc,
+      "own key",
+      "bind_buffer: a given keymap is bound"
+    )
+    eq(
+      vim.fn.maparg("<2-RightMouse>", "n", false, true).lhs,
+      nil,
+      "bind_buffer: a given keymap adds no right clicks of its own"
+    )
+    contextmenu.bind_buffer(buf, function()
+      return {}
+    end, { keymap = { "<F8>", "<F9>" }, desc = "own keys" })
+    eq(
+      vim.fn.maparg("<F9>", "n", false, true).desc,
+      "own keys",
+      "bind_buffer: a list of keys is bound"
+    )
     vim.cmd("bwipeout! " .. buf)
   end
 
