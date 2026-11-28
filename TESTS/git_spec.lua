@@ -220,9 +220,14 @@ return function(H)
   -- Outside any repo entirely: same failure shape, not a raise.
   local outside_dir = vim.fn.tempname() .. "-not-a-repo-blame"
   vim.fn.mkdir(outside_dir, "p")
-  local ok_call, outside_blame = pcall(git.blame_porcelain, "whatever.md", { dir = outside_dir })
+  local ok_call, outside_blame, outside_err =
+    pcall(git.blame_porcelain, "whatever.md", { dir = outside_dir })
   H.eq(ok_call, true, "git.blame_porcelain: outside a repo does not raise")
   H.eq(outside_blame, nil, "git.blame_porcelain: ...and reports failure, not an empty table")
+  H.ok(
+    type(outside_err) == "string" and #outside_err > 0 and outside_err ~= "git blame failed",
+    "git.blame_porcelain: ...with git's reason, not the generic text, got " .. tostring(outside_err)
+  )
   vim.fn.delete(outside_dir, "rf")
 
   -- ── M.blame_porcelain_async ──────────────────────────────────────────
