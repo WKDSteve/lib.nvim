@@ -684,7 +684,7 @@ end
 --- The working tree's status as a path -> entry map (see `parse_status` for the
 --- shape and the rename handling).
 ---
---- Synchronous: the underlying `run_blocking_captured` freezes the UI for the
+--- Synchronous: the underlying `run_blocking_result` freezes the UI for the
 --- call's duration, and `git status` on a large tree is not instant -- prefer
 --- `status_porcelain_async` on any repeated or automatic trigger.
 ---@param opts? Lib.Git.Opts
@@ -2188,7 +2188,7 @@ end
 --- Blame a file (or a line range within it) via `git blame --porcelain`.
 ---
 --- Synchronous, like every other function in this module (`ERR-01`: the
---- underlying `run_blocking_captured` call is a system-boundary shell-out,
+--- underlying `run_blocking_result` call is a system-boundary shell-out,
 --- and `git blame` on a large file can be slow -- prefer `blame_porcelain_async`
 --- on a hot/repeated path, e.g. a `CursorHold`-driven refresh).
 ---@param path string File path, relative to `opts.dir`/the cwd, or absolute.
@@ -2208,7 +2208,7 @@ end
 --- Async counterpart to `blame_porcelain` -- LUA-15: prefer this over the
 --- blocking version for any repeated/automatic trigger (a `CursorHold`-
 --- driven current-line blame refresh, in particular), since
---- `run_blocking_captured` freezes the UI for the call's duration and a
+--- `run_blocking_result` freezes the UI for the call's duration and a
 --- refresh firing on every cursor move is exactly the repeated-blocking-call
 --- pattern that adds up.
 ---@param path string File path, relative to `opts.dir`/the cwd, or absolute.
