@@ -169,6 +169,24 @@ function M.is_secret(bufnr)
   return ok and marked == true
 end
 
+--- The zindex of a float without an explicit one: the theme's level, raised above the float it is
+--- opened from (the current window, and `win` it is anchored to). A dialog below such a float takes
+--- the focus but cannot be seen: a snacks picker's floats sit at 52-55, above the popup level 50.
+---@param z integer
+---@param win? integer
+---@return integer
+local function above_opener(z, win)
+  for _, w in ipairs({ api.nvim_get_current_win(), win }) do
+    if w and w ~= 0 and api.nvim_win_is_valid(w) then
+      local cfg = api.nvim_win_get_config(w)
+      if cfg.relative ~= "" and (cfg.zindex or 0) >= z then
+        z = cfg.zindex + 1
+      end
+    end
+  end
+  return z
+end
+
 --- Open a themed float and return its handle (or nil on failure).
 ---@param opts? Lib.UI.Kit.SurfaceOpts
 ---@return Lib.UI.Kit.Surface|nil
@@ -188,7 +206,7 @@ function M.open(opts)
     border = resolved.border,
     title = opts.title,
     title_pos = opts.title_pos or resolved.title_pos,
-    zindex = opts.zindex or resolved.zindex.popup,
+    zindex = opts.zindex or above_opener(resolved.zindex.popup, opts.win),
     focusable = opts.focusable,
     enter = opts.enter,
     filetype = opts.filetype,

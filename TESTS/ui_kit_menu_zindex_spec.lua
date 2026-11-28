@@ -80,4 +80,35 @@ return function(H)
 
   close_floats()
   ok(host ~= nil, "host float was created")
+
+  -- any kit float, not only the menu: a confirm dialog opened from a float above the popup level
+  -- (a snacks picker's 52-55) lies above it, else it takes the focus unseen
+  local surface = require("lib.nvim.ui.kit.surface")
+  local kit = require("lib.nvim.ui.kit")
+  float(100, true)
+  local dlg = kit.confirm({ question = "Jump there?", on_answer = function() end })
+  ok(dlg and dlg.winid and api.nvim_win_is_valid(dlg.winid), "the confirm dialog opens")
+  local dz = api.nvim_win_get_config(dlg.winid).zindex
+  ok(dz > 100, ("a confirm opened from a float at 100 lies above it (got %s)"):format(dz))
+  dlg:close()
+
+  -- without a float the theme's popup level, and an explicit zindex is kept
+  close_floats()
+  local plain =
+    surface.open({ lines = { "x" }, width = 5, height = 1, relative = "editor", row = 1, col = 1 })
+  eq(api.nvim_win_get_config(plain.winid).zindex, theme.zindex.popup, "no float: the popup level")
+  plain:close()
+  float(100, true)
+  local fixed = surface.open({
+    lines = { "x" },
+    width = 5,
+    height = 1,
+    relative = "editor",
+    row = 1,
+    col = 1,
+    zindex = 42,
+  })
+  eq(api.nvim_win_get_config(fixed.winid).zindex, 42, "an explicit surface zindex is kept")
+  fixed:close()
+  close_floats()
 end
